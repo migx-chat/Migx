@@ -1,12 +1,13 @@
+
 import { StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
-export default function HomeScreen() {
+export default function ChatScreen() {
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.title}>Selamat Datang! 👋</ThemedText>
-      <ThemedText style={styles.subtitle}>Ini adalah halaman Home</ThemedText>
+      <ThemedText type="title" style={styles.title}>Chat</ThemedText>
+      <ThemedText>Ini adalah halaman Chat</ThemedText>
     </ThemedView>
   );
 }
@@ -20,9 +21,5 @@ const styles = StyleSheet.create({
   },
   title: {
     marginBottom: 20,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
   },
 });
