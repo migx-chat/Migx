@@ -45,7 +45,7 @@ export function ContactList() {
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>mig33 Contacts (0/33)</Text>
+        <Text style={styles.sectionTitle}>migx Contacts (0/33)</Text>
       </View>
 
       <View style={styles.section}>
