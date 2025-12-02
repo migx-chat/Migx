@@ -51,13 +51,14 @@ export function Header() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#4A90E2',
+    paddingTop: 8,
   },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     backgroundColor: '#4A90E2',
   },
   leftSection: {

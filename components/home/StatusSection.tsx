@@ -15,94 +15,140 @@ const MessageIcon = ({ size = 20 }: { size?: number }) => (
   </Svg>
 );
 
+const EggIcon = ({ size = 24 }: { size?: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M12 22C16.4183 22 20 17.5228 20 12C20 6.47715 16.4183 2 12 2C7.58172 2 4 6.47715 4 12C4 17.5228 7.58172 22 12 22Z" fill="#fff" stroke="#fff" strokeWidth="2"/>
+  </Svg>
+);
+
 export function StatusSection() {
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.userInfo}>
-          <View style={styles.statusDot} />
-          <Text style={styles.username}>h________</Text>
+      <View style={styles.mainContent}>
+        {/* Avatar and Status Section */}
+        <View style={styles.leftSection}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>👤</Text>
+            </View>
+            <View style={styles.statusDot} />
+          </View>
+          <View style={styles.userInfoContainer}>
+            <Text style={styles.username}>h________</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="<Enter your status message>"
+              placeholderTextColor="rgba(255, 255, 255, 0.7)"
+            />
+          </View>
         </View>
-        <View style={styles.icons}>
+
+        {/* Right Icons Section */}
+        <View style={styles.rightSection}>
           <TouchableOpacity style={styles.iconButton}>
-            <BellIcon />
+            <BellIcon size={18} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
-            <MessageIcon />
+            <MessageIcon size={18} />
           </TouchableOpacity>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>2</Text>
+          <View style={styles.badgeContainer}>
+            <EggIcon size={20} />
+            <Text style={styles.badgeNumber}>2</Text>
           </View>
         </View>
       </View>
-      <TextInput
-        style={styles.input}
-        placeholder="<Enter your status message>"
-        placeholderTextColor="#FFA07A"
-      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FF6347',
+    backgroundColor: '#FF6B35',
     borderWidth: 3,
-    borderColor: '#D2691E',
+    borderColor: '#CC5429',
     borderRadius: 8,
-    margin: 8,
-    padding: 12,
+    marginHorizontal: 8,
+    marginTop: 4,
+    marginBottom: 4,
+    padding: 8,
   },
-  header: {
+  mainContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
   },
-  userInfo: {
+  leftSection: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flex: 1,
     gap: 8,
   },
+  avatarContainer: {
+    position: 'relative',
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 4,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#CC5429',
+  },
+  avatarText: {
+    fontSize: 30,
+  },
   statusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#90EE90',
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#00FF00',
     borderWidth: 2,
     borderColor: '#fff',
+    position: 'absolute',
+    top: -2,
+    right: -2,
+  },
+  userInfoContainer: {
+    flex: 1,
+    justifyContent: 'center',
   },
   username: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
-  },
-  icons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  iconButton: {
-    padding: 4,
-  },
-  badge: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  badgeText: {
-    color: '#FF6347',
-    fontSize: 12,
-    fontWeight: 'bold',
+    marginBottom: 4,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 160, 122, 0.5)',
     borderRadius: 4,
-    padding: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     color: '#fff',
-    fontSize: 14,
+    fontSize: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  rightSection: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+    paddingTop: 2,
+  },
+  iconButton: {
+    padding: 3,
+  },
+  badgeContainer: {
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  badgeNumber: {
+    color: '#FF6B35',
+    fontSize: 11,
+    fontWeight: 'bold',
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -4 }, { translateY: -7 }],
   },
 });
