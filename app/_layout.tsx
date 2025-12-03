@@ -26,6 +26,8 @@ export default function RootLayout() {
         >
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="chatroom/[id]" />
+          <Stack.Screen name="transfer-credit" />
+          <Stack.Screen name="transfer-history" />
           <Stack.Screen name="+not-found" />
         </Stack>
 

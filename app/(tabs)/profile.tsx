@@ -1,5 +1,6 @@
 
 import { StyleSheet, View, SafeAreaView, ScrollView } from 'react-native';
+import { router } from 'expo-router';
 import { ThemedView } from '@/components/ThemedView';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ModeToggle } from '@/components/profile/ModeToggle';
@@ -25,6 +26,7 @@ export default function ProfileScreen() {
 
   const handleMyAccount = () => {
     console.log('My Account pressed');
+    router.push('/transfer-credit');
   };
 
   const handleOfficialComment = () => {
