@@ -66,15 +66,15 @@ export function ProfileHeader({ avatar, username, level, onEditPress }: ProfileH
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingTop: 40,
+    paddingBottom: 20,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
   },
   leftSection: {
     flexDirection: 'row',
