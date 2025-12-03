@@ -45,6 +45,7 @@ export default function ProfileScreen() {
 
   const handleLeaderboard = () => {
     console.log('Leaderboard pressed');
+    router.push('/leaderboard');
   };
 
   const handleMerchantDashboard = () => {
