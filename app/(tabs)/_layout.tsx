@@ -1,14 +1,11 @@
-import React, { useRef, useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Dimensions, Platform } from 'react-native';
-import { Tabs, usePathname, useRouter } from 'expo-router';
+import { Tabs } from 'expo-router';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
-  interpolate, 
-  withSpring,
-  runOnJS
+  withSpring
 } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 
@@ -16,7 +13,6 @@ import { useThemeCustom } from '@/theme/provider';
 import { HomeIcon, ChatIcon, RoomIcon, ProfileIcon } from '@/components/ui/SvgIcons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
 
 interface TabItem {
   key: string;
@@ -32,19 +28,6 @@ const TABS: TabItem[] = [
   { key: 'profile', name: 'profile', title: 'Profile', icon: ProfileIcon },
 ];
 
-const ROUTE_TO_INDEX: Record<string, number> = {
-  '/': 0,
-  '/index': 0,
-  '/chat': 1,
-  '/room': 2,
-  '/profile': 3,
-  '/(tabs)': 0,
-  '/(tabs)/index': 0,
-  '/(tabs)/chat': 1,
-  '/(tabs)/room': 2,
-  '/(tabs)/profile': 3,
-};
-
 interface CustomTabBarProps {
   state: any;
   descriptors: any;
@@ -54,11 +37,8 @@ interface CustomTabBarProps {
 function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
   const { theme, isDark } = useThemeCustom();
   const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const pathname = usePathname();
   
   const animatedIndex = useSharedValue(state.index);
-  const translateX = useSharedValue(0);
   
   const TAB_WIDTH = SCREEN_WIDTH / TABS.length;
   const INDICATOR_WIDTH = 40;
@@ -69,23 +49,13 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
   }, [state.index]);
 
   const indicatorStyle = useAnimatedStyle(() => {
-    const position = interpolate(
-      animatedIndex.value + (translateX.value / SCREEN_WIDTH),
-      TABS.map((_, i) => i),
-      TABS.map((_, i) => i * TAB_WIDTH + INDICATOR_OFFSET)
-    );
-
+    const position = animatedIndex.value * TAB_WIDTH + INDICATOR_OFFSET;
     return {
       transform: [{ translateX: withSpring(position, { damping: 15, stiffness: 150 }) }],
     };
   });
 
-  const navigateToTab = useCallback((index: number) => {
-    'worklet';
-    runOnJS(handleNavigate)(index);
-  }, []);
-
-  const handleNavigate = (index: number) => {
+  const handleNavigate = useCallback((index: number) => {
     const route = TABS[index];
     if (route) {
       const event = navigation.emit({
@@ -97,73 +67,55 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
         navigation.navigate(route.name);
       }
     }
-  };
+  }, [navigation]);
 
-  const swipeGesture = Gesture.Pan()
-    .onUpdate((e) => {
-      translateX.value = e.translationX;
-    })
-    .onEnd((e) => {
-      const currentIndex = state.index;
-      
-      if (e.translationX < -SWIPE_THRESHOLD && currentIndex < TABS.length - 1) {
-        navigateToTab(currentIndex + 1);
-      } else if (e.translationX > SWIPE_THRESHOLD && currentIndex > 0) {
-        navigateToTab(currentIndex - 1);
-      }
-      
-      translateX.value = 0;
-    });
-
-  const handlePress = (index: number) => {
+  const handlePress = useCallback((index: number) => {
     if (Platform.OS === 'ios') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     handleNavigate(index);
-  };
+  }, [handleNavigate]);
 
   return (
-    <GestureDetector gesture={swipeGesture}>
-      <View 
+    <View 
+      style={[
+        styles.tabBar, 
+        { 
+          backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
+          paddingBottom: insets.bottom || 8,
+          borderTopColor: theme.border,
+        }
+      ]}
+    >
+      <Animated.View
         style={[
-          styles.tabBar, 
-          { 
-            backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
-            paddingBottom: insets.bottom || 8,
-            borderTopColor: theme.border,
-          }
+          styles.indicator,
+          { backgroundColor: theme.primary },
+          indicatorStyle,
         ]}
-      >
-        <Animated.View
-          style={[
-            styles.indicator,
-            { backgroundColor: theme.primary },
-            indicatorStyle,
-          ]}
-        />
-        
-        <View style={styles.tabsRow}>
-          {TABS.map((tab, index) => {
-            const isActive = state.index === index;
-            const color = isActive ? theme.primary : theme.secondary;
+      />
+      
+      <View style={styles.tabsRow}>
+        {TABS.map((tab, index) => {
+          const isActive = state.index === index;
+          const color = isActive ? theme.primary : theme.secondary;
 
-            return (
-              <TouchableOpacity
-                key={tab.key}
-                style={styles.tab}
-                onPress={() => handlePress(index)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.tabContent}>
-                  {tab.icon({ color, size: 24 })}
-                  <Text style={[styles.tabLabel, { color }]}>{tab.title}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={styles.tab}
+              onPress={() => handlePress(index)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.tabContent}>
+                {tab.icon({ color, size: 24 })}
+                <Text style={[styles.tabLabel, { color }]}>{tab.title}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
-    </GestureDetector>
+    </View>
   );
 }
 
