@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
-  withSpring
+  withTiming
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -45,33 +45,28 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
   const INDICATOR_OFFSET = (TAB_WIDTH - INDICATOR_WIDTH) / 2;
 
   useEffect(() => {
-    animatedIndex.value = state.index;
+    animatedIndex.value = withTiming(state.index, { duration: 200 });
   }, [state.index]);
 
   const indicatorStyle = useAnimatedStyle(() => {
     const position = animatedIndex.value * TAB_WIDTH + INDICATOR_OFFSET;
     return {
-      transform: [{ translateX: withSpring(position, { damping: 15, stiffness: 150 }) }],
+      transform: [{ translateX: position }],
     };
   });
 
   const handleNavigate = useCallback((index: number) => {
     const route = TABS[index];
     if (route) {
-      const event = navigation.emit({
-        type: 'tabPress',
-        target: route.key,
-        canPreventDefault: true,
-      });
-      if (!event.defaultPrevented) {
-        navigation.navigate(route.name);
-      }
+      navigation.navigate(route.name);
     }
   }, [navigation]);
 
   const handlePress = useCallback((index: number) => {
     if (Platform.OS === 'ios') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (e) {}
     }
     handleNavigate(index);
   }, [handleNavigate]);
@@ -120,8 +115,6 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
 }
 
 export default function TabLayout() {
-  const { theme } = useThemeCustom();
-
   return (
     <Tabs
       screenOptions={{
