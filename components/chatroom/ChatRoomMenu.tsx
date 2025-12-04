@@ -17,13 +17,21 @@ interface ChatRoomMenuProps {
   visible: boolean;
   onClose: () => void;
   onMenuItemPress: (action: string) => void;
+  onOpenCmdList?: () => void;
 }
 
-export function ChatRoomMenu({ visible, onClose, onMenuItemPress }: ChatRoomMenuProps) {
+export function ChatRoomMenu({ visible, onClose, onMenuItemPress, onOpenCmdList }: ChatRoomMenuProps) {
   const { theme } = useThemeCustom();
   
+  const handleCmdPress = () => {
+    onClose();
+    if (onOpenCmdList) {
+      onOpenCmdList();
+    }
+  };
+  
   const menuItems = [
-    { icon: CmdIcon, label: 'Cmd', action: 'cmd' },
+    { icon: CmdIcon, label: 'Cmd', action: 'cmd', onPress: handleCmdPress },
     { icon: SendGiftIcon, label: 'Send Gift', action: 'send-gift' },
     { icon: KickIcon, label: 'Kick', action: 'kick' },
     { icon: ParticipantsIcon, label: 'Participants', action: 'participants' },
@@ -59,7 +67,7 @@ export function ChatRoomMenu({ visible, onClose, onMenuItemPress }: ChatRoomMenu
                   styles.menuItem,
                   index < menuItems.length - 1 && [styles.menuItemBorder, { borderBottomColor: theme.border }],
                 ]}
-                onPress={() => handleMenuPress(item.action)}
+                onPress={() => item.onPress ? item.onPress() : handleMenuPress(item.action)}
               >
                 <item.icon size={32} color={theme.text} bgColor={theme.background} />
                 <Text style={[styles.menuLabel, { color: theme.text }]}>

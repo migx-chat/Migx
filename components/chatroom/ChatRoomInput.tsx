@@ -10,6 +10,7 @@ import { useThemeCustom } from '@/theme/provider';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { ChatRoomMenu } from './ChatRoomMenu';
 import { EmojiPicker } from './EmojiPicker';
+import { CmdList } from './CmdList';
 
 interface ChatRoomInputProps {
   onSend: (message: string) => void;
@@ -50,13 +51,30 @@ const SendIcon = ({ size = 22, color = '#8B5CF6' }) => (
 export function ChatRoomInput({ onSend }: ChatRoomInputProps) {
   const [message, setMessage] = useState('');
   const [menuVisible, setMenuVisible] = useState(false);
-  const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
+  const [emojiVisible, setEmojiVisible] = useState(false);
+  const [cmdListVisible, setCmdListVisible] = useState(false);
   const { theme } = useThemeCustom();
 
   const handleSend = () => {
     if (!message.trim()) return;
     onSend(message.trim());
     setMessage('');
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setMessage((prev) => prev + emoji);
+  };
+
+  const handleSelectCmd = (cmd: string) => {
+    setMessage(cmd + ' ');
+  };
+
+  const handleMenuItemPress = (action: string) => {
+    console.log('Menu action:', action);
+    // Add logic here to handle menu item presses, potentially opening CmdList
+    if (action === 'commands') {
+      setCmdListVisible(true);
+    }
   };
 
   return (
@@ -91,16 +109,23 @@ export function ChatRoomInput({ onSend }: ChatRoomInputProps) {
         <SendIcon color={message.trim() ? theme.primary : theme.secondary} />
       </TouchableOpacity>
 
-      <ChatRoomMenu 
-        visible={menuVisible} 
-        onClose={() => setMenuVisible(false)} 
-        onMenuItemPress={(action) => console.log('Menu action:', action)}
+      <ChatRoomMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        onMenuItemPress={handleMenuItemPress}
+        onOpenCmdList={() => setCmdListVisible(true)}
       />
 
       <EmojiPicker
         visible={emojiPickerVisible}
         onClose={() => setEmojiPickerVisible(false)}
-        onEmojiSelect={(emoji) => setMessage(prev => prev + emoji)}
+        onEmojiSelect={handleEmojiSelect}
+      />
+
+      <CmdList
+        visible={cmdListVisible}
+        onClose={() => setCmdListVisible(false)}
+        onSelectCmd={handleSelectCmd}
       />
     </View>
   );
