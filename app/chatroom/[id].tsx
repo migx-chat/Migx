@@ -6,17 +6,23 @@ import {
   Platform,
   Keyboard,
   Alert,
+  Modal,
+  Text,
+  TouchableOpacity,
+  FlatList,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeCustom } from '@/theme/provider';
 import { io, Socket } from 'socket.io-client';
+import Svg, { EllipsisVertical } from 'react-native-svg'; // Import Svg components
 
 import { ChatRoomHeader } from '@/components/chatroom/ChatRoomHeader';
 import { ChatRoomContent } from '@/components/chatroom/ChatRoomContent';
 import { ChatRoomInput } from '@/components/chatroom/ChatRoomInput';
 import { MenuKickModal } from '@/components/chatroom/MenuKickModal';
 import { VoteKickButton } from '@/components/chatroom/VoteKickButton';
+import { ChatRoomMenu } from '@/components/chatroom/ChatRoomMenu'; // Assuming ChatRoomMenu is imported
 
 interface ChatTab {
   id: string;
@@ -35,19 +41,22 @@ export default function ChatRoomScreen() {
 
   const roomId = params.id as string;
   const roomName = (params.name as string) || 'Mobile fun';
-  
+
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [currentUsername, setCurrentUsername] = useState('migx'); // Replace with actual username
   const [isAdmin, setIsAdmin] = useState(false); // Replace with actual admin status
   const [roomUsers, setRoomUsers] = useState<string[]>(['migx', 'mad', 'user1', 'user2']);
   const [kickModalVisible, setKickModalVisible] = useState(false);
+  const [selectedUserToKick, setSelectedUserToKick] = useState<string | null>(null);
+  const [participantsModalVisible, setParticipantsModalVisible] = useState(false); // State for participants modal
   const [activeVote, setActiveVote] = useState<{
     target: string;
     remainingVotes: number;
     remainingSeconds: number;
   } | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false); // State for the main menu
 
   // Initialize socket connection
   useEffect(() => {
@@ -198,7 +207,7 @@ export default function ChatRoomScreen() {
 
   const handleStartKick = (target: string) => {
     if (!socket) return;
-    
+
     socket.emit('kick-start', {
       roomId,
       startedBy: currentUsername,
@@ -208,7 +217,7 @@ export default function ChatRoomScreen() {
 
   const handleAdminKick = (target: string) => {
     if (!socket) return;
-    
+
     socket.emit('admin-kick', {
       roomId,
       target,
@@ -217,14 +226,30 @@ export default function ChatRoomScreen() {
 
   const handleVoteKick = () => {
     if (!socket || !activeVote || hasVoted) return;
-    
+
     socket.emit('kick-vote', {
       roomId,
       username: currentUsername,
       target: activeVote.target,
     });
-    
+
     setHasVoted(true);
+  };
+
+  const handleMenuAction = (action: string) => {
+    console.log('Menu action:', action);
+    if (action === 'kick') {
+      setKickModalVisible(true);
+    }
+  };
+
+  const handleOpenParticipants = () => {
+    setParticipantsModalVisible(true);
+  };
+
+  const handleUserMenuPress = (username: string) => {
+    console.log('User menu pressed:', username);
+    // You can add more actions here (e.g., show user profile, send message, etc.)
   };
 
   const handleMenuItemPress = (action: string) => {
@@ -233,12 +258,13 @@ export default function ChatRoomScreen() {
     }
   };
 
+
   const currentTab = tabs.find(t => t.id === activeTab);
 
   return (
     <View style={[styles.container, { backgroundColor: HEADER_COLOR }]}>
       <StatusBar barStyle="light-content" backgroundColor={HEADER_COLOR} />
-      
+
       <ChatRoomHeader
         tabs={tabs}
         activeTab={activeTab}
@@ -278,6 +304,7 @@ export default function ChatRoomScreen() {
         <ChatRoomInput 
           onSend={handleSendMessage} 
           onMenuItemPress={handleMenuItemPress}
+          onMenuPress={() => setMenuVisible(true)} // Assuming ChatRoomInput has a prop to open the menu
         />
       </View>
 
@@ -287,6 +314,47 @@ export default function ChatRoomScreen() {
         users={roomUsers}
         currentUsername={currentUsername}
         onSelectUser={handleSelectUserToKick}
+      />
+
+      {/* Participants Modal */}
+      <Modal
+        visible={participantsModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleOpenParticipants}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.participantsModalContent, { backgroundColor: theme.background }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Participants</Text>
+              <TouchableOpacity onPress={handleOpenParticipants}>
+                {/* Close icon or text */}
+                <Text style={[styles.closeButton, { color: theme.primary }]}>X</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={roomUsers}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <View style={styles.userItem}>
+                  <Text style={{ color: theme.text }}>{item}</Text>
+                  <TouchableOpacity onPress={() => handleUserMenuPress(item)}>
+                    <Svg height="24" width="24" viewBox="0 0 24 24">
+                      <EllipsisVertical fill={theme.text} />
+                    </Svg>
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      <ChatRoomMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        onMenuItemPress={handleMenuAction}
+        onOpenParticipants={handleOpenParticipants} // Pass the handler here
       />
     </View>
   );
@@ -300,5 +368,40 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputWrapper: {
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'flex-end', // Align to the right
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingRight: 10, // Add some padding from the right edge
+  },
+  participantsModalContent: {
+    width: '70%', // Adjust width as needed
+    height: '80%', // Adjust height as needed
+    borderRadius: 10,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  userItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
   },
 });

@@ -18,9 +18,10 @@ interface ChatRoomMenuProps {
   onClose: () => void;
   onMenuItemPress: (action: string) => void;
   onOpenCmdList?: () => void;
+  onOpenParticipants?: () => void;
 }
 
-export function ChatRoomMenu({ visible, onClose, onMenuItemPress, onOpenCmdList }: ChatRoomMenuProps) {
+export function ChatRoomMenu({ visible, onClose, onMenuItemPress, onOpenCmdList, onOpenParticipants }: ChatRoomMenuProps) {
   const { theme } = useThemeCustom();
   
   const handleCmdPress = () => {
@@ -30,11 +31,18 @@ export function ChatRoomMenu({ visible, onClose, onMenuItemPress, onOpenCmdList 
     }
   };
   
+  const handleParticipantsPress = () => {
+    onClose();
+    if (onOpenParticipants) {
+      onOpenParticipants();
+    }
+  };
+  
   const menuItems = [
     { icon: CmdIcon, label: 'Cmd', action: 'cmd', onPress: handleCmdPress },
     { icon: SendGiftIcon, label: 'Send Gift', action: 'send-gift' },
     { icon: KickIcon, label: 'Kick', action: 'kick' },
-    { icon: ParticipantsIcon, label: 'Participants', action: 'participants' },
+    { icon: ParticipantsIcon, label: 'Participants', action: 'participants', onPress: handleParticipantsPress },
     { icon: RoomInfoIcon, label: 'Room Info', action: 'room-info' },
     { icon: FavoriteIcon, label: 'Add to Favorites', action: 'add-favorite' },
     { icon: GroupsIcon, label: 'Groups', action: 'groups' },
