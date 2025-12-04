@@ -22,6 +22,7 @@ export default function ProfileScreen() {
 
   const handleEditProfile = () => {
     console.log('Edit profile pressed');
+    router.push('/edit-profile');
   };
 
   const handleMyAccount = () => {
