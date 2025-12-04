@@ -27,8 +27,8 @@ export function Header() {
   const { theme } = useThemeCustom();
   
   return (
-    <View style={[styles.container, { backgroundColor: '#FF8C00' }]}>
-      <View style={[styles.topBar, { backgroundColor: '#FF8C00', borderBottomColor: theme.border }]}>
+    <View style={[styles.container, { backgroundColor: '#0a5229' }]}>
+      <View style={[styles.topBar, { backgroundColor: '#0a5229', borderBottomColor: theme.border }]}>
         <View style={styles.leftSection}>
           <UserIcon size={20} color="#FFFFFF" />
           <Text style={[styles.title, { color: '#FFFFFF' }]}>My Friends</Text>
