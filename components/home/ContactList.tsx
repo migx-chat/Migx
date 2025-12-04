@@ -1,41 +1,33 @@
-
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { useThemeCustom } from '@/theme/provider';
 import { ContactItem } from './ContactItem';
 
 const onlineFriends = [
-  { name: 'l________', status: 'No pain no gain', isOnline: true },
-  { name: 'litz____', status: 'dapat jg orkor, wlpn of di teguin on wkwk', isOnline: false },
-  { name: 'm________', status: 'عَ۞تبنَنہيک شَيُوَتہ،او مَےَوتہ ووَ', isOnline: false },
-  { name: 'q______', status: '???', isOnline: false },
+  { name: 'acun', status: '👑', isOnline: true, lastSeen: 'Last seen 04-Dec 17:30', avatar: '👤' },
+  { name: 'adit_namaq', status: 'sedang mengetik.....l', isOnline: true, lastSeen: 'Last seen 04-Dec 17:28', avatar: '👤' },
+  { name: 'bri', status: 'enter ( cebol sedunia )', isOnline: false, lastSeen: 'Last seen 04-Dec 16:45', avatar: '👤' },
+  { name: 'dee', status: '🏰Togel chātröõm', isOnline: false, lastSeen: 'Last seen 04-Dec 15:20', avatar: '👤' },
+  { name: 'dessy', status: '😀', isOnline: true, lastSeen: 'Last seen 04-Dec 17:25', avatar: '👤' },
+  { name: 'ecca', status: 'it\'s a dog🐶', isOnline: true, lastSeen: 'Last seen 04-Dec 17:29', avatar: '👤' },
+  { name: 'gita', status: 'I ❤️ YOU', isOnline: false, lastSeen: 'Last seen 04-Dec 14:10', avatar: '👤' },
+  { name: 'glez', status: '💕 M♡rЯÿ♡r♡ 💕', isOnline: true, lastSeen: 'Last seen 04-Dec 17:31', avatar: '👤' },
+  { name: 'jib', status: 'MultiGram of War', isOnline: true, lastSeen: 'Last seen 04-Dec 17:27', avatar: '👤' },
+  { name: 'jova', status: '💘💘💘💘💘', isOnline: true, lastSeen: 'Last seen 04-Dec 17:32', avatar: '👤' },
 ];
 
 const mig33Contacts = [
-  { name: 'an________', status: '', isOnline: false },
-  { name: 'an________', status: '', isOnline: false },
-  { name: 'an________', status: '', isOnline: false },
-  { name: 'a________', status: '', isOnline: false },
-  { name: '______', status: 'hmmm...', isOnline: false },
-  { name: 'b____', status: 'di 25 ilu maraman - is', isOnline: false },
-  { name: 'ce________', status: '', isOnline: false },
-  { name: 'cv________', status: '', isOnline: false },
-  { name: 'ch________', status: 'is', isOnline: false },
-  { name: 'cis________', status: '', isOnline: false },
-  { name: 'd____', status: 'olivia_9933', isOnline: false },
-  { name: 'di____blue', status: '', isOnline: false },
-  { name: 'di________', status: '', isOnline: false },
-  { name: 'kie____', status: 'S.E.N.D.I.R.I', isOnline: false },
-  { name: 'l4d4____4l4d2', status: '', isOnline: false },
-  { name: 'l________', status: '', isOnline: false },
-  { name: 'ma____', status: 'From office.. Goin\' home..', isOnline: false },
+  { name: 'l________', status: 'No pain no gain', isOnline: true, lastSeen: 'Last seen 04-Dec 17:15', avatar: '👤' },
+  { name: 'litz____', status: 'dapat jg orkor, wlpn of di teguin on wkwk', isOnline: false, lastSeen: 'Last seen 04-Dec 12:30', avatar: '👤' },
+  { name: 'm________', status: 'عَ۞تبنَنہيک شَيُوَتہ،او مَےَوتہ ووَ', isOnline: false, lastSeen: 'Last seen 04-Dec 10:20', avatar: '👤' },
+  { name: 'q______', status: '???', isOnline: false, lastSeen: 'Last seen 04-Dec 08:45', avatar: '👤' },
 ];
 
 export function ContactList() {
   const { theme } = useThemeCustom();
-  
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
       <View style={styles.section}>
         {onlineFriends.map((friend, index) => (
           <ContactItem
@@ -43,6 +35,8 @@ export function ContactList() {
             name={friend.name}
             status={friend.status}
             isOnline={friend.isOnline}
+            lastSeen={friend.lastSeen}
+            avatar={friend.avatar}
           />
         ))}
       </View>
@@ -58,9 +52,12 @@ export function ContactList() {
             name={contact.name}
             status={contact.status}
             isOnline={contact.isOnline}
+            lastSeen={contact.lastSeen}
+            avatar={contact.avatar}
           />
         ))}
       </View>
+      <View style={styles.spacer} />
     </ScrollView>
   );
 }
@@ -81,5 +78,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  spacer: {
+    height: 20,
   },
 });
