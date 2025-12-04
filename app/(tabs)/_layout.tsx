@@ -4,7 +4,8 @@ import { Tabs } from 'expo-router';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
-  withTiming
+  withSpring,
+  Easing
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -45,7 +46,14 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
   const INDICATOR_OFFSET = (TAB_WIDTH - INDICATOR_WIDTH) / 2;
 
   useEffect(() => {
-    animatedIndex.value = withTiming(state.index, { duration: 200 });
+    animatedIndex.value = withSpring(state.index, {
+      damping: 20,
+      stiffness: 300,
+      mass: 0.5,
+      overshootClamping: false,
+      restDisplacementThreshold: 0.01,
+      restSpeedThreshold: 0.01,
+    });
   }, [state.index]);
 
   const indicatorStyle = useAnimatedStyle(() => {
@@ -119,6 +127,9 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        animation: 'shift',
+        animationDuration: 150,
+        lazy: false,
       }}
       tabBar={(props) => <CustomTabBar {...props} />}
     >
