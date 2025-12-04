@@ -72,16 +72,17 @@ export function ChatMessage({
         <Text style={[styles.username, { color: getUsernameColor() }]}>
           {username} :{' '}
         </Text>
-        {parsedMessage.map((item) => {
+        {parsedMessage.map((item, index) => {
           if (item.type === 'emoji') {
             return (
-              <View key={item.key} style={styles.emojiWrapper}>
+              <Text key={item.key}>
+                {' '}
                 <Image
                   source={item.src}
                   style={styles.emojiImage}
                   resizeMode="contain"
                 />
-              </View>
+              </Text>
             );
           }
           return (
@@ -111,13 +112,10 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 13,
   },
-  emojiWrapper: {
-    width: 18,
-    height: 18,
-  },
   emojiImage: {
-    width: 18,
-    height: 18,
+    width: 16,
+    height: 16,
+    marginBottom: -3,
   },
   noticeContainer: {
     paddingVertical: 8,
