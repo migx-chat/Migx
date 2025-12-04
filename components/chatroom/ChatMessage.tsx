@@ -26,8 +26,7 @@ export function ChatMessage({ username, message, timestamp, isSystem, isNotice, 
   };
 
   const getMessageColor = () => {
-    if (isOwnMessage) return '#2d7a4f';
-    return theme.text;
+    return '#000000';
   };
 
   if (isNotice) {
@@ -42,30 +41,26 @@ export function ChatMessage({ username, message, timestamp, isSystem, isNotice, 
 
   return (
     <View style={styles.messageContainer}>
-      <View style={styles.usernameContainer}>
-        <Text style={[styles.username, { color: getUsernameColor() }]}>
-          {username}:
-        </Text>
-      </View>
-      <View style={styles.messageContent}>
-        {parsedMessage.map((item) => {
-          if (item.type === 'emoji') {
-            return (
-              <Image
-                key={item.key}
-                source={item.src}
-                style={styles.emojiImage}
-                resizeMode="contain"
-              />
-            );
-          }
+      <Text style={[styles.username, { color: getUsernameColor() }]}>
+        {username}:{' '}
+      </Text>
+      {parsedMessage.map((item) => {
+        if (item.type === 'emoji') {
           return (
-            <Text key={item.key} style={[styles.message, { color: getMessageColor() }]}>
-              {item.content}
-            </Text>
+            <Image
+              key={item.key}
+              source={item.src}
+              style={styles.emojiImage}
+              resizeMode="contain"
+            />
           );
-        })}
-      </View>
+        }
+        return (
+          <Text key={item.key} style={[styles.message, { color: getMessageColor() }]}>
+            {item.content}
+          </Text>
+        );
+      })}
     </View>
   );
 }
@@ -73,25 +68,19 @@ export function ChatMessage({ username, message, timestamp, isSystem, isNotice, 
 const styles = StyleSheet.create({
   messageContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingVertical: 4,
     paddingHorizontal: 12,
-  },
-  usernameContainer: {
-    marginRight: 4,
+    alignItems: 'flex-start',
   },
   username: {
     fontSize: 13,
     fontWeight: 'bold',
   },
-  messageContent: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    flex: 1,
-  },
   message: {
     fontSize: 13,
     lineHeight: 18,
+    flexShrink: 1,
   },
   emojiImage: {
     width: 18,
