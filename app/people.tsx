@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   View, 
@@ -63,29 +62,29 @@ const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
   admin: {
     label: 'ADMIN',
     color: '#FF8C42',
-    bgColor: 'rgba(255, 140, 66, 0.15)',
-    textColor: '#D2691E',
+    bgColor: '#ADD8E6', // Aqua
+    textColor: '#2E5C8A', // Darker shade for contrast
     abbreviation: 'A'
   },
   care_service: {
-    label: 'CARE SERVICE',
+    label: 'CS', // Renamed from 'CARE SERVICE'
     color: '#4A90E2',
-    bgColor: 'rgba(74, 144, 226, 0.15)',
-    textColor: '#2E5C8A',
+    bgColor: '#ADD8E6', // Aqua
+    textColor: '#2E5C8A', // Darker shade for contrast
     abbreviation: 'CS'
   },
   mentor: {
     label: 'MENTOR',
     color: '#E74C3C',
-    bgColor: 'rgba(231, 76, 60, 0.15)',
-    textColor: '#C0392B',
+    bgColor: '#ADD8E6', // Aqua
+    textColor: '#2E5C8A', // Darker shade for contrast
     abbreviation: 'MT'
   },
   merchant: {
     label: 'MERCHANT',
     color: '#9B59B6',
-    bgColor: 'rgba(155, 89, 182, 0.15)',
-    textColor: '#7D3C98',
+    bgColor: '#ADD8E6', // Aqua
+    textColor: '#2E5C8A', // Darker shade for contrast
     abbreviation: 'M'
   }
 };
@@ -116,18 +115,18 @@ export default function PeoplePage() {
 
   const renderUserItem = ({ item }: { item: User }) => {
     const config = ROLE_CONFIGS[item.role];
-    
+
     return (
       <TouchableOpacity 
         style={styles.userItem}
         activeOpacity={0.7}
       >
-        <View style={[styles.userAvatar, { backgroundColor: '#fff' }]}>
-          <Text style={[styles.userAvatarText, { color: config.color }]}>
+        <View style={[styles.userAvatar, { backgroundColor: theme.primary }]}>
+          <Text style={[styles.userAvatarText, { color: theme.text }]}>
             {item.name.charAt(0)}
           </Text>
         </View>
-        <Text style={styles.userName}>{item.name}</Text>
+        <Text style={[styles.userName, { color: theme.text }]}>{item.name}</Text>
       </TouchableOpacity>
     );
   };
@@ -142,18 +141,21 @@ export default function PeoplePage() {
         <TouchableOpacity
           style={[
             styles.roleHeader,
-            { backgroundColor: config.bgColor }
+            {
+              backgroundColor: config.bgColor,
+              borderColor: theme.border,
+            }
           ]}
           onPress={() => toggleRole(role)}
-          activeOpacity={0.8}
+          activeOpacity={0.7}
         >
           <View style={styles.roleHeaderLeft}>
-            <View style={[styles.roleAvatar, { backgroundColor: '#fff' }]}>
-              <Text style={[styles.roleAbbreviation, { color: config.textColor }]}>
+            <View style={[styles.roleAvatar, { backgroundColor: theme.primary }]}>
+              <Text style={[styles.roleAbbreviation, { color: theme.text }]}>
                 {config.abbreviation}
               </Text>
             </View>
-            <Text style={[styles.roleLabel, { color: config.textColor }]}>
+            <Text style={[styles.roleLabel, { color: theme.text }]}>
               {config.label}
             </Text>
           </View>
@@ -161,12 +163,12 @@ export default function PeoplePage() {
             styles.chevronContainer,
             isExpanded && styles.chevronRotated
           ]}>
-            <ChevronDownIcon size={24} color={config.textColor} />
+            <ChevronDownIcon size={24} color={theme.text} />
           </View>
         </TouchableOpacity>
 
         {isExpanded && (
-          <View style={styles.userListContainer}>
+          <View style={[styles.userListContainer, { backgroundColor: theme.card }]}>
             <FlatList
               data={users}
               renderItem={renderUserItem}
@@ -186,16 +188,16 @@ export default function PeoplePage() {
       transparent={true}
       onRequestClose={() => router.back()}
     >
-      <View style={styles.modalOverlay}>
+      <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
         <TouchableOpacity 
           style={styles.backdrop}
           activeOpacity={1}
           onPress={() => router.back()}
         />
-        
-        <View style={[styles.modalContainer, { height: SCREEN_HEIGHT * 0.7 }]}>
+
+        <View style={[styles.modalContainer, { height: SCREEN_HEIGHT * 0.7, backgroundColor: theme.modalBackground }]}>
           {/* Header */}
-          <View style={[styles.header, { backgroundColor: '#4A90E2' }]}>
+          <View style={[styles.header, { backgroundColor: '#0a5229' }]}>
             <Text style={styles.headerTitle}>People</Text>
             <TouchableOpacity
               style={styles.closeButton}
@@ -226,14 +228,12 @@ export default function PeoplePage() {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   backdrop: {
     flex: 1,
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
@@ -280,55 +280,55 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   roleContainer: {
-    marginBottom: 8,
-    borderRadius: 20,
+    borderRadius: 12, // Smaller radius for compact look
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2, // Reduced shadow height
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.08, // Reduced opacity
+    shadowRadius: 6, // Reduced radius
+    elevation: 3, // Reduced elevation
   },
   roleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    borderRadius: 20,
+    paddingVertical: 16, // Reduced padding
+    paddingHorizontal: 16, // Reduced padding
+    borderRadius: 12, // Smaller radius for compact look
+    borderWidth: 1,
     backdropFilter: 'blur(10px)',
   },
   roleHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 12, // Reduced gap
     flex: 1,
   },
   roleAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48, // Smaller size
+    height: 48, // Smaller size
+    borderRadius: 24, // Half of size
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 1, // Reduced shadow height
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.08, // Reduced opacity
+    shadowRadius: 2, // Reduced radius
+    elevation: 2, // Reduced elevation
   },
   roleAbbreviation: {
-    fontSize: 20,
+    fontSize: 18, // Smaller font size
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   roleLabel: {
-    fontSize: 18,
+    fontSize: 16, // Smaller font size
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
@@ -340,27 +340,27 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '180deg' }],
   },
   userListContainer: {
-    backgroundColor: '#fff',
     paddingTop: 8,
-    paddingBottom: 12,
-    paddingHorizontal: 12,
+    paddingBottom: 8, // Reduced padding
+    paddingHorizontal: 8, // Reduced padding
+    borderRadius: 12, // Match roleContainer
   },
   userItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10, // Reduced padding
+    paddingHorizontal: 12, // Reduced padding
     backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    marginBottom: 8,
+    borderRadius: 10, // Smaller radius
+    marginBottom: 6, // Reduced margin
   },
   userAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36, // Smaller size
+    height: 36, // Smaller size
+    borderRadius: 18, // Half of size
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10, // Reduced margin
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -371,12 +371,11 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   userAvatarText: {
-    fontSize: 16,
+    fontSize: 14, // Smaller font size
     fontWeight: 'bold',
   },
   userName: {
-    fontSize: 16,
-    color: '#333',
+    fontSize: 14, // Smaller font size
     fontWeight: '500',
   },
 });
