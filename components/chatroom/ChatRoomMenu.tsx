@@ -17,32 +17,17 @@ interface ChatRoomMenuProps {
   visible: boolean;
   onClose: () => void;
   onMenuItemPress: (action: string) => void;
-  onOpenCmdList?: () => void;
   onOpenParticipants?: () => void;
 }
 
-export function ChatRoomMenu({ visible, onClose, onMenuItemPress, onOpenCmdList, onOpenParticipants }: ChatRoomMenuProps) {
+export function ChatRoomMenu({ visible, onClose, onMenuItemPress, onOpenParticipants }: ChatRoomMenuProps) {
   const { theme } = useThemeCustom();
   
-  const handleCmdPress = () => {
-    onClose();
-    if (onOpenCmdList) {
-      onOpenCmdList();
-    }
-  };
-  
-  const handleParticipantsPress = () => {
-    if (onOpenParticipants) {
-      onOpenParticipants();
-    }
-    onClose();
-  };
-  
   const menuItems = [
-    { icon: CmdIcon, label: 'Cmd', action: 'cmd', onPress: handleCmdPress },
+    { icon: CmdIcon, label: 'Cmd', action: 'cmd' },
     { icon: SendGiftIcon, label: 'Send Gift', action: 'send-gift' },
     { icon: KickIcon, label: 'Kick', action: 'kick' },
-    { icon: ParticipantsIcon, label: 'Participants', action: 'participants', onPress: handleParticipantsPress },
+    { icon: ParticipantsIcon, label: 'Participants', action: 'participants' },
     { icon: RoomInfoIcon, label: 'Room Info', action: 'room-info' },
     { icon: FavoriteIcon, label: 'Add to Favorites', action: 'add-favorite' },
     { icon: GroupsIcon, label: 'Groups', action: 'groups' },
@@ -50,7 +35,11 @@ export function ChatRoomMenu({ visible, onClose, onMenuItemPress, onOpenCmdList,
   ];
 
   const handleMenuPress = (action: string) => {
-    onMenuItemPress(action);
+    if (action === 'participants' && onOpenParticipants) {
+      onOpenParticipants();
+    } else {
+      onMenuItemPress(action);
+    }
     onClose();
   };
 
@@ -75,7 +64,7 @@ export function ChatRoomMenu({ visible, onClose, onMenuItemPress, onOpenCmdList,
                   styles.menuItem,
                   index < menuItems.length - 1 && [styles.menuItemBorder, { borderBottomColor: theme.border }],
                 ]}
-                onPress={() => item.onPress ? item.onPress() : handleMenuPress(item.action)}
+                onPress={() => handleMenuPress(item.action)}
               >
                 <item.icon size={32} color={theme.text} bgColor={theme.background} />
                 <Text style={[styles.menuLabel, { color: theme.text }]}>
