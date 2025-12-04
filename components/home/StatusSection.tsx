@@ -28,7 +28,7 @@ export function StatusSection() {
   const { theme } = useThemeCustom();
   
   return (
-    <View style={[styles.container, { backgroundColor: theme.card }]}>
+    <View style={[styles.container, { backgroundColor: '#e68e22' }]}>
       <View style={styles.contentWrapper}>
         {/* Left Section - Avatar and Input */}
         <View style={styles.leftSection}>
@@ -47,22 +47,6 @@ export function StatusSection() {
               placeholder="<Enter your status message>"
               placeholderTextColor={theme.text + '80'}
             />
-          </View>
-        </View>
-
-        {/* Right Section - Icons in horizontal row */}
-        <View style={styles.rightSection}>
-          <TouchableOpacity style={styles.iconButton}>
-            <BellIcon size={24} color={theme.text} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <MessageIcon size={24} color={theme.text} />
-          </TouchableOpacity>
-          <View style={styles.badgeContainer}>
-            <EggIcon size={28} color={theme.text} />
-            <View style={[styles.badge, { backgroundColor: theme.primary }]}>
-              <Text style={[styles.badgeNumber, { color: theme.background }]}>2</Text>
-            </View>
           </View>
         </View>
       </View>
