@@ -11,6 +11,7 @@ import Svg, { Path, Circle } from 'react-native-svg';
 import { ChatRoomMenu } from './ChatRoomMenu';
 import { EmojiPicker } from './EmojiPicker';
 import { CmdList } from './CmdList';
+import { GiftModal } from './GiftModal';
 
 interface ChatRoomInputProps {
   onSend: (message: string) => void;
@@ -53,6 +54,7 @@ export function ChatRoomInput({ onSend }: ChatRoomInputProps) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [emojiVisible, setEmojiVisible] = useState(false);
   const [cmdListVisible, setCmdListVisible] = useState(false);
+  const [giftModalVisible, setGiftModalVisible] = useState(false);
   const { theme } = useThemeCustom();
 
   const handleSend = () => {
@@ -71,10 +73,16 @@ export function ChatRoomInput({ onSend }: ChatRoomInputProps) {
 
   const handleMenuItemPress = (action: string) => {
     console.log('Menu action:', action);
-    // Add logic here to handle menu item presses, potentially opening CmdList
     if (action === 'commands') {
       setCmdListVisible(true);
+    } else if (action === 'send-gift') {
+      setGiftModalVisible(true);
     }
+  };
+
+  const handleSendGift = (gift: { name: string; price: number; image: any }) => {
+    console.log('Sending gift:', gift);
+    // Add your gift sending logic here
   };
 
   return (
@@ -126,6 +134,12 @@ export function ChatRoomInput({ onSend }: ChatRoomInputProps) {
         visible={cmdListVisible}
         onClose={() => setCmdListVisible(false)}
         onSelectCmd={handleSelectCmd}
+      />
+
+      <GiftModal
+        visible={giftModalVisible}
+        onClose={() => setGiftModalVisible(false)}
+        onSendGift={handleSendGift}
       />
     </View>
   );
