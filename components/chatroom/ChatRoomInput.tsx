@@ -97,7 +97,7 @@ export function ChatRoomInput({ onSend }: ChatRoomInputProps) {
         <CoinIcon />
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.iconButton} onPress={() => setEmojiPickerVisible(true)}>
+      <TouchableOpacity style={styles.iconButton} onPress={() => setEmojiVisible(true)}>
         <EmojiIcon color={theme.secondary} />
       </TouchableOpacity>
 
@@ -117,8 +117,8 @@ export function ChatRoomInput({ onSend }: ChatRoomInputProps) {
       />
 
       <EmojiPicker
-        visible={emojiPickerVisible}
-        onClose={() => setEmojiPickerVisible(false)}
+        visible={emojiVisible}
+        onClose={() => setEmojiVisible(false)}
         onEmojiSelect={handleEmojiSelect}
       />
 
