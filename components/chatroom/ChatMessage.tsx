@@ -36,7 +36,9 @@ export function ChatMessage({
     return roleColors.normal;
   };
 
-  const getMessageColor = () => '#000000';
+  const getMessageColor = () => {
+    return theme.text;
+  };
 
   if (isNotice) {
     return (
