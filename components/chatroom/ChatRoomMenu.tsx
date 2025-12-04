@@ -32,10 +32,10 @@ export function ChatRoomMenu({ visible, onClose, onMenuItemPress, onOpenCmdList,
   };
   
   const handleParticipantsPress = () => {
-    onClose();
     if (onOpenParticipants) {
       onOpenParticipants();
     }
+    onClose();
   };
   
   const menuItems = [
