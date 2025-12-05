@@ -1,8 +1,8 @@
 
 const express = require('express');
 const router = express.Router();
-const userService = require('../server/services/userService');
-const { getUserLevel } = require('../server/utils/xpLeveling');
+const userService = require('../services/userService');
+const { getUserLevel } = require('../utils/xpLeveling');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');

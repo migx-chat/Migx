@@ -1,4 +1,4 @@
-const { query, getClient } = require('../../db/db');
+const { query, getClient } = require('../db/db');
 const { generateTransactionId } = require('../utils/idGenerator');
 const { checkTransferLimit } = require('../utils/floodControl');
 

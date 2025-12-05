@@ -1,4 +1,4 @@
-const { query, getClient } = require('../../db/db');
+const { query, getClient } = require('../db/db');
 const { generateGameId } = require('../utils/idGenerator');
 const { checkGameLimit } = require('../utils/floodControl');
 const creditService = require('./creditService');

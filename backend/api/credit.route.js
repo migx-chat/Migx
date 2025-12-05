@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const creditService = require('../server/services/creditService');
-const userService = require('../server/services/userService');
+const creditService = require('../services/creditService');
+const userService = require('../services/userService');
 
 router.post('/transfer', async (req, res) => {
   try {

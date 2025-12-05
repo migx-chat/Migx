@@ -1,4 +1,4 @@
-const { query, getClient } = require('../../db/db');
+const { query, getClient } = require('../db/db');
 const { client } = require('../redis');
 const { calculateCommission, addMerchantIncome, getMerchantIncome, getMerchantStats, getMerchantTag } = require('../utils/merchantTags');
 

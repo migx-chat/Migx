@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const merchantService = require('../server/services/merchantService');
-const userService = require('../server/services/userService');
+const merchantService = require('../services/merchantService');
+const userService = require('../services/userService');
 
 router.post('/create', async (req, res) => {
   try {

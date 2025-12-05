@@ -1,4 +1,4 @@
-const { query } = require('../../db/db');
+const { query } = require('../db/db');
 const { client } = require('../redis');
 
 const XP_REWARDS = {

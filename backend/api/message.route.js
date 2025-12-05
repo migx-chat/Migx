@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const messageService = require('../server/services/messageService');
+const messageService = require('../services/messageService');
 
 router.get('/:roomId', async (req, res) => {
   try {

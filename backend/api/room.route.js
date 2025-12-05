@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const roomService = require('../server/services/roomService');
-const banService = require('../server/services/banService');
+const roomService = require('../services/roomService');
+const banService = require('../services/banService');
 
 router.get('/', async (req, res) => {
   try {

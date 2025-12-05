@@ -1,4 +1,4 @@
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 const express = require('express');
 const http = require('http');
@@ -6,14 +6,14 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 
 const { connectRedis } = require('./redis');
-const { initDatabase } = require('../db/db');
+const { initDatabase } = require('./db/db');
 
-const authRoutes = require('../api/auth.route');
-const userRoutes = require('../api/user.route');
-const roomRoutes = require('../api/room.route');
-const messageRoutes = require('../api/message.route');
-const creditRoutes = require('../api/credit.route');
-const merchantRoutes = require('../api/merchant.route');
+const authRoutes = require('./api/auth.route');
+const userRoutes = require('./api/user.route');
+const roomRoutes = require('./api/room.route');
+const messageRoutes = require('./api/message.route');
+const creditRoutes = require('./api/credit.route');
+const merchantRoutes = require('./api/merchant.route');
 
 const roomEvents = require('./events/roomEvents');
 const chatEvents = require('./events/chatEvents');
