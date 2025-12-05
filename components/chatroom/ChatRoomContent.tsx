@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useThemeCustom } from '@/theme/provider';
@@ -21,7 +20,7 @@ interface ChatRoomContentProps {
 
 export function ChatRoomContent({ messages }: ChatRoomContentProps) {
   const { theme } = useThemeCustom();
-  
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView 

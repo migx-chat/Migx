@@ -1,4 +1,13 @@
-export const API_BASE_URL = 'https://39a92673-735e-4054-b921-48dce70c2664-00-3jcu8mla3p9d4.pike.replit.dev';
+import { io } from 'socket.io-client';
+import { Platform } from 'react-native';
+
+let socket: any = null;
+
+const API_BASE_URL = Platform.OS === 'web'
+  ? 'http://localhost:3000'
+  : 'http://10.0.2.2:3000'; // Android emulator
+
+console.log('🌐 API_BASE_URL configured as:', API_BASE_URL);
 
 export const API_ENDPOINTS = {
   AUTH: {
@@ -26,6 +35,36 @@ export const API_ENDPOINTS = {
     SEND: `${API_BASE_URL}/api/message/send`,
     HISTORY: `${API_BASE_URL}/api/message/history`,
   },
+};
+
+export const createSocket = () => {
+  console.log('🔧 Creating Socket.IO connection...');
+  console.log('API_BASE_URL:', API_BASE_URL);
+
+  if (socket && socket.connected) {
+    console.log('✅ Socket already connected, reusing existing socket');
+    return socket;
+  }
+
+  console.log('🔌 Initializing new Socket.IO connection...');
+  socket = io(API_BASE_URL, {
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionAttempts: 5,
+    timeout: 10000,
+  });
+
+  socket.on('connect', () => {
+    console.log('✅ Socket.IO connected to backend! ID:', socket?.id);
+  });
+
+  socket.on('connect_error', (err) => {
+    console.error('❌ Socket.IO connection error:', err.message);
+  });
+
+  console.log('Socket instance created:', socket);
+  return socket;
 };
 
 export default API_BASE_URL;

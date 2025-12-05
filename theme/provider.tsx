@@ -1,9 +1,18 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+import io from 'socket.io-client'; // Import Socket.IO client
 import { LightTheme, DarkTheme, ThemeType, ThemeMode } from './index';
 
 const THEME_STORAGE_KEY = '@app_theme_mode';
+const SOCKET_URL = 'YOUR_SOCKET_URL'; // Ganti dengan URL backend Socket.IO Anda
+
+// Anggap saja 'storage' adalah objek yang mengabstraksikan AsyncStorage
+// Jika Anda memiliki implementasi storage kustom, pastikan ia memiliki metode getItem dan setItem
+const storage = {
+  getItem: async (key: string) => await AsyncStorage.getItem(key),
+  setItem: async (key: string, value: string) => await AsyncStorage.setItem(key, value),
+};
 
 interface ThemeContextType {
   theme: ThemeType;
@@ -23,14 +32,16 @@ export function ThemeProviderCustom({ children }: ThemeProviderProps) {
   const systemColorScheme = useColorScheme();
   const [mode, setMode] = useState<ThemeMode>('system');
   const [isLoaded, setIsLoaded] = useState(false);
+  const [socket, setSocket] = useState<any>(null); // State untuk menyimpan instance Socket.IO
 
   useEffect(() => {
     loadThemeMode();
+    setupSocketConnection(); // Panggil fungsi untuk setup koneksi Socket.IO
   }, []);
 
   const loadThemeMode = async () => {
     try {
-      const savedMode = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+      const savedMode = await storage.getItem(THEME_STORAGE_KEY); // Gunakan 'storage'
       if (savedMode && ['light', 'dark', 'system'].includes(savedMode)) {
         setMode(savedMode as ThemeMode);
       }
@@ -43,10 +54,41 @@ export function ThemeProviderCustom({ children }: ThemeProviderProps) {
 
   const saveThemeMode = async (newMode: ThemeMode) => {
     try {
-      await AsyncStorage.setItem(THEME_STORAGE_KEY, newMode);
+      await storage.setItem(THEME_STORAGE_KEY, newMode); // Gunakan 'storage'
     } catch (error) {
       console.log('Error saving theme mode:', error);
     }
+  };
+
+  // Fungsi untuk setup koneksi Socket.IO
+  const setupSocketConnection = () => {
+    console.log('Attempting to connect to Socket.IO...');
+    const socketInstance = io(SOCKET_URL);
+
+    socketInstance.on('connect', () => {
+      console.log('Socket.IO connected successfully!');
+      setSocket(socketInstance);
+    });
+
+    socketInstance.on('disconnect', (reason: string) => {
+      console.log(`Socket.IO disconnected: ${reason}`);
+      setSocket(null);
+      // Coba hubungkan kembali jika alasan bukan karena server dimatikan atau sejenisnya
+      if (reason === 'io server disconnect' || reason === 'transport close') {
+        console.log('Attempting to reconnect Socket.IO...');
+        setupSocketConnection();
+      }
+    });
+
+    socketInstance.on('connect_error', (error: Error) => {
+      console.error('Socket.IO connection error:', error);
+      setSocket(null);
+    });
+
+    // Anda bisa menambahkan event listener lain di sini sesuai kebutuhan
+    // socketInstance.on('your_custom_event', (data) => {
+    //   console.log('Received custom event:', data);
+    // });
   };
 
   const getActiveTheme = useCallback((): ThemeType => {
@@ -100,3 +142,15 @@ export function useThemeCustom(): ThemeContextType {
   }
   return context;
 }
+
+// Anda mungkin perlu mengimpor dan menggunakan hook/komponen ini di file lain
+// Misalnya, di App.tsx:
+// import { ThemeProviderCustom } from './theme/provider'; // Sesuaikan path
+//
+// function App() {
+//   return (
+//     <ThemeProviderCustom>
+//       {/* Komponen aplikasi Anda yang lain */}
+//     </ThemeProviderCustom>
+//   );
+// }
