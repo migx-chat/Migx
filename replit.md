@@ -134,6 +134,16 @@ app/
 - Authentication system placeholder (currently no auth implementation)
 - User roles system in place for future permission management
 
+### API Configuration
+- **Centralized API utility** at `utils/api.ts` with base URL and endpoints
+- **API Base URL**: `https://39a92673-735e-4054-b921-48dce70c2664-00-3jcu8mla3p9d4.pike.replit.dev`
+- All API calls should use `API_ENDPOINTS` from `utils/api.ts`
+
+### Authentication Screens
+- **Login screen** (`app/login.tsx`) with teal/cyan gradient, remember me, invisible mode, show/hide password
+- **Signup screen** (`app/signup.tsx`) with matching design, email validation (Gmail, Yahoo, Zoho only)
+- **Remember Me** saves username and password in AsyncStorage for auto-fill on app restart
+
 ## Backend Architecture
 
 ### Server Stack
