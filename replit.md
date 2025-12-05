@@ -133,3 +133,128 @@ app/
 - Credit system prepared for backend API integration
 - Authentication system placeholder (currently no auth implementation)
 - User roles system in place for future permission management
+
+## Backend Architecture
+
+### Server Stack
+- **Node.js** with Express.js framework
+- **Socket.IO** for real-time communication
+- **PostgreSQL (Neon DB)** for persistent data storage
+- **Redis Cloud** for presence, rate limiting, and caching
+
+### Backend Structure
+```
+backend/
+├── server/
+│   ├── server.js          # Main Express + Socket.IO server
+│   ├── redis.js           # Redis Cloud connection
+│   ├── events/            # Socket.IO event handlers
+│   │   ├── roomEvents.js      # Join/leave room, kick/ban
+│   │   ├── chatEvents.js      # Chat messages
+│   │   ├── pmEvents.js        # Private messages
+│   │   ├── systemEvents.js    # Auth, presence, user info
+│   │   ├── creditEvents.js    # Credit transfer
+│   │   ├── merchantEvents.js  # Merchant management
+│   │   └── gameEvents.js      # Game system
+│   ├── services/          # Business logic
+│   │   ├── userService.js
+│   │   ├── roomService.js
+│   │   ├── messageService.js
+│   │   ├── banService.js
+│   │   ├── creditService.js
+│   │   ├── merchantService.js
+│   │   └── gameService.js
+│   └── utils/             # Utility functions
+│       ├── idGenerator.js
+│       ├── presence.js
+│       ├── floodControl.js
+│       ├── xpLeveling.js
+│       └── merchantTags.js
+├── api/                   # REST API routes
+│   ├── auth.route.js
+│   ├── user.route.js
+│   ├── room.route.js
+│   ├── message.route.js
+│   ├── credit.route.js
+│   └── merchant.route.js
+└── db/
+    ├── db.js              # PostgreSQL connection
+    └── schema.sql         # Database schema
+```
+
+### Database Schema (PostgreSQL)
+- **users**: User accounts with role (user/mentor/merchant/admin)
+- **rooms**: Chat rooms with owner and capacity
+- **room_admins**: Room administrators
+- **messages**: Chat messages with room reference
+- **private_messages**: PM between users
+- **credit_logs**: Transaction history
+- **merchants**: Merchant profiles (created by mentors)
+- **merchant_spend_logs**: Game spend with 30% commission
+- **user_levels**: XP and level tracking
+- **room_bans**: Persistent ban records
+- **game_history**: Game play records
+
+### Redis Cloud Usage
+- **Presence**: `room:{roomId}:users` - Online users in room
+- **Banned**: `room:{roomId}:banned` - Banned users
+- **Flood Control**: `flood:{userId}:{roomId}` - 700ms rate limit
+- **Rate Limit**: `rate:global:{userId}` - 30 msgs/min
+- **Merchant Income**: `merchant:{id}:income` - Cached earnings
+- **User Socket**: `user:{userId}:socket` - Socket mapping
+
+### Socket.IO Events (Namespace: /chat)
+**Room Events:**
+- `join_room`, `leave_room` - Room participation
+- `room:admin:kick`, `room:admin:ban`, `room:admin:unban`
+- `room:users`, `room:info`
+
+**Chat Events:**
+- `chat:message` - Send message (700ms anti-flood)
+- `chat:messages:get` - Get room history
+
+**PM Events:**
+- `pm:send`, `pm:receive` - Private messages
+- `pm:unread:get`, `pm:conversations:get`
+
+**Credit Events:**
+- `credit:transfer` - Transfer credits
+- `credit:balance:get`, `credit:history:get`
+
+**Game Events:**
+- `game:play` - Play game (coin_flip, dice_roll, slots, etc.)
+- `game:result` - Game outcome
+- `game:spend` - Merchant commission (30%)
+
+**Merchant Events:**
+- `merchant:create` - Create merchant (mentor only)
+- `merchant:disable`, `merchant:enable`
+- `merchant:income:get`, `merchant:withdraw`
+
+### REST API Endpoints
+- **POST /api/auth/login** - Simple login/register
+- **GET /api/users/:id** - User profile with XP/level
+- **GET /api/rooms** - List all rooms with user counts
+- **GET /api/messages/:roomId** - Room message history
+- **POST /api/credits/transfer** - Transfer credits
+- **POST /api/merchants/create** - Create merchant (mentor only)
+- **GET /api/merchants/income/:id** - Merchant earnings
+
+### XP & Level System
+- **Send message**: +1 XP
+- **Join room**: +5 XP
+- **Play game**: +3 XP
+- **Win game**: +10 XP
+- **Transfer credit**: +2 XP
+- Level thresholds: 100, 300, 600, 1000, 1500... XP
+
+### Merchant Commission System
+- Only 30% commission from **game spend**
+- No commission from gifts, chat, or transfers
+- Only mentors can create/disable merchants
+- Earnings cached in Redis, persisted in PostgreSQL
+
+### Environment Variables
+- `DATABASE_URL` - PostgreSQL connection string
+- `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` - Redis Cloud
+- `BACKEND_PORT` - Server port (default: 3001)
