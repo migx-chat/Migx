@@ -48,6 +48,99 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>MigX Community API</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #8FE9FF 0%, #00936A 100%);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          color: #fff;
+          text-align: center;
+        }
+        .container {
+          padding: 40px;
+          max-width: 600px;
+        }
+        h1 {
+          font-size: 3rem;
+          margin-bottom: 10px;
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .tagline {
+          font-size: 1.2rem;
+          margin-bottom: 30px;
+          opacity: 0.9;
+        }
+        .status {
+          background: rgba(255,255,255,0.2);
+          backdrop-filter: blur(10px);
+          border-radius: 15px;
+          padding: 20px 30px;
+          margin-top: 20px;
+        }
+        .status-item {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          margin: 10px 0;
+        }
+        .dot {
+          width: 12px;
+          height: 12px;
+          background: #4ade80;
+          border-radius: 50%;
+          animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .endpoints {
+          margin-top: 20px;
+          font-size: 0.9rem;
+          opacity: 0.8;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>Welcome to MigX</h1>
+        <p class="tagline">The World Chat Community</p>
+        <div class="status">
+          <div class="status-item">
+            <span class="dot"></span>
+            <span>API Server Online</span>
+          </div>
+          <div class="status-item">
+            <span class="dot"></span>
+            <span>WebSocket Ready</span>
+          </div>
+          <div class="status-item">
+            <span class="dot"></span>
+            <span>Database Connected</span>
+          </div>
+        </div>
+        <div class="endpoints">
+          API Endpoints: /api/auth | /api/users | /api/rooms | /api/credits
+        </div>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
