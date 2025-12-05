@@ -1,5 +1,5 @@
-const merchantService = require('./services/merchantService');
-const userService = require('./services/userService');
+const merchantService = require('../services/merchantService');
+const userService = require('../services/userService');
 const { getUserSocket } = require('./utils/presence');
 
 module.exports = (io, socket) => {

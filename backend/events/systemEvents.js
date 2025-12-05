@@ -1,7 +1,7 @@
 const userService = require('./services/userService');
 const { getUserLevel, getLeaderboard } = require('./utils/xpLeveling');
 const { setUserStatus, getUserRooms, removeUserFromRoom } = require('./utils/presence');
-const roomService = require('./services/roomService');
+const roomService = require('../services/roomService');
 
 module.exports = (io, socket) => {
   const authenticate = async (data) => {

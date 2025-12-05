@@ -1,8 +1,8 @@
 
 const express = require('express');
 const router = express.Router();
-const userService = require('./services/userService');
-const { getUserLevel } = require('./utils/xpLeveling');
+const userService = require('../services/userService');
+const { getUserLevel } = require('../utils/xpLeveling');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
@@ -261,7 +261,7 @@ router.get('/check/:username', async (req, res) => {
 // Get countries
 router.get('/countries', (req, res) => {
   try {
-    const countries = require('./data/countries.json');
+    const countries = require('../data/countries.json');
     res.json(countries);
   } catch (error) {
     console.error('Error loading countries:', error);
@@ -272,7 +272,7 @@ router.get('/countries', (req, res) => {
 // Get genders
 router.get('/genders', (req, res) => {
   try {
-    const genders = require('./data/genders.json');
+    const genders = require('../data/genders.json');
     res.json(genders);
   } catch (error) {
     console.error('Error loading genders:', error);

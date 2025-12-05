@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const userService = require('./services/userService');
+const userService = require('../services/userService');
 const { getUserLevel, getLeaderboard } = require('./utils/xpLeveling');
 
 router.get('/:id', async (req, res) => {
