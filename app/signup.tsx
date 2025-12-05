@@ -132,7 +132,7 @@ export default function SignupScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/register`, {
+      const response = await fetch(`https://019dc04a-520c-426e-ab86-33121a2a32a7-00-2x89umyicsh55.pike.replit.dev/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
