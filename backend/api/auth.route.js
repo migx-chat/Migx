@@ -5,18 +5,7 @@ const userService = require('../services/userService');
 const { getUserLevel } = require('../utils/xpLeveling');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
-
-// Email transporter configuration
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: process.env.SMTP_PORT || 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
-});
+const { sendOtpEmail, sendActivationEmail, sendPasswordChangeOtp } = require('../utils/emailService');
 
 // Username validation regex (MIG33 rules)
 const usernameRegex = /^[a-z][a-z0-9._]{5,31}$/;
@@ -28,31 +17,6 @@ const allowedEmailDomains = ['gmail.com', 'yahoo.com', 'zoho.com'];
 // Generate activation token
 function generateActivationToken() {
   return crypto.randomBytes(32).toString('hex');
-}
-
-// Send activation email
-async function sendActivationEmail(email, username, token) {
-  const activationUrl = `${process.env.APP_URL || 'http://localhost:5000'}/api/auth/activate/${token}`;
-  
-  const mailOptions = {
-    from: process.env.SMTP_USER,
-    to: email,
-    subject: 'Activate Your Account',
-    html: `
-      <h2>Welcome to MIG33 Clone, ${username}!</h2>
-      <p>Please click the link below to activate your account:</p>
-      <a href="${activationUrl}">${activationUrl}</a>
-      <p>This link will expire in 24 hours.</p>
-    `
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    return true;
-  } catch (error) {
-    console.error('Error sending email:', error);
-    return false;
-  }
 }
 
 router.post('/login', async (req, res) => {
@@ -187,16 +151,26 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: user?.error || 'Registration failed' });
     }
 
-    // Send activation email
-    const emailSent = await sendActivationEmail(email, username, activationToken);
+    // Generate OTP for registration
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
-    if (!emailSent) {
-      console.warn('Failed to send activation email, but user created');
+    // Send OTP email
+    const emailResult = await sendOtpEmail(email, otp, username);
+    
+    if (!emailResult.success) {
+      console.warn('Failed to send OTP email, but user created');
+    }
+    
+    // Send activation email as well
+    const activationResult = await sendActivationEmail(email, username, activationToken);
+    
+    if (!activationResult.success) {
+      console.warn('Failed to send activation email');
     }
     
     res.json({
       success: true,
-      message: 'Registration successful! Please check your email to activate your account.',
+      message: 'Registration successful! Please check your email for verification code and activation link.',
       user: {
         id: user.id,
         username: user.username,
@@ -350,20 +324,12 @@ router.post('/send-email-otp', async (req, res) => {
     // Store OTP in database temporarily
     await userService.storeEmailOtp(userId, otp, newEmail);
 
-    // Send OTP email
-    const mailOptions = {
-      from: process.env.SMTP_USER,
-      to: oldEmail,
-      subject: 'Email Change OTP',
-      html: `
-        <h2>Email Change Request</h2>
-        <p>Your OTP code is: <strong>${otp}</strong></p>
-        <p>This code will expire in 10 minutes.</p>
-        <p>New email will be: ${newEmail}</p>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
+    // Send OTP email using Resend
+    const emailResult = await sendPasswordChangeOtp(oldEmail, user.username, otp);
+    
+    if (!emailResult.success) {
+      return res.status(500).json({ error: 'Failed to send OTP email' });
+    }
     
     res.json({ success: true, message: 'OTP sent to your old email' });
   } catch (error) {
