@@ -207,6 +207,7 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 const startServer = async () => {
   try {
@@ -220,8 +221,8 @@ const startServer = async () => {
     await initDatabase();
     console.log('Database initialized successfully');
     
-    server.listen(PORT, '0.0.0.0', () => {
-      console.log('Server running on port ' + PORT);
+    server.listen(PORT, HOST, () => {
+      console.log(`Server running on ${HOST}:${PORT}`);
       console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║           MIG33 Clone Backend Server                  ║
