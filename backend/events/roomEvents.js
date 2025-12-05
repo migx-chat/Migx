@@ -1,6 +1,6 @@
-const roomService = require('./services/roomService');
-const userService = require('./services/userService');
-const { addXp, XP_REWARDS } = require('./utils/xpLeveling');
+const roomService = require('../services/roomService');
+const userService = require('../services/userService');
+const { addXp, XP_REWARDS } = require('../utils/xpLeveling');
 
 module.exports = (io, socket) => {
   const joinRoom = async (data) => {
