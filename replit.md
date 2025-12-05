@@ -144,6 +144,13 @@ app/
 - **Signup screen** (`app/signup.tsx`) with matching design, email validation (Gmail, Yahoo, Zoho only)
 - **Remember Me** saves username and password in AsyncStorage for auto-fill on app restart
 
+### Splash Screen
+- **Custom splash screen** (`components/SplashScreen.tsx`) with gradient background
+- Animated logo with fade-in and scale effects
+- Floating dice and gift icons with blur animation
+- Displays for 2.5 seconds before transitioning to login/main app
+- Tagline: "MigX — The World Chat Community"
+
 ## Backend Architecture
 
 ### Server Stack

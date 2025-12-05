@@ -7,18 +7,30 @@ import { ThemeProviderCustom, useThemeCustom } from "@/theme/provider";
 import "react-native-reanimated";
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SplashScreen from '@/components/SplashScreen';
 
 function RootLayoutNav() {
   const { isDark } = useThemeCustom();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkLoginStatus = async () => {
+    const initializeApp = async () => {
       const token = await AsyncStorage.getItem('authToken');
       setIsLoggedIn(!!token);
+      setIsLoading(false);
+      
+      setTimeout(() => {
+        setShowSplash(false);
+      }, 2500);
     };
-    checkLoginStatus();
+    initializeApp();
   }, []);
+
+  if (showSplash || isLoading) {
+    return <SplashScreen />;
+  }
 
   return (
     <ThemeProvider value={isDark ? NavigationDarkTheme : NavigationDefaultTheme}>
