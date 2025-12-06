@@ -1,6 +1,6 @@
-
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeCustom } from '@/theme/provider';
 import { usePresence, PresenceStatus } from '@/hooks/usePresence';
 import { PresenceSelector } from './PresenceSelector';
@@ -50,16 +50,41 @@ const getStatusBorderColor = (status: PresenceStatus) => {
 };
 
 export function UserProfileSection({ 
-  username = 'h________', 
-  level = 1,
+  username: propUsername, 
+  level: propLevel, 
   initialStatus = '',
   presenceStatus = 'online',
-  avatar = '👤'
+  avatar: propAvatar = '👤'
 }: UserProfileSectionProps) {
   const { theme } = useThemeCustom();
   const [statusMessage, setStatusMessage] = useState(initialStatus);
-  const { status, setStatus } = usePresence(username);
+  const { status, setStatus } = usePresence(propUsername || ''); // Pass a default empty string if propUsername is undefined
   const [showPresenceSelector, setShowPresenceSelector] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const userDataStr = await AsyncStorage.getItem('user_data');
+      if (userDataStr) {
+        const data = JSON.parse(userDataStr);
+        setUserData(data);
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  // Use loaded user data, fallback to props, then to defaults
+  const username = userData?.username || propUsername || 'Loading...';
+  const level = userData?.level || propLevel || 1;
+  const avatar = userData?.avatar || propAvatar;
+
+  // Update the usePresence hook dependency if username is loaded from userData
+  const { status: presenceStatusFromHook, setStatus: setPresenceStatus } = usePresence(username);
 
   return (
     <View style={[styles.container, { backgroundColor: '#FF9800' }]}>
@@ -76,8 +101,8 @@ export function UserProfileSection({
             style={[
               styles.statusIndicator, 
               { 
-                backgroundColor: getStatusColor(status),
-                borderColor: getStatusBorderColor(status)
+                backgroundColor: getStatusColor(presenceStatusFromHook),
+                borderColor: getStatusBorderColor(presenceStatusFromHook)
               }
             ]} 
           />
@@ -108,9 +133,9 @@ export function UserProfileSection({
 
       <PresenceSelector
         visible={showPresenceSelector}
-        currentStatus={status}
+        currentStatus={presenceStatusFromHook}
         onClose={() => setShowPresenceSelector(false)}
-        onSelect={setStatus}
+        onSelect={setPresenceStatus}
       />
     </View>
   );

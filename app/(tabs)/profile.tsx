@@ -1,5 +1,7 @@
 import { StyleSheet, View, SafeAreaView, ScrollView } from 'react-native';
 import { router } from 'expo-router';
+import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ModeToggle } from '@/components/profile/ModeToggle';
 import { ProfileMenuItem } from '@/components/profile/ProfileMenuItem';
@@ -17,8 +19,25 @@ import { SwipeableScreen } from '@/components/navigation/SwipeableScreen';
 
 export default function ProfileScreen() {
   const { theme } = useThemeCustom();
+  const [userData, setUserData] = useState<any>(null);
   
-  const userRole = 'merchant';
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const userDataStr = await AsyncStorage.getItem('user_data');
+      if (userDataStr) {
+        const data = JSON.parse(userDataStr);
+        setUserData(data);
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
+  
+  const userRole = userData?.role || 'user';
   const isMerchant = userRole === 'merchant';
 
   const handleEditProfile = () => {
@@ -64,8 +83,8 @@ export default function ProfileScreen() {
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <SafeAreaView style={styles.safeArea}>
           <ProfileHeader 
-            username="JohnDoe123"
-            level={15}
+            username={userData?.username || 'Loading...'}
+            level={userData?.level || 1}
             onEditPress={handleEditProfile}
           />
           
