@@ -181,17 +181,27 @@ router.post('/register', async (req, res, next) => {
     // Generate OTP for registration
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
+    // Store OTP in database
+    const otpStored = await userService.storeRegistrationOtp(user.id, email, otp);
+    if (!otpStored) {
+      console.warn('Failed to store OTP in database');
+    } else {
+      console.log('OTP stored in database for user:', user.id);
+    }
+    
     // Send OTP email
     try {
       const emailResult = await sendOtpEmail(email, otp, username);
       if (!emailResult.success) {
         console.warn('Failed to send OTP email, but user created');
+      } else {
+        console.log('OTP email sent successfully to:', email);
       }
     } catch (emailError) {
       console.error('Email sending error:', emailError);
     }
     
-    // Send activation email as well
+    // Send activation email as well (backup method)
     try {
       const activationResult = await sendActivationEmail(email, username, activationToken);
       if (!activationResult.success) {
@@ -374,6 +384,106 @@ router.post('/send-email-otp', async (req, res) => {
   } catch (error) {
     console.error('Send email OTP error:', error);
     res.status(500).json({ error: 'Failed to send OTP' });
+  }
+});
+
+// Verify OTP for registration
+router.post('/verify-otp', async (req, res) => {
+  try {
+    const { userId, otp } = req.body;
+    
+    console.log('VERIFY OTP REQUEST:', { userId, otp: otp ? 'provided' : 'missing' });
+    
+    if (!userId || !otp) {
+      return res.status(400).json({ success: false, error: 'User ID and OTP are required' });
+    }
+
+    const user = await userService.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    if (user.is_active) {
+      return res.status(400).json({ success: false, error: 'Account already activated' });
+    }
+
+    const isValidOtp = await userService.verifyRegistrationOtp(userId, otp);
+    if (!isValidOtp) {
+      console.log('VERIFY OTP FAILED: Invalid or expired OTP');
+      return res.status(400).json({ success: false, error: 'Invalid or expired OTP' });
+    }
+
+    const activationResult = await userService.activateUserById(userId);
+    if (!activationResult.success) {
+      console.log('VERIFY OTP FAILED: Activation failed');
+      return res.status(500).json({ success: false, error: activationResult.error || 'Activation failed' });
+    }
+
+    console.log('VERIFY OTP SUCCESS: Account activated for user:', userId);
+    
+    const levelData = await getUserLevel(userId);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Account verified and activated successfully!',
+      user: {
+        id: activationResult.user.id,
+        username: activationResult.user.username,
+        email: activationResult.user.email,
+        credits: user.credits || 0,
+        role: user.role || 'user',
+        status: 'online',
+        avatar: user.avatar,
+        level: levelData.level,
+        xp: levelData.xp,
+        country: user.country,
+        gender: user.gender,
+        createdAt: user.created_at
+      }
+    });
+    
+  } catch (error) {
+    console.error('VERIFY OTP ERROR:', error);
+    res.status(500).json({ success: false, error: 'Verification failed' });
+  }
+});
+
+// Resend OTP for registration
+router.post('/resend-otp', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'User ID is required' });
+    }
+
+    const user = await userService.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    if (user.is_active) {
+      return res.status(400).json({ success: false, error: 'Account already activated' });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    const otpStored = await userService.storeRegistrationOtp(user.id, user.email, otp);
+    if (!otpStored) {
+      return res.status(500).json({ success: false, error: 'Failed to generate new OTP' });
+    }
+    
+    const emailResult = await sendOtpEmail(user.email, otp, user.username);
+    if (!emailResult.success) {
+      return res.status(500).json({ success: false, error: 'Failed to send OTP email' });
+    }
+
+    console.log('RESEND OTP SUCCESS: New OTP sent to:', user.email);
+    res.status(200).json({ success: true, message: 'New OTP sent to your email' });
+    
+  } catch (error) {
+    console.error('RESEND OTP ERROR:', error);
+    res.status(500).json({ success: false, error: 'Failed to resend OTP' });
   }
 });
 

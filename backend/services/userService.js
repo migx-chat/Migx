@@ -361,10 +361,74 @@ const updateEmail = async (userId, newEmail) => {
   }
 };
 
+const storeRegistrationOtp = async (userId, email, otp) => {
+  try {
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    await query(
+      `DELETE FROM otp_verifications WHERE user_id = $1 AND type = 'registration'`,
+      [userId]
+    );
+    await query(
+      `INSERT INTO otp_verifications (user_id, email, otp, type, expires_at)
+       VALUES ($1, $2, $3, 'registration', $4)`,
+      [userId, email, otp, expiresAt]
+    );
+    return true;
+  } catch (error) {
+    console.error('Error storing registration OTP:', error);
+    return false;
+  }
+};
+
+const verifyRegistrationOtp = async (userId, otp) => {
+  try {
+    const result = await query(
+      `SELECT * FROM otp_verifications 
+       WHERE user_id = $1 AND otp = $2 AND type = 'registration' 
+       AND expires_at > CURRENT_TIMESTAMP AND verified = false`,
+      [userId, otp]
+    );
+    
+    if (result.rows.length > 0) {
+      await query(
+        `UPDATE otp_verifications SET verified = true WHERE id = $1`,
+        [result.rows[0].id]
+      );
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error verifying registration OTP:', error);
+    return false;
+  }
+};
+
+const activateUserById = async (userId) => {
+  try {
+    const result = await query(
+      `UPDATE users 
+       SET is_active = true, activation_token = null, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND is_active = false
+       RETURNING id, username, email`,
+      [userId]
+    );
+    
+    if (result.rows.length === 0) {
+      return { success: false, error: 'User not found or already activated' };
+    }
+    
+    return { success: true, user: result.rows[0] };
+  } catch (error) {
+    console.error('Error activating user by ID:', error);
+    return { success: false, error: 'Activation failed' };
+  }
+};
+
 module.exports = {
   createUser,
   createUserWithRegistration,
   activateUser,
+  activateUserById,
   getUserByUsername,
   getUserByEmail,
   getUserById,
@@ -385,5 +449,7 @@ module.exports = {
   updatePassword,
   storeEmailOtp,
   verifyEmailOtp,
-  updateEmail
+  updateEmail,
+  storeRegistrationOtp,
+  verifyRegistrationOtp
 };
