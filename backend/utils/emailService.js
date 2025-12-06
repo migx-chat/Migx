@@ -3,20 +3,16 @@ const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const getFromAddress = () => {
-  if (process.env.EMAIL_FROM) {
-    return process.env.EMAIL_FROM;
-  }
-  return 'MIGX <onboarding@resend.dev>';
-};
+const FROM_ADDRESS = 'MIGX <onboarding@resend.dev>';
 
 async function sendOtpEmail(email, otp, username) {
   try {
     console.log('Sending OTP email to:', email);
     console.log('Using RESEND_API_KEY:', process.env.RESEND_API_KEY ? 'SET' : 'NOT SET');
+    console.log('From address:', FROM_ADDRESS);
     
     const result = await resend.emails.send({
-      from: getFromAddress(),
+      from: FROM_ADDRESS,
       to: email,
       subject: 'Your MIGX Verification Code',
       html: `
@@ -38,8 +34,13 @@ async function sendOtpEmail(email, otp, username) {
       `
     });
 
-    console.log('OTP Email sent successfully:', result);
-    return { success: true, data: result };
+    if (result.error) {
+      console.error('OTP Email Error from Resend:', result.error);
+      return { success: false, error: result.error.message || 'Failed to send OTP' };
+    }
+
+    console.log('OTP Email sent successfully:', result.data);
+    return { success: true, data: result.data };
   } catch (err) {
     console.error('OTP Email Error:', err);
     console.error('OTP Email Error Details:', JSON.stringify(err, null, 2));
@@ -56,7 +57,7 @@ async function sendActivationEmail(email, username, token) {
   try {
     console.log('Sending activation email to:', email);
     const result = await resend.emails.send({
-      from: getFromAddress(),
+      from: FROM_ADDRESS,
       to: email,
       subject: 'Activate Your MIGX Account',
       html: `
@@ -80,8 +81,13 @@ async function sendActivationEmail(email, username, token) {
       `
     });
 
-    console.log('Activation email sent successfully:', result);
-    return { success: true, data: result };
+    if (result.error) {
+      console.error('Activation Email Error from Resend:', result.error);
+      return { success: false, error: result.error.message || 'Failed to send activation email' };
+    }
+
+    console.log('Activation email sent successfully:', result.data);
+    return { success: true, data: result.data };
   } catch (error) {
     console.error('Error sending activation email:', error);
     console.error('Activation Email Error Details:', JSON.stringify(error, null, 2));
@@ -93,7 +99,7 @@ async function sendPasswordChangeOtp(email, username, otp) {
   try {
     console.log('Sending password change OTP to:', email);
     const result = await resend.emails.send({
-      from: getFromAddress(),
+      from: FROM_ADDRESS,
       to: email,
       subject: 'MIGX Email Change Verification',
       html: `
@@ -115,8 +121,13 @@ async function sendPasswordChangeOtp(email, username, otp) {
       `
     });
 
-    console.log('Password change OTP sent successfully:', result);
-    return { success: true, data: result };
+    if (result.error) {
+      console.error('Password Change OTP Error from Resend:', result.error);
+      return { success: false, error: result.error.message || 'Failed to send OTP' };
+    }
+
+    console.log('Password change OTP sent successfully:', result.data);
+    return { success: true, data: result.data };
   } catch (error) {
     console.error('Error sending email change OTP:', error);
     console.error('Password Change OTP Error Details:', JSON.stringify(error, null, 2));
