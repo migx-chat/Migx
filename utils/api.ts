@@ -3,10 +3,10 @@ import { Platform } from 'react-native';
 
 let socket: any = null;
 
-// Backend runs on port 3000, Expo on port 5000
+// Backend URL - Replit handles port forwarding automatically
 const API_BASE_URL = Platform.OS === 'web'
-  ? 'https://1c055300-4b0f-4d99-8511-14d526f50594-00-12yiom0ahzwge.sisko.replit.dev:3000'
-  : 'https://1c055300-4b0f-4d99-8511-14d526f50594-00-12yiom0ahzwge.sisko.replit.dev:3000';
+  ? 'https://1c055300-4b0f-4d99-8511-14d526f50594-00-12yiom0ahzwge.sisko.replit.dev'
+  : 'https://1c055300-4b0f-4d99-8511-14d526f50594-00-12yiom0ahzwge.sisko.replit.dev';
 
 console.log('🌐 API_BASE_URL configured as:', API_BASE_URL);
 console.log('🔍 Backend Health Check:', `${API_BASE_URL}/health`);
