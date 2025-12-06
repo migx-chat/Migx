@@ -40,14 +40,6 @@ externalPort = 3001
 runButton = "Project"
 
 [[workflows.workflow]]
-name = "Dev Server"
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "EXPO_PACKAGER_PROXY_URL=https://$REPLIT_DEV_DOMAIN REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN npx expo start"
-
-[[workflows.workflow]]
 name = "EAS Init"
 mode = "sequential"
 
@@ -99,24 +91,6 @@ outputType = "webview"
 task = "shell.exec"
 args = "node backend/server.js"
 waitForPort = 5000
-
-[[workflows.workflow]]
-name = "Development Server Sequential"
-author = 50803945
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node backend/server.js"
-
-[[workflows.workflow]]
-name = "Backend + Expo"
-author = 50803945
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node backend/server.js & sleep 3 && npx expo start --port 8081"
 
 [[workflows.workflow]]
 name = "Start App"
