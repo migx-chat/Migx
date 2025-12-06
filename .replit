@@ -37,7 +37,7 @@ localPort = 40811
 externalPort = 3001
 
 [workflows]
-runButton = "Development Server Sequential"
+runButton = "Backend + Expo"
 
 [[workflows.workflow]]
 name = "Dev Server"
@@ -108,6 +108,15 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node backend/server.js"
+
+[[workflows.workflow]]
+name = "Backend + Expo"
+author = 50803945
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node backend/server.js & npx expo start --tunnel --port 5000"
 
 [agent]
 expertMode = true
