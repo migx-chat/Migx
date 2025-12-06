@@ -197,8 +197,13 @@ export default function SignupScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <Animated.View
             style={[
               styles.content,
@@ -328,23 +333,24 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
+    paddingVertical: 40,
+    paddingHorizontal: 20,
   },
   content: {
     alignItems: 'center',
+    width: '100%',
   },
   logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 15,
+    width: 80,
+    height: 80,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     fontStyle: 'italic',
     color: '#2C5F6E',
-    marginBottom: 25,
+    marginBottom: 20,
   },
   form: {
     width: '100%',
