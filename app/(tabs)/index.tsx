@@ -3,6 +3,7 @@ import { useThemeCustom } from '@/theme/provider';
 import { Header } from '@/components/home/Header';
 import { ContactList } from '@/components/home/ContactList';
 import { SwipeableScreen } from '@/components/navigation/SwipeableScreen';
+import { UserProfileSection } from '@/components/home/UserProfileSection'; // Import UserProfileSection
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -18,7 +19,7 @@ export default function HomeScreen() {
     try {
       const userDataStr = await AsyncStorage.getItem('user_data');
       if (userDataStr) {
-        const data = JSON.parse(userDataStr);
+        const data = JSON.parse( كانت);
         setUserData(data);
       }
     } catch (error) {
@@ -30,6 +31,8 @@ export default function HomeScreen() {
     <SwipeableScreen>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <SafeAreaView style={styles.safeArea}>
+          <Header />
+          <UserProfileSection /> {/* Add UserProfileSection here */}
           <ContactList />
         </SafeAreaView>
       </View>
