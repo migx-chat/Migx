@@ -3,7 +3,7 @@ const userService = require('../services/userService');
 const { getUserSocket, getPresence, getSession } = require('../utils/presence');
 const { generateMessageId } = require('../utils/idGenerator');
 const { checkGlobalRateLimit } = require('../utils/floodControl');
-const { XP_REWARDS, addXp } = require('../utils/xp');
+const { XP_REWARDS, addXp } = require('../utils/xpLeveling');
 
 module.exports = (io, socket) => {
   const sendPrivateMessage = async (data) => {
