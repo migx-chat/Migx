@@ -159,7 +159,7 @@ export function Header() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 44,
+    paddingTop: 0,
   },
   topBar: {
     flexDirection: 'row',
