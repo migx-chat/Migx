@@ -260,6 +260,129 @@ const clearTempKick = async (username) => {
   }
 };
 
+const addUserRoom = async (username, roomId, roomName) => {
+  try {
+    const redis = getRedisClient();
+    const roomData = JSON.stringify({ roomId, roomName, joinedAt: Date.now() });
+    await redis.sadd(`user:rooms:${username}`, roomData);
+    return true;
+  } catch (error) {
+    console.error('Error adding user room:', error);
+    return false;
+  }
+};
+
+const removeUserRoom = async (username, roomId) => {
+  try {
+    const redis = getRedisClient();
+    const rooms = await redis.smembers(`user:rooms:${username}`);
+    for (const room of rooms) {
+      const data = JSON.parse(room);
+      if (data.roomId === roomId) {
+        await redis.srem(`user:rooms:${username}`, room);
+        break;
+      }
+    }
+    return true;
+  } catch (error) {
+    console.error('Error removing user room:', error);
+    return false;
+  }
+};
+
+const getUserRooms = async (username) => {
+  try {
+    const redis = getRedisClient();
+    const rooms = await redis.smembers(`user:rooms:${username}`);
+    return rooms.map(r => JSON.parse(r));
+  } catch (error) {
+    console.error('Error getting user rooms:', error);
+    return [];
+  }
+};
+
+const setRoomLastMessage = async (roomId, message) => {
+  try {
+    const redis = getRedisClient();
+    const msgData = JSON.stringify({
+      message: message.message,
+      username: message.username,
+      timestamp: message.timestamp || new Date().toISOString()
+    });
+    await redis.set(`room:lastmsg:${roomId}`, msgData);
+    await redis.expire(`room:lastmsg:${roomId}`, 86400); // 24 hours
+    return true;
+  } catch (error) {
+    console.error('Error setting room last message:', error);
+    return false;
+  }
+};
+
+const getRoomLastMessage = async (roomId) => {
+  try {
+    const redis = getRedisClient();
+    const msg = await redis.get(`room:lastmsg:${roomId}`);
+    return msg ? JSON.parse(msg) : null;
+  } catch (error) {
+    console.error('Error getting room last message:', error);
+    return null;
+  }
+};
+
+const addUserDM = async (username, targetUsername) => {
+  try {
+    const redis = getRedisClient();
+    const dmData = JSON.stringify({ username: targetUsername, addedAt: Date.now() });
+    await redis.sadd(`user:dm:${username}`, dmData);
+    return true;
+  } catch (error) {
+    console.error('Error adding user DM:', error);
+    return false;
+  }
+};
+
+const getUserDMs = async (username) => {
+  try {
+    const redis = getRedisClient();
+    const dms = await redis.smembers(`user:dm:${username}`);
+    return dms.map(d => JSON.parse(d));
+  } catch (error) {
+    console.error('Error getting user DMs:', error);
+    return [];
+  }
+};
+
+const setDMLastMessage = async (userA, userB, message) => {
+  try {
+    const redis = getRedisClient();
+    const key = [userA, userB].sort().join(':');
+    const msgData = JSON.stringify({
+      message: message.message,
+      fromUsername: message.fromUsername,
+      toUsername: message.toUsername,
+      timestamp: message.timestamp || new Date().toISOString()
+    });
+    await redis.set(`dm:lastmsg:${key}`, msgData);
+    await redis.expire(`dm:lastmsg:${key}`, 86400); // 24 hours
+    return true;
+  } catch (error) {
+    console.error('Error setting DM last message:', error);
+    return false;
+  }
+};
+
+const getDMLastMessage = async (userA, userB) => {
+  try {
+    const redis = getRedisClient();
+    const key = [userA, userB].sort().join(':');
+    const msg = await redis.get(`dm:lastmsg:${key}`);
+    return msg ? JSON.parse(msg) : null;
+  } catch (error) {
+    console.error('Error getting DM last message:', error);
+    return null;
+  }
+};
+
 module.exports = {
   setPresence,
   getPresence,
@@ -282,6 +405,15 @@ module.exports = {
   setTempKick,
   isTempKicked,
   clearTempKick,
+  addUserRoom,
+  removeUserRoom,
+  getUserRooms,
+  setRoomLastMessage,
+  getRoomLastMessage,
+  addUserDM,
+  getUserDMs,
+  setDMLastMessage,
+  getDMLastMessage,
   DEFAULT_TTL,
   ONLINE_PRESENCE_TTL
 };

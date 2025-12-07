@@ -1,56 +1,127 @@
 const roomService = require('../services/roomService');
 const userService = require('../services/userService');
+const banService = require('../services/banService'); // Assuming banService exists
 const { addXp, XP_REWARDS } = require('../utils/xpLeveling');
+const {
+  isTempKicked,
+  getPresence,
+  setPresence,
+  addMemberToRoom,
+  removeMemberFromRoom,
+  setRoomUsers
+} = require('../utils/presence'); // Assuming presence utils are available
+const { addUserRoom, removeUserRoom } = require('../utils/redisUtils'); // Assuming redisUtils is updated
+
+// Helper function to create system messages
+const createSystemMessage = (roomId, message) => ({
+  roomId,
+  message,
+  timestamp: new Date().toISOString(),
+  type: 'system'
+});
 
 module.exports = (io, socket) => {
   const joinRoom = async (data) => {
     try {
       const { roomId, userId, username } = data;
-      
+
       if (!roomId || !userId || !username) {
         socket.emit('error', { message: 'Missing required fields' });
         return;
       }
-      
-      const result = await roomService.joinRoom(roomId, userId, username);
-      
-      if (!result.success) {
-        socket.emit('error', { message: result.error });
+
+      const kickCheck = await isTempKicked(username);
+      if (kickCheck.kicked && kickCheck.roomId === roomId.toString()) {
+        socket.emit('system:message', {
+          roomId,
+          message: 'You are temporarily kicked from this room',
+          timestamp: new Date().toISOString(),
+          type: 'error'
+        });
         return;
       }
-      
+
+      const isBanned = await banService.isBanned(userId, roomId);
+      if (isBanned) {
+        socket.emit('system:message', {
+          roomId,
+          message: 'You are banned from this room',
+          timestamp: new Date().toISOString(),
+          type: 'error'
+        });
+        return;
+      }
+
+      const room = await roomService.getRoomById(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+
+      if (room.is_private && room.password) {
+        socket.emit('error', { message: 'Room requires password' });
+        return;
+      }
+
+      const currentUsers = await roomService.getRoomUsers(roomId);
+      if (currentUsers.length >= room.max_users) {
+        socket.emit('system:message', {
+          roomId,
+          message: 'Room is full',
+          timestamp: new Date().toISOString(),
+          type: 'error'
+        });
+        return;
+      }
+
       socket.join(`room:${roomId}`);
-      socket.roomId = roomId;
-      socket.userId = userId;
-      socket.username = username;
-      
-      // Add to room members cache
-      const { addMemberToRoom, setPresence } = require('../utils/presence');
-      await addMemberToRoom(roomId, username);
-      await setPresence(username, 'online');
-      
-      await addXp(userId, XP_REWARDS.JOIN_ROOM, 'join_room', io);
-      
-      const users = await roomService.getRoomUsers(roomId);
-      
-      io.to(`room:${roomId}`).emit('system:message', {
+      socket.join(`user:${username}`);
+      await setUserRoom(username, roomId);
+      await addRoomMember(roomId, username);
+
+      await addUserRoom(username, roomId, room.name);
+
+      const user = await userService.getUserById(userId);
+      const userWithPresence = {
+        ...user,
+        presence: await getPresence(username)
+      };
+
+      const updatedUsers = await roomService.getRoomUsers(roomId);
+      const usersWithPresence = await Promise.all(
+        updatedUsers.map(async (u) => ({
+          ...u,
+          presence: await getPresence(u.username)
+        }))
+      );
+
+      await setRoomUsers(roomId, usersWithPresence);
+
+      io.to(`room:${roomId}`).emit('room:user:joined', {
         roomId,
-        message: `${username} has joined the room`,
-        timestamp: new Date().toISOString()
+        user: userWithPresence,
+        users: usersWithPresence
       });
-      
-      io.to(`room:${roomId}`).emit('room:users', {
+
+      const systemMessage = createSystemMessage(
         roomId,
-        users,
-        count: users.length
-      });
-      
+        `${username} has joined the room`
+      );
+      io.to(`room:${roomId}`).emit('chat:message', systemMessage);
+
       socket.emit('room:joined', {
         roomId,
-        room: result.room,
-        users
+        room,
+        users: usersWithPresence
       });
-      
+
+      socket.emit('chatlist:roomJoined', {
+        roomId,
+        roomName: room.name
+      });
+
+      await addXp(userId, XP_REWARDS.JOIN_ROOM, 'join_room', io);
+
     } catch (error) {
       console.error('Error joining room:', error);
       socket.emit('error', { message: 'Failed to join room' });
@@ -59,39 +130,45 @@ module.exports = (io, socket) => {
 
   const leaveRoom = async (data) => {
     try {
-      const { roomId, userId, username } = data;
-      
-      if (!roomId) {
-        socket.emit('error', { message: 'Room ID required' });
+      const { roomId, username } = data;
+
+      if (!roomId || !username) {
+        socket.emit('error', { message: 'Missing required fields' });
         return;
       }
-      
-      const actualUserId = userId || socket.userId;
-      const actualUsername = username || socket.username;
-      
-      await roomService.leaveRoom(roomId, actualUserId, actualUsername);
-      
-      // Remove from room members cache
-      const { removeMemberFromRoom } = require('../utils/presence');
-      await removeMemberFromRoom(roomId, actualUsername);
-      
+
       socket.leave(`room:${roomId}`);
-      
-      io.to(`room:${roomId}`).emit('system:message', {
+      await removeUserRoom(username);
+      await removeRoomMember(roomId, username);
+
+      const { removeUserRoom: removeFromChatList } = require('../utils/redisUtils');
+      await removeFromChatList(username, roomId);
+
+      const updatedUsers = await roomService.getRoomUsers(roomId);
+      const usersWithPresence = await Promise.all(
+        updatedUsers.map(async (u) => ({
+          ...u,
+          presence: await getPresence(u.username)
+        }))
+      );
+
+      await setRoomUsers(roomId, usersWithPresence);
+
+      io.to(`room:${roomId}`).emit('room:user:left', {
         roomId,
-        message: `${actualUsername} has left the room`,
-        timestamp: new Date().toISOString()
+        username,
+        users: usersWithPresence
       });
-      
-      const users = await roomService.getRoomUsers(roomId);
-      io.to(`room:${roomId}`).emit('room:users', {
+
+      const systemMessage = createSystemMessage(
         roomId,
-        users,
-        count: users.length
-      });
-      
+        `${username} has left the room`
+      );
+      io.to(`room:${roomId}`).emit('chat:message', systemMessage);
+
       socket.emit('room:left', { roomId });
-      
+      socket.emit('chatlist:roomLeft', { roomId });
+
     } catch (error) {
       console.error('Error leaving room:', error);
       socket.emit('error', { message: 'Failed to leave room' });
@@ -116,34 +193,35 @@ module.exports = (io, socket) => {
   const adminKick = async (data) => {
     try {
       const { roomId, targetUserId, targetUsername, adminId } = data;
-      
+
       const isAdmin = await roomService.isRoomAdmin(roomId, adminId);
       if (!isAdmin) {
         socket.emit('error', { message: 'You are not an admin' });
         return;
       }
-      
+
       await roomService.kickUser(roomId, targetUserId, targetUsername);
-      
+
       io.to(`room:${roomId}`).emit('system:message', {
         roomId,
         message: `${targetUsername} has been kicked from the room`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        type: 'error'
       });
-      
+
       io.to(`room:${roomId}`).emit('room:user:kicked', {
         roomId,
         userId: targetUserId,
         username: targetUsername
       });
-      
+
       const users = await roomService.getRoomUsers(roomId);
       io.to(`room:${roomId}`).emit('room:users', {
         roomId,
         users,
         count: users.length
       });
-      
+
     } catch (error) {
       console.error('Error kicking user:', error);
       socket.emit('error', { message: 'Failed to kick user' });
@@ -153,35 +231,36 @@ module.exports = (io, socket) => {
   const adminBan = async (data) => {
     try {
       const { roomId, targetUserId, targetUsername, adminId, reason, duration } = data;
-      
+
       const isAdmin = await roomService.isRoomAdmin(roomId, adminId);
       if (!isAdmin) {
         socket.emit('error', { message: 'You are not an admin' });
         return;
       }
-      
+
       await roomService.banUser(roomId, targetUserId, targetUsername, adminId, reason);
-      
+
       io.to(`room:${roomId}`).emit('system:message', {
         roomId,
         message: `${targetUsername} has been banned from the room${reason ? `: ${reason}` : ''}`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        type: 'error'
       });
-      
+
       io.to(`room:${roomId}`).emit('room:user:banned', {
         roomId,
         userId: targetUserId,
         username: targetUsername,
         reason
       });
-      
+
       const users = await roomService.getRoomUsers(roomId);
       io.to(`room:${roomId}`).emit('room:users', {
         roomId,
         users,
         count: users.length
       });
-      
+
     } catch (error) {
       console.error('Error banning user:', error);
       socket.emit('error', { message: 'Failed to ban user' });
@@ -191,21 +270,21 @@ module.exports = (io, socket) => {
   const adminUnban = async (data) => {
     try {
       const { roomId, targetUserId, targetUsername, adminId } = data;
-      
+
       const isAdmin = await roomService.isRoomAdmin(roomId, adminId);
       if (!isAdmin) {
         socket.emit('error', { message: 'You are not an admin' });
         return;
       }
-      
+
       await roomService.unbanUser(roomId, targetUserId, targetUsername);
-      
+
       socket.emit('room:user:unbanned', {
         roomId,
         userId: targetUserId,
         username: targetUsername
       });
-      
+
     } catch (error) {
       console.error('Error unbanning user:', error);
       socket.emit('error', { message: 'Failed to unban user' });
@@ -218,7 +297,7 @@ module.exports = (io, socket) => {
       const room = await roomService.getRoomById(roomId);
       const users = await roomService.getRoomUsers(roomId);
       const admins = await roomService.getRoomAdmins(roomId);
-      
+
       socket.emit('room:info', {
         room,
         users,

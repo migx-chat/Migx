@@ -54,7 +54,23 @@ module.exports = (io, socket) => {
         timestamp: savedMessage?.created_at || new Date().toISOString()
       };
       
+      const { setRoomLastMessage } = require('../utils/redisUtils');
+      await setRoomLastMessage(roomId, messageData);
+      
       io.to(`room:${roomId}`).emit('chat:message', messageData);
+      
+      const roomUsers = await require('../services/roomService').getRoomUsers(roomId);
+      roomUsers.forEach(user => {
+        io.to(`user:${user.username}`).emit('chatlist:update', {
+          type: 'room',
+          roomId,
+          lastMessage: {
+            message: messageData.message,
+            username: messageData.username,
+            timestamp: messageData.timestamp
+          }
+        });
+      });
       
     } catch (error) {
       console.error('Error sending message:', error);

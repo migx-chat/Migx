@@ -24,6 +24,7 @@ const creditEvents = require('./events/creditEvents');
 const merchantEvents = require('./events/merchantEvents');
 const gameEvents = require('./events/gameEvents');
 const notificationEvents = require('./events/notificationEvents');
+const chatListEvents = require('./events/chatListEvents');
 
 const app = express();
 const server = http.createServer(app);
@@ -224,6 +225,8 @@ app.get('/api', (req, res) => {
   });
 });
 
+const chatRoutes = require('./api/chat.route');
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/rooms', roomRoutes);
@@ -231,6 +234,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/credits', creditRoutes);
 app.use('/api/merchants', merchantRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/chat', chatRoutes);
 
 // 404 handler - must be after all routes
 app.use((req, res, next) => {
@@ -270,6 +274,7 @@ chatNamespace.on('connection', (socket) => {
   merchantEvents(io.of('/chat'), socket);
   gameEvents(io.of('/chat'), socket);
   notificationEvents(io.of('/chat'), socket);
+  chatListEvents(io.of('/chat'), socket);
 
   socket.on('ping', () => {
     socket.emit('pong', { timestamp: Date.now() });
@@ -290,6 +295,7 @@ io.on('connection', (socket) => {
   creditEvents(io, socket);
   merchantEvents(io, socket);
   gameEvents(io, socket);
+  chatListEvents(io, socket);
 });
 
 const PORT = process.env.PORT || 5000;
