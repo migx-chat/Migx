@@ -372,6 +372,51 @@ const getDMLastMessage = async (userA, userB) => {
   }
 };
 
+const addRecentRoom = async (username, roomId, roomName) => {
+  try {
+    const redis = getRedisClient();
+    const key = `user:recent:${username}`;
+    const roomData = JSON.stringify({ roomId: roomId.toString(), roomName, visitedAt: Date.now() });
+    const existing = await redis.lrange(key, 0, -1);
+    for (const item of existing) {
+      const data = JSON.parse(item);
+      if (data.roomId === roomId.toString()) {
+        await redis.lrem(key, 1, item);
+        break;
+      }
+    }
+    await redis.lpush(key, roomData);
+    await redis.ltrim(key, 0, 9);
+    return true;
+  } catch (error) {
+    console.error('Error adding recent room:', error);
+    return false;
+  }
+};
+
+const getRecentRooms = async (username) => {
+  try {
+    const redis = getRedisClient();
+    const key = `user:recent:${username}`;
+    const rooms = await redis.lrange(key, 0, 9);
+    return rooms.map(r => JSON.parse(r));
+  } catch (error) {
+    console.error('Error getting recent rooms:', error);
+    return [];
+  }
+};
+
+const clearRecentRooms = async (username) => {
+  try {
+    const redis = getRedisClient();
+    await redis.del(`user:recent:${username}`);
+    return true;
+  } catch (error) {
+    console.error('Error clearing recent rooms:', error);
+    return false;
+  }
+};
+
 module.exports = {
   setPresence,
   getPresence,
@@ -403,6 +448,9 @@ module.exports = {
   getUserDMs,
   setDMLastMessage,
   getDMLastMessage,
+  addRecentRoom,
+  getRecentRooms,
+  clearRecentRooms,
   DEFAULT_TTL,
   ONLINE_PRESENCE_TTL
 };

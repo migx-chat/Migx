@@ -30,7 +30,10 @@ export const API_ENDPOINTS = {
     UPDATE: `${API_BASE_URL}/api/user/update`,
   },
   ROOM: {
-    LIST: `${API_BASE_URL}/api/room/list`,
+    LIST: `${API_BASE_URL}/api/rooms`,
+    CREATE: `${API_BASE_URL}/api/rooms/create`,
+    RECENT: (username: string) => `${API_BASE_URL}/api/rooms/recent/${username}`,
+    GET: (id: string) => `${API_BASE_URL}/api/rooms/${id}`,
     JOIN: `${API_BASE_URL}/api/room/join`,
     LEAVE: `${API_BASE_URL}/api/room/leave`,
   },

@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const roomService = require('../services/roomService');
 const banService = require('../services/banService');
+const { getRecentRooms, addRecentRoom } = require('../utils/redisUtils');
+const presence = require('../utils/presence');
 
 router.get('/', async (req, res) => {
   try {
@@ -16,6 +18,70 @@ router.get('/', async (req, res) => {
   } catch (error) {
     console.error('Get rooms error:', error);
     res.status(500).json({ error: 'Failed to get rooms' });
+  }
+});
+
+router.get('/recent/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    
+    const recentRooms = await getRecentRooms(username);
+    const roomsWithDetails = await Promise.all(
+      recentRooms.map(async (r) => {
+        const room = await roomService.getRoomById(r.roomId);
+        const userCount = await presence.getRoomUserCount(r.roomId);
+        return {
+          ...r,
+          name: room?.name || r.roomName,
+          description: room?.description || '',
+          maxUsers: room?.max_users || 50,
+          userCount
+        };
+      })
+    );
+    
+    res.json({
+      rooms: roomsWithDetails,
+      count: roomsWithDetails.length
+    });
+    
+  } catch (error) {
+    console.error('Get recent rooms error:', error);
+    res.status(500).json({ error: 'Failed to get recent rooms' });
+  }
+});
+
+router.post('/create', async (req, res) => {
+  try {
+    const { name, ownerId, description, maxUsers, isPrivate, password } = req.body;
+    
+    if (!name || !ownerId) {
+      return res.status(400).json({ error: 'Name and owner ID are required' });
+    }
+    
+    const existingRoom = await roomService.getRoomByName(name);
+    if (existingRoom) {
+      return res.status(400).json({ error: 'Room name already exists' });
+    }
+    
+    const room = await roomService.createRoom(name, ownerId, description, maxUsers, isPrivate, password);
+    
+    if (!room) {
+      return res.status(400).json({ error: 'Failed to create room' });
+    }
+    
+    res.json({
+      success: true,
+      room
+    });
+    
+  } catch (error) {
+    console.error('Create room error:', error);
+    res.status(500).json({ error: 'Failed to create room' });
   }
 });
 

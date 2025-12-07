@@ -1,6 +1,6 @@
 const roomService = require('../services/roomService');
 const userService = require('../services/userService');
-const banService = require('../services/banService'); // Assuming banService exists
+const banService = require('../services/banService');
 const { addXp, XP_REWARDS } = require('../utils/xpLeveling');
 const {
   isTempKicked,
@@ -9,8 +9,8 @@ const {
   addMemberToRoom,
   removeMemberFromRoom,
   setRoomUsers
-} = require('../utils/presence'); // Assuming presence utils are available
-const { addUserRoom, removeUserRoom } = require('../utils/redisUtils'); // Assuming redisUtils is updated
+} = require('../utils/presence');
+const { addUserRoom, removeUserRoom, addRecentRoom } = require('../utils/redisUtils');
 
 // Helper function to create system messages
 const createSystemMessage = (roomId, message) => ({
@@ -121,6 +121,14 @@ module.exports = (io, socket) => {
       });
 
       await addXp(userId, XP_REWARDS.JOIN_ROOM, 'join_room', io);
+      
+      await addRecentRoom(username, roomId, room.name);
+      
+      io.emit('rooms:updateCount', {
+        roomId,
+        userCount: usersWithPresence.length,
+        maxUsers: room.max_users
+      });
 
     } catch (error) {
       console.error('Error joining room:', error);
@@ -168,6 +176,13 @@ module.exports = (io, socket) => {
 
       socket.emit('room:left', { roomId });
       socket.emit('chatlist:roomLeft', { roomId });
+      
+      const room = await roomService.getRoomById(roomId);
+      io.emit('rooms:updateCount', {
+        roomId,
+        userCount: usersWithPresence.length,
+        maxUsers: room?.max_users || 50
+      });
 
     } catch (error) {
       console.error('Error leaving room:', error);
@@ -310,6 +325,37 @@ module.exports = (io, socket) => {
     }
   };
 
+  const createRoom = async (data) => {
+    try {
+      const { name, ownerId, description, maxUsers, isPrivate, password } = data;
+      
+      if (!name || !ownerId) {
+        socket.emit('error', { message: 'Name and owner ID are required' });
+        return;
+      }
+      
+      const existingRoom = await roomService.getRoomByName(name);
+      if (existingRoom) {
+        socket.emit('room:create:error', { message: 'Room name already exists' });
+        return;
+      }
+      
+      const room = await roomService.createRoom(name, ownerId, description, maxUsers, isPrivate, password);
+      
+      if (!room) {
+        socket.emit('room:create:error', { message: 'Failed to create room' });
+        return;
+      }
+      
+      socket.emit('room:created', { room });
+      io.emit('rooms:update', { room, action: 'created' });
+      
+    } catch (error) {
+      console.error('Error creating room:', error);
+      socket.emit('error', { message: 'Failed to create room' });
+    }
+  };
+
   socket.on('join_room', joinRoom);
   socket.on('leave_room', leaveRoom);
   socket.on('room:users:get', getRoomUsers);
@@ -317,4 +363,5 @@ module.exports = (io, socket) => {
   socket.on('room:admin:ban', adminBan);
   socket.on('room:admin:unban', adminUnban);
   socket.on('room:info:get', getRoomInfo);
+  socket.on('room:create', createRoom);
 };
