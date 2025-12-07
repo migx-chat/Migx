@@ -181,17 +181,6 @@ const getUserRoom = async (username) => {
   }
 };
 
-const removeUserRoom = async (username) => {
-  try {
-    const redis = getRedisClient();
-    await redis.del(`user:room:${username}`);
-    return true;
-  } catch (error) {
-    console.error('Error removing user room:', error);
-    return false;
-  }
-};
-
 const setFlood = async (username, ttlSeconds = DEFAULT_TTL) => {
   try {
     const redis = getRedisClient();
