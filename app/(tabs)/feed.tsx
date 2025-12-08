@@ -85,7 +85,7 @@ export default function FeedScreen() {
 
   const loadCurrentUser = async () => {
     try {
-      const userStr = await AsyncStorage.getItem('user');
+      const userStr = await AsyncStorage.getItem('user_data');
       if (userStr) {
         const user = JSON.parse(userStr);
         setCurrentUserId(user.id);
@@ -100,7 +100,10 @@ export default function FeedScreen() {
     
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
+      const userDataStr = await AsyncStorage.getItem('user_data');
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      const token = userData?.token;
+      
       const response = await fetch(`${API_ENDPOINTS.FEED.LIST}?page=${pageNum}&limit=10`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -163,7 +166,9 @@ export default function FeedScreen() {
 
     setPosting(true);
     try {
-      const token = await AsyncStorage.getItem('token');
+      const userDataStr = await AsyncStorage.getItem('user_data');
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      const token = userData?.token;
       const formData = new FormData();
       formData.append('content', postContent);
       
@@ -206,7 +211,9 @@ export default function FeedScreen() {
 
   const handleLike = async (postId: number) => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const userDataStr = await AsyncStorage.getItem('user_data');
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      const token = userData?.token;
       const response = await fetch(API_ENDPOINTS.FEED.LIKE(postId), {
         method: 'POST',
         headers: {
@@ -229,7 +236,9 @@ export default function FeedScreen() {
 
   const fetchComments = async (postId: number) => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const userDataStr = await AsyncStorage.getItem('user_data');
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      const token = userData?.token;
       const response = await fetch(API_ENDPOINTS.FEED.COMMENTS(postId), {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -255,7 +264,9 @@ export default function FeedScreen() {
     if (!commentText.trim() || !selectedPost) return;
 
     try {
-      const token = await AsyncStorage.getItem('token');
+      const userDataStr = await AsyncStorage.getItem('user_data');
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      const token = userData?.token;
       const response = await fetch(API_ENDPOINTS.FEED.COMMENT(selectedPost.id), {
         method: 'POST',
         headers: {
