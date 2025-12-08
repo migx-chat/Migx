@@ -79,11 +79,11 @@ export function ContactItem({
   avatar 
 }: ContactItemProps) {
   const { theme } = useThemeCustom();
-  
+
   const effectivePresence: PresenceStatus = presence || (isOnline ? 'online' : 'offline');
-  
+
   const parsedStatus = status ? parseEmojiMessage(status) : [];
-  
+
   return (
     <TouchableOpacity style={[styles.container, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
       <View style={styles.leftSection}>
@@ -99,7 +99,7 @@ export function ContactItem({
             }
           ]} />
         </View>
-        
+
         <View style={styles.content}>
           <View style={styles.nameRow}>
             <Text style={[styles.name, { color: getUsernameColor(effectivePresence) }]} numberOfLines={1}>{name}</Text>
@@ -122,7 +122,7 @@ export function ContactItem({
           )}
         </View>
       </View>
-      
+
       <View style={styles.rightSection}>
         {lastSeen && (
           <Text style={[styles.lastSeen, { color: theme.secondary }]} numberOfLines={1}>

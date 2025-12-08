@@ -467,6 +467,21 @@ const deleteForgotPasswordOtp = async (userId) => {
   }
 };
 
+const updateStatusMessage = async (userId, statusMessage) => {
+  try {
+    const result = await query(
+      `UPDATE users SET status_message = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING id, username, status_message`,
+      [statusMessage, userId]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error updating status message:', error);
+    return null;
+  }
+};
+
 module.exports = {
   createUser,
   createUserWithRegistration,
@@ -497,5 +512,6 @@ module.exports = {
   verifyRegistrationOtp,
   storeForgotPasswordOtp,
   verifyForgotPasswordOtp,
-  deleteForgotPasswordOtp
+  deleteForgotPasswordOtp,
+  updateStatusMessage
 };

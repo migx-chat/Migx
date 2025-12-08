@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   credits BIGINT DEFAULT 0,
   role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'mentor', 'merchant', 'admin')),
   status VARCHAR(20) DEFAULT 'online' CHECK (status IN ('online', 'away', 'offline')),
+  status_message VARCHAR(100) DEFAULT '',
   country VARCHAR(4),
   gender VARCHAR(6) CHECK (gender IN ('male', 'female')),
   is_active BOOLEAN DEFAULT FALSE,

@@ -145,4 +145,30 @@ router.put('/:id/role', async (req, res) => {
   }
 });
 
+router.put('/:id/status-message', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { statusMessage } = req.body;
+    
+    if (statusMessage && statusMessage.length > 100) {
+      return res.status(400).json({ error: 'Status message too long (max 100 characters)' });
+    }
+    
+    const result = await userService.updateStatusMessage(id, statusMessage || '');
+    
+    if (!result) {
+      return res.status(400).json({ error: 'Failed to update status message' });
+    }
+    
+    res.json({
+      success: true,
+      user: result
+    });
+    
+  } catch (error) {
+    console.error('Update status message error:', error);
+    res.status(500).json({ error: 'Failed to update status message' });
+  }
+});
+
 module.exports = router;

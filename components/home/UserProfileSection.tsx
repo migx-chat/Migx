@@ -73,11 +73,35 @@ export function UserProfileSection({
       if (userDataStr) {
         const data = JSON.parse(userDataStr);
         setUserData(data);
+        setStatusMessage(data.statusMessage || '');
       }
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const updateStatusMessage = async (message: string) => {
+    if (!userData?.id) return;
+
+    try {
+      const response = await fetch(`https://9212ae89-43be-4a31-98db-f91f871d81be-00-xbc1oair0gwx.pike.replit.dev/api/users/${userData.id}/status-message`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ statusMessage: message }),
+      });
+
+      if (response.ok) {
+        const updatedUserData = { ...userData, statusMessage: message };
+        await AsyncStorage.setItem('user_data', JSON.stringify(updatedUserData));
+        setUserData(updatedUserData);
+        console.log('✅ Status message updated successfully');
+      }
+    } catch (error) {
+      console.error('❌ Error updating status message:', error);
     }
   };
 
@@ -132,7 +156,10 @@ export function UserProfileSection({
           placeholderTextColor="#666"
           value={statusMessage}
           onChangeText={setStatusMessage}
+          onBlur={() => updateStatusMessage(statusMessage)}
+          onSubmitEditing={() => updateStatusMessage(statusMessage)}
           multiline={false}
+          maxLength={100}
         />
       </View>
 

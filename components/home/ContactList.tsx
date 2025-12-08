@@ -36,6 +36,22 @@ const mig33Contacts: Contact[] = [
 export function ContactList() {
   const { theme } = useThemeCustom();
 
+  const handleContactPress = (contact: Contact) => {
+    // Placeholder for handling contact press event
+    console.log(`Contact ${contact.name} pressed`);
+  };
+
+  const updateStatusMessage = async (contactName: string, newStatus: string) => {
+    // Placeholder for API call to update status message
+    console.log(`Updating status for ${contactName} to: ${newStatus}`);
+    // In a real application, you would make an API call here.
+    // For now, we'll simulate a delay and then update the local state if needed.
+    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log(`Status for ${contactName} updated successfully.`);
+    // Here you would typically re-fetch contacts or update the specific contact's status
+    // For demonstration purposes, we'll assume the update is successful.
+  };
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
       <View style={[styles.sectionHeader, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
@@ -51,6 +67,8 @@ export function ContactList() {
             presence={friend.presence}
             lastSeen={friend.lastSeen}
             avatar={friend.avatar}
+            onPress={() => handleContactPress(friend)}
+            onStatusUpdate={(newStatus) => updateStatusMessage(friend.name, newStatus)}
           />
         ))}
       </View>
@@ -68,6 +86,8 @@ export function ContactList() {
             presence={contact.presence}
             lastSeen={contact.lastSeen}
             avatar={contact.avatar}
+            onPress={() => handleContactPress(contact)}
+            onStatusUpdate={(newStatus) => updateStatusMessage(contact.name, newStatus)}
           />
         ))}
       </View>
