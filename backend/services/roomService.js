@@ -69,7 +69,7 @@ const getAllRooms = async (limit = 50, offset = 0) => {
       `SELECT r.*, u.username as owner_name
        FROM rooms r
        LEFT JOIN users u ON r.owner_id = u.id
-       ORDER BY r.id
+       ORDER BY r.created_at DESC
        LIMIT $1 OFFSET $2`,
       [limit, offset]
     );

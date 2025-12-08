@@ -10,9 +10,15 @@ router.get('/', async (req, res) => {
     const { limit = 50, offset = 0 } = req.query;
     const rooms = await roomService.getAllRooms(parseInt(limit), parseInt(offset));
     
+    const formattedRooms = rooms.map(room => ({
+      ...room,
+      roomId: room.room_code || room.id,
+      roomCode: room.room_code
+    }));
+    
     res.json({
-      rooms,
-      count: rooms.length
+      rooms: formattedRooms,
+      count: formattedRooms.length
     });
     
   } catch (error) {
@@ -151,6 +157,8 @@ router.get('/more', async (req, res) => {
         const userCount = await presence.getRoomUserCount(room.id);
         return {
           id: room.id,
+          roomId: room.room_code || room.id,
+          roomCode: room.room_code,
           name: room.name,
           description: room.description,
           maxUsers: room.max_users,
