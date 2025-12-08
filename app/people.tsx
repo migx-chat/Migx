@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -8,12 +9,14 @@ import {
   FlatList, 
   SafeAreaView,
   Dimensions,
-  ScrollView
+  ScrollView,
+  ActivityIndicator,
+  Image
 } from 'react-native';
 import { router } from 'expo-router';
-import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
 import { useThemeCustom } from '@/theme/provider';
+import { API_ENDPOINTS } from '@/utils/api';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -41,13 +44,62 @@ const ChevronDownIcon = ({ size = 24, color = '#000' }: { size?: number; color?:
   </Svg>
 );
 
+const MaleIcon = ({ size = 16, color = '#2196F3' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path 
+      d="M10.25 21.5C14.5302 21.5 18 18.0302 18 13.75C18 9.46979 14.5302 6 10.25 6C5.96979 6 2.5 9.46979 2.5 13.75C2.5 18.0302 5.96979 21.5 10.25 21.5Z" 
+      stroke={color} 
+      strokeWidth="2"
+    />
+    <Path 
+      d="M15 3L21.5 3L21.5 9.5" 
+      stroke={color} 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    />
+    <Path 
+      d="M15 9L21.5 2.5" 
+      stroke={color} 
+      strokeWidth="2" 
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
+const FemaleIcon = ({ size = 16, color = '#E91E63' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path 
+      d="M12 15C15.3137 15 18 12.3137 18 9C18 5.68629 15.3137 3 12 3C8.68629 3 6 5.68629 6 9C6 12.3137 8.68629 15 12 15Z" 
+      stroke={color} 
+      strokeWidth="2"
+    />
+    <Path 
+      d="M12 15V21" 
+      stroke={color} 
+      strokeWidth="2" 
+      strokeLinecap="round"
+    />
+    <Path 
+      d="M9 18H15" 
+      stroke={color} 
+      strokeWidth="2" 
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
 type UserRole = 'admin' | 'care_service' | 'mentor' | 'merchant';
 
 interface User {
   id: string;
-  name: string;
+  username: string;
   role: UserRole;
   avatar?: string;
+  status?: string;
+  gender?: string;
+  level?: number;
+  xp?: number;
 }
 
 interface RoleConfig {
@@ -62,51 +114,67 @@ const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
   admin: {
     label: 'ADMIN',
     color: '#FF8C42',
-    bgColor: '#ADD8E6', // Aqua
-    textColor: '#2E5C8A', // Darker shade for contrast
+    bgColor: '#ADD8E6',
+    textColor: '#2E5C8A',
     abbreviation: 'A'
   },
   care_service: {
-    label: 'CS', // Renamed from 'CARE SERVICE'
+    label: 'CS',
     color: '#4A90E2',
-    bgColor: '#ADD8E6', // Aqua
-    textColor: '#2E5C8A', // Darker shade for contrast
+    bgColor: '#ADD8E6',
+    textColor: '#2E5C8A',
     abbreviation: 'CS'
   },
   mentor: {
     label: 'MENTOR',
     color: '#E74C3C',
-    bgColor: '#ADD8E6', // Aqua
-    textColor: '#2E5C8A', // Darker shade for contrast
+    bgColor: '#ADD8E6',
+    textColor: '#2E5C8A',
     abbreviation: 'MT'
   },
   merchant: {
     label: 'MERCHANT',
     color: '#9B59B6',
-    bgColor: '#ADD8E6', // Aqua
-    textColor: '#2E5C8A', // Darker shade for contrast
+    bgColor: '#ADD8E6',
+    textColor: '#2E5C8A',
     abbreviation: 'M'
   }
 };
 
-// Mock data - replace with actual API call
-const MOCK_USERS: User[] = [
-  { id: '1', name: 'John Admin', role: 'admin' },
-  { id: '2', name: 'Sarah Admin', role: 'admin' },
-  { id: '3', name: 'Mike Support', role: 'care_service' },
-  { id: '4', name: 'Lisa Help', role: 'care_service' },
-  { id: '5', name: 'David Mentor', role: 'mentor' },
-  { id: '6', name: 'Emma Guide', role: 'mentor' },
-  { id: '7', name: 'Alex Store', role: 'merchant' },
-  { id: '8', name: 'Sophie Shop', role: 'merchant' },
-];
-
 export default function PeoplePage() {
   const { theme } = useThemeCustom();
   const [expandedRole, setExpandedRole] = useState<UserRole | null>(null);
+  const [usersData, setUsersData] = useState<Record<UserRole, User[]>>({
+    admin: [],
+    care_service: [],
+    mentor: [],
+    merchant: []
+  });
+  const [loading, setLoading] = useState(true);
 
-  const getUsersByRole = (role: UserRole): User[] => {
-    return MOCK_USERS.filter(user => user.role === role);
+  useEffect(() => {
+    fetchAllUsers();
+  }, []);
+
+  const fetchAllUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(API_ENDPOINTS.PEOPLE.ALL);
+      const data = await response.json();
+
+      if (response.ok) {
+        setUsersData({
+          admin: data.admin.users || [],
+          care_service: data.care_service.users || [],
+          mentor: data.mentor.users || [],
+          merchant: data.merchant.users || []
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleRole = (role: UserRole) => {
@@ -120,20 +188,48 @@ export default function PeoplePage() {
       <TouchableOpacity 
         style={styles.userItem}
         activeOpacity={0.7}
+        onPress={() => router.push(`/view-profile?userId=${item.id}`)}
       >
-        <View style={[styles.userAvatar, { backgroundColor: theme.primary }]}>
-          <Text style={[styles.userAvatarText, { color: theme.text }]}>
-            {item.name.charAt(0)}
-          </Text>
+        {item.avatar ? (
+          <Image 
+            source={{ uri: item.avatar }} 
+            style={styles.userAvatarImage}
+          />
+        ) : (
+          <View style={[styles.userAvatar, { backgroundColor: theme.primary }]}>
+            <Text style={[styles.userAvatarText, { color: theme.text }]}>
+              {item.username.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <View style={styles.userInfo}>
+          <View style={styles.userNameRow}>
+            <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
+              {item.username}
+            </Text>
+            {item.gender && (
+              <View style={styles.genderIcon}>
+                {item.gender === 'male' ? (
+                  <MaleIcon size={14} color="#2196F3" />
+                ) : (
+                  <FemaleIcon size={14} color="#E91E63" />
+                )}
+              </View>
+            )}
+          </View>
+          {item.level && (
+            <View style={styles.levelBadge}>
+              <Text style={styles.levelText}>Level {item.level}</Text>
+            </View>
+          )}
         </View>
-        <Text style={[styles.userName, { color: theme.text }]}>{item.name}</Text>
       </TouchableOpacity>
     );
   };
 
   const renderRoleCategory = (role: UserRole) => {
     const config = ROLE_CONFIGS[role];
-    const users = getUsersByRole(role);
+    const users = usersData[role];
     const isExpanded = expandedRole === role;
 
     return (
@@ -155,9 +251,14 @@ export default function PeoplePage() {
                 {config.abbreviation}
               </Text>
             </View>
-            <Text style={[styles.roleLabel, { color: theme.text }]}>
-              {config.label}
-            </Text>
+            <View>
+              <Text style={[styles.roleLabel, { color: theme.text }]}>
+                {config.label}
+              </Text>
+              <Text style={[styles.userCount, { color: theme.text }]}>
+                {users.length} {users.length === 1 ? 'user' : 'users'}
+              </Text>
+            </View>
           </View>
           <View style={[
             styles.chevronContainer,
@@ -169,12 +270,20 @@ export default function PeoplePage() {
 
         {isExpanded && (
           <View style={[styles.userListContainer, { backgroundColor: theme.card }]}>
-            <FlatList
-              data={users}
-              renderItem={renderUserItem}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-            />
+            {users.length > 0 ? (
+              <FlatList
+                data={users}
+                renderItem={renderUserItem}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+              />
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, { color: theme.text }]}>
+                  No users found
+                </Text>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -196,7 +305,6 @@ export default function PeoplePage() {
         />
 
         <View style={[styles.modalContainer, { height: SCREEN_HEIGHT * 0.7, backgroundColor: theme.modalBackground }]}>
-          {/* Header */}
           <View style={[styles.header, { backgroundColor: '#0a5229' }]}>
             <Text style={styles.headerTitle}>People</Text>
             <TouchableOpacity
@@ -208,17 +316,25 @@ export default function PeoplePage() {
             </TouchableOpacity>
           </View>
 
-          {/* Content */}
-          <ScrollView 
-            style={styles.content}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.categoriesContainer}>
-              {(Object.keys(ROLE_CONFIGS) as UserRole[]).map(role => 
-                renderRoleCategory(role)
-              )}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={theme.primary} />
+              <Text style={[styles.loadingText, { color: theme.text }]}>
+                Loading users...
+              </Text>
             </View>
-          </ScrollView>
+          ) : (
+            <ScrollView 
+              style={styles.content}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.categoriesContainer}>
+                {(Object.keys(ROLE_CONFIGS) as UserRole[]).map(role => 
+                  renderRoleCategory(role)
+                )}
+              </View>
+            </ScrollView>
+          )}
         </View>
       </View>
     </Modal>
@@ -275,62 +391,76 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+  },
   categoriesContainer: {
     padding: 20,
     gap: 16,
   },
   roleContainer: {
-    borderRadius: 12, // Smaller radius for compact look
+    borderRadius: 12,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2, // Reduced shadow height
+      height: 2,
     },
-    shadowOpacity: 0.08, // Reduced opacity
-    shadowRadius: 6, // Reduced radius
-    elevation: 3, // Reduced elevation
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   roleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16, // Reduced padding
-    paddingHorizontal: 16, // Reduced padding
-    borderRadius: 12, // Smaller radius for compact look
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
     borderWidth: 1,
-    backdropFilter: 'blur(10px)',
   },
   roleHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12, // Reduced gap
+    gap: 12,
     flex: 1,
   },
   roleAvatar: {
-    width: 48, // Smaller size
-    height: 48, // Smaller size
-    borderRadius: 24, // Half of size
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1, // Reduced shadow height
+      height: 1,
     },
-    shadowOpacity: 0.08, // Reduced opacity
-    shadowRadius: 2, // Reduced radius
-    elevation: 2, // Reduced elevation
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
   },
   roleAbbreviation: {
-    fontSize: 18, // Smaller font size
+    fontSize: 18,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   roleLabel: {
-    fontSize: 16, // Smaller font size
+    fontSize: 16,
     fontWeight: 'bold',
     letterSpacing: 0.5,
+  },
+  userCount: {
+    fontSize: 12,
+    opacity: 0.7,
+    marginTop: 2,
   },
   chevronContainer: {
     transform: [{ rotate: '0deg' }],
@@ -341,26 +471,26 @@ const styles = StyleSheet.create({
   },
   userListContainer: {
     paddingTop: 8,
-    paddingBottom: 8, // Reduced padding
-    paddingHorizontal: 8, // Reduced padding
-    borderRadius: 12, // Match roleContainer
+    paddingBottom: 8,
+    paddingHorizontal: 8,
+    borderRadius: 12,
   },
   userItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10, // Reduced padding
-    paddingHorizontal: 12, // Reduced padding
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     backgroundColor: '#F8F9FA',
-    borderRadius: 10, // Smaller radius
-    marginBottom: 6, // Reduced margin
+    borderRadius: 10,
+    marginBottom: 6,
   },
   userAvatar: {
-    width: 36, // Smaller size
-    height: 36, // Smaller size
-    borderRadius: 18, // Half of size
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10, // Reduced margin
+    marginRight: 10,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -370,12 +500,51 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+  userAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
+  },
   userAvatarText: {
-    fontSize: 14, // Smaller font size
+    fontSize: 14,
     fontWeight: 'bold',
   },
+  userInfo: {
+    flex: 1,
+  },
+  userNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   userName: {
-    fontSize: 14, // Smaller font size
+    fontSize: 14,
     fontWeight: '500',
+    flex: 1,
+  },
+  genderIcon: {
+    marginLeft: 4,
+  },
+  levelBadge: {
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  levelText: {
+    fontSize: 11,
+    color: '#1976D2',
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    opacity: 0.6,
   },
 });

@@ -247,6 +247,9 @@ app.use('/api/chat', chatRoutes);
 const announcementRoute = require('./api/announcement.route');
 app.use('/api/announcements', announcementRoute);
 
+const peopleRoute = require('./api/people.route');
+app.use('/api/people', peopleRoute);
+
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -354,6 +357,8 @@ const startServer = async () => {
 ║    - GET  /api/viewprofile/:userId                    ║
 ║    - POST /api/announcements/create                   ║
 ║    - GET  /api/announcements                          ║
+║    - GET  /api/people/all                             ║
+║    - GET  /api/people/role/:role                      ║
 ╚═══════════════════════════════════════════════════════╝
       `);
     });

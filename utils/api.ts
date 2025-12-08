@@ -56,6 +56,10 @@ export const API_ENDPOINTS = {
     UPDATE: (id: string) => `${API_BASE_URL}/api/announcements/${id}`,
     DELETE: (id: string) => `${API_BASE_URL}/api/announcements/${id}`,
   },
+  PEOPLE: {
+    ALL: `${API_BASE_URL}/api/people/all`,
+    BY_ROLE: (role: string) => `${API_BASE_URL}/api/people/role/${role}`,
+  },
   ROOM: {
     LIST: `${API_BASE_URL}/api/rooms`,
     CREATE: `${API_BASE_URL}/api/rooms/create`,
