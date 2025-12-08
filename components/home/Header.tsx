@@ -69,7 +69,7 @@ export function Header() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/notifications/${username}/count`
+        `${API_BASE_URL}/api/notifications/count/${username}`
       );
       const data = await response.json();
       setNotificationCount(data.count || 0);
