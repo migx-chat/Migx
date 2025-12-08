@@ -95,7 +95,7 @@ export default function LoginScreen() {
           await AsyncStorage.removeItem('remember_me');
         }
 
-        await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+        await AsyncStorage.setItem('user_data', JSON.stringify(data.user));
         router.replace('/(tabs)');
       } else {
         Alert.alert('Login Failed', data.error || 'Invalid credentials');

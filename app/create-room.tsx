@@ -46,7 +46,7 @@ export default function CreateRoomScreen() {
     setLoading(true);
 
     try {
-      const userDataStr = await AsyncStorage.getItem('userData');
+      const userDataStr = await AsyncStorage.getItem('user_data');
       console.log('UserDataStr:', userDataStr);
       
       if (!userDataStr) {

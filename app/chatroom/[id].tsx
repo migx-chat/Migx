@@ -87,7 +87,7 @@ export default function ChatRoomScreen() {
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const userDataStr = await AsyncStorage.getItem('userData');
+        const userDataStr = await AsyncStorage.getItem('user_data');
         if (userDataStr) {
           const userData = JSON.parse(userDataStr);
           setCurrentUsername(userData.username || 'migx');

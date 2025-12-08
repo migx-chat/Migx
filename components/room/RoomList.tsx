@@ -83,7 +83,7 @@ export function RoomList() {
 
   const loadData = async () => {
     try {
-      const userDataStr = await AsyncStorage.getItem('userData');
+      const userDataStr = await AsyncStorage.getItem('user_data');
       if (userDataStr) {
         const userData = JSON.parse(userDataStr);
         setUsername(userData.username);
