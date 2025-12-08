@@ -10,30 +10,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen() {
   const { theme } = useThemeCustom();
-  const [userData, setUserData] = useState<any>(null);
-
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
-    try {
-      const userDataStr = await AsyncStorage.getItem('user_data');
-      if (userDataStr) {
-        const data = JSON.parse(userDataStr);
-        setUserData(data);
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    }
-  };
 
   return (
     <SwipeableScreen>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <SafeAreaView style={styles.safeArea}>
           <Header />
-          <UserProfileSection /> {/* Add UserProfileSection here */}
+          <UserProfileSection />
           <ContactList />
         </SafeAreaView>
       </View>

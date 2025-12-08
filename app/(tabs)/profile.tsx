@@ -20,6 +20,7 @@ import { SwipeableScreen } from '@/components/navigation/SwipeableScreen';
 export default function ProfileScreen() {
   const { theme } = useThemeCustom();
   const [userData, setUserData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     loadUserData();
@@ -27,6 +28,7 @@ export default function ProfileScreen() {
 
   const loadUserData = async () => {
     try {
+      setIsLoading(true);
       const userDataStr = await AsyncStorage.getItem('user_data');
       if (userDataStr) {
         const data = JSON.parse(userDataStr);
@@ -34,6 +36,8 @@ export default function ProfileScreen() {
       }
     } catch (error) {
       console.error('Error loading user data:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -83,7 +87,7 @@ export default function ProfileScreen() {
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <SafeAreaView style={styles.safeArea}>
           <ProfileHeader 
-            username={userData?.username || 'Loading...'}
+            username={isLoading ? 'Loading...' : (userData?.username || 'Guest')}
             level={userData?.level || 1}
             onEditPress={handleEditProfile}
           />

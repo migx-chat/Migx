@@ -58,9 +58,9 @@ export function UserProfileSection({
 }: UserProfileSectionProps) {
   const { theme } = useThemeCustom();
   const [statusMessage, setStatusMessage] = useState(initialStatus);
-  const { status, setStatus } = usePresence(propUsername || ''); // Pass a default empty string if propUsername is undefined
   const [showPresenceSelector, setShowPresenceSelector] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadUserData();
@@ -68,6 +68,7 @@ export function UserProfileSection({
 
   const loadUserData = async () => {
     try {
+      setIsLoading(true);
       const userDataStr = await AsyncStorage.getItem('user_data');
       if (userDataStr) {
         const data = JSON.parse(userDataStr);
@@ -75,16 +76,18 @@ export function UserProfileSection({
       }
     } catch (error) {
       console.error('Error loading user data:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Use loaded user data, fallback to props, then to defaults
-  const username = userData?.username || propUsername || 'Loading...';
+  const username = userData?.username || propUsername || '';
   const level = userData?.level || propLevel || 1;
   const avatar = userData?.avatar || propAvatar;
 
-  // Update the usePresence hook dependency if username is loaded from userData
-  const { status: presenceStatusFromHook, setStatus: setPresenceStatus } = usePresence(username);
+  // Only initialize presence hook when we have a username
+  const { status: presenceStatusFromHook, setStatus: setPresenceStatus } = usePresence(username || '');
 
   return (
     <View style={[styles.container, { backgroundColor: '#0a5229' }]}>
@@ -111,7 +114,9 @@ export function UserProfileSection({
         {/* Username and level */}
         <View style={styles.userInfo}>
           <View style={styles.nameRow}>
-            <Text style={styles.username}>{username}</Text>
+            <Text style={styles.username}>
+              {isLoading ? 'Loading...' : (username || 'Guest')}
+            </Text>
             <View style={styles.levelBadge}>
               <Text style={styles.levelText}>[lvl{level}]</Text>
             </View>
