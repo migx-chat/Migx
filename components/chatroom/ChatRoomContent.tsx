@@ -35,31 +35,45 @@ export function ChatRoomContent({ messages, roomInfo }: ChatRoomContentProps) {
     }
   }, [messages]);
 
-  const renderHeader = () => {
-    if (!roomInfo) return null;
-    
-    return (
-      <View style={styles.roomInfoHeader}>
-        {roomInfo.description ? (
-          <Text style={styles.roomDescription}>{roomInfo.description}</Text>
-        ) : null}
-        <Text style={styles.roomMeta}>
-          Managed by: {roomInfo.creatorName || 'Unknown'}
-        </Text>
-        <Text style={styles.roomMeta}>
-          Currently: {roomInfo.currentUsers.length > 0 ? roomInfo.currentUsers.join(', ') : 'No users'}
-        </Text>
-        <View style={styles.divider} />
-      </View>
-    );
+  const buildMessagesWithRoomInfo = () => {
+    if (!roomInfo) return messages;
+
+    const roomInfoMessages: Message[] = [];
+    const roomName = roomInfo.name || 'Room';
+
+    if (roomInfo.description) {
+      roomInfoMessages.push({
+        id: 'room-info-welcome',
+        username: roomName,
+        message: roomInfo.description,
+        isSystem: true,
+      });
+    }
+
+    roomInfoMessages.push({
+      id: 'room-info-users',
+      username: roomName,
+      message: `Currently users in the room: ${roomInfo.currentUsers.length > 0 ? roomInfo.currentUsers.join(', ') : 'No users'}`,
+      isSystem: true,
+    });
+
+    roomInfoMessages.push({
+      id: 'room-info-managed',
+      username: roomName,
+      message: `This room is managed by ${roomInfo.creatorName || 'Unknown'}`,
+      isSystem: true,
+    });
+
+    return [...roomInfoMessages, ...messages];
   };
+
+  const allMessages = buildMessagesWithRoomInfo();
 
   return (
     <FlatList
       ref={flatListRef}
-      data={messages}
+      data={allMessages}
       keyExtractor={(item) => item.id}
-      ListHeaderComponent={renderHeader}
       renderItem={({ item }) => (
         <ChatMessage
           username={item.username}
@@ -83,26 +97,5 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingBottom: 8,
-  },
-  roomInfoHeader: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: 'rgba(10, 82, 41, 0.1)',
-  },
-  roomDescription: {
-    fontSize: 13,
-    color: '#0a5229',
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  roomMeta: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E0E0E0',
-    marginTop: 10,
   },
 });

@@ -27,8 +27,8 @@ export function ChatMessage({
   const { theme } = useThemeCustom();
 
   const getUsernameColor = () => {
+    if (isSystem) return '#FF8C00';
     if (isOwnMessage) return roleColors.own;
-    if (isSystem) return roleColors.system;
     if (userType === 'creator') return roleColors.creator;
     if (userType === 'admin') return roleColors.admin;
     if (userType === 'mentor') return roleColors.mentor;
@@ -37,6 +37,7 @@ export function ChatMessage({
   };
 
   const getMessageColor = () => {
+    if (isSystem) return '#000000';
     return theme.text;
   };
 
