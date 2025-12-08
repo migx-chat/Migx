@@ -5,8 +5,6 @@ import { useThemeCustom } from '@/theme/provider';
 import { usePresence, PresenceStatus } from '@/hooks/usePresence';
 import { PresenceSelector } from './PresenceSelector';
 
-type PresenceStatus = 'online' | 'away' | 'busy' | 'offline' | 'invisible';
-
 interface UserProfileSectionProps {
   username?: string;
   level?: number;
@@ -95,7 +93,11 @@ export function UserProfileSection({
       });
 
       if (response.ok) {
-        const updatedUserData = { ...userData, statusMessage: message };
+        const updatedUserData = { 
+          ...userData, 
+          statusMessage: message,
+          token: userData.token
+        };
         await AsyncStorage.setItem('user_data', JSON.stringify(updatedUserData));
         setUserData(updatedUserData);
         console.log('✅ Status message updated successfully');

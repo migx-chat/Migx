@@ -95,7 +95,24 @@ export default function LoginScreen() {
           await AsyncStorage.removeItem('remember_me');
         }
 
-        await AsyncStorage.setItem('user_data', JSON.stringify(data.user));
+        const userDataToStore = {
+          id: data.user.id,
+          username: data.user.username,
+          email: data.user.email,
+          avatar: data.user.avatar,
+          level: data.user.level,
+          role: data.user.role,
+          statusMessage: data.user.statusMessage,
+          token: data.token
+        };
+        
+        console.log('💾 Storing user_data with token:', {
+          id: userDataToStore.id,
+          username: userDataToStore.username,
+          hasToken: !!userDataToStore.token
+        });
+        
+        await AsyncStorage.setItem('user_data', JSON.stringify(userDataToStore));
         router.replace('/(tabs)');
       } else {
         Alert.alert('Login Failed', data.error || 'Invalid credentials');

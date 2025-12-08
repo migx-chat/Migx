@@ -5,8 +5,8 @@ let socket: any = null;
 
 // Backend URL - Replit handles port forwarding automatically
 const API_BASE_URL = Platform.OS === 'web'
-  ? 'https://9212ae89-43be-4a31-98db-f91f871d81be-00-xbc1oair0gwx.pike.replit.dev'
-  : 'https://9212ae89-43be-4a31-98db-f91f871d81be-00-xbc1oair0gwx.pike.replit.dev';
+  ? 'https://de8810a7-f473-4c18-aad0-2eadcac86bf6-00-1m4qhdwn5iq40.pike.replit.dev'
+  : 'https://de8810a7-f473-4c18-aad0-2eadcac86bf6-00-1m4qhdwn5iq40.pike.replit.dev';
 
 console.log('🌐 API_BASE_URL configured as:', API_BASE_URL);
 console.log('🔍 Backend Health Check:', `${API_BASE_URL}/health`);

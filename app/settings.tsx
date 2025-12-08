@@ -188,8 +188,11 @@ export default function SettingsScreen() {
         setEmailOtp('');
         setOtpSent(false);
         
-        // Update stored user data
-        const updatedUser = { ...userData, email: newEmail };
+        const updatedUser = { 
+          ...userData, 
+          email: newEmail,
+          token: userData.token
+        };
         await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser));
         setUserData(updatedUser);
       } else {
