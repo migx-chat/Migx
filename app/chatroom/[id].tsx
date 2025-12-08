@@ -20,6 +20,7 @@ import { MenuKickModal } from '@/components/chatroom/MenuKickModal';
 import { MenuParticipantsModal } from '@/components/chatroom/MenuParticipantsModal';
 import { VoteKickButton } from '@/components/chatroom/VoteKickButton';
 import { ChatRoomMenu } from '@/components/chatroom/ChatRoomMenu';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ChatTab {
   id: string;
@@ -41,8 +42,9 @@ export default function ChatRoomScreen() {
 
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [currentUsername, setCurrentUsername] = useState('migx'); // Replace with actual username
-  const [isAdmin, setIsAdmin] = useState(false); // Replace with actual admin status
+  const [currentUsername, setCurrentUsername] = useState('');
+  const [currentUserId, setCurrentUserId] = useState(''); 
+  const [isAdmin, setIsAdmin] = useState(false);
   const [roomUsers, setRoomUsers] = useState<string[]>(['migx', 'mad', 'user1', 'user2']);
   const [kickModalVisible, setKickModalVisible] = useState(false);
   const [selectedUserToKick, setSelectedUserToKick] = useState<string | null>(null);
@@ -68,11 +70,54 @@ export default function ChatRoomScreen() {
 
     newSocket.on('connect', () => {
       console.log('Socket connected');
-      newSocket.emit('join-room', { roomId, username: currentUsername });
+      newSocket.emit('join_room', { roomId, username: currentUsername });
     });
 
     newSocket.on('system-message', (data: { message: string }) => {
       addSystemMessage(data.message);
+    });
+
+    // Real-time message receiving
+    newSocket.on('chat:message', (data: any) => {
+      console.log('📨 Received message:', data);
+      const index = tabs.findIndex(t => t.id === roomId);
+      if (index === -1) return;
+
+  // Load user data from storage
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userDataStr = await AsyncStorage.getItem('userData');
+        if (userDataStr) {
+          const userData = JSON.parse(userDataStr);
+          setCurrentUsername(userData.username || 'migx');
+          setCurrentUserId(userData.id || '');
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      }
+    };
+    loadUserData();
+  }, []);
+
+
+
+      const copy = [...tabs];
+      const newMessage = {
+        id: data.id || Date.now().toString(),
+        username: data.username,
+        message: data.message,
+        isOwnMessage: data.username === currentUsername,
+        isSystem: data.messageType === 'system',
+        isNotice: data.messageType === 'notice',
+      };
+
+      // Only add if not already in the list (avoid duplicates)
+      const messageExists = copy[index].messages.some(m => m.id === newMessage.id);
+      if (!messageExists) {
+        copy[index].messages.push(newMessage);
+        setTabs(copy);
+      }
     });
 
     newSocket.on('vote-started', (data: { target: string; remainingVotes: number; remainingSeconds: number }) => {
@@ -107,7 +152,7 @@ export default function ChatRoomScreen() {
     setSocket(newSocket);
 
     return () => {
-      newSocket.emit('leave-room', { roomId, username: currentUsername });
+      newSocket.emit('leave_room', { roomId, username: currentUsername });
       newSocket.close();
     };
   }, [roomId, currentUsername]);
@@ -158,18 +203,17 @@ export default function ChatRoomScreen() {
   };
 
   const handleSendMessage = (message: string) => {
-    const index = tabs.findIndex(t => t.id === activeTab);
-    if (index === -1) return;
+    if (!socket || !message.trim() || !currentUserId) return;
 
-    const copy = [...tabs];
-    copy[index].messages.push({
-      id: Date.now().toString(),
-      username: 'migx',
-      message,
-      isOwnMessage: true,
+    // Send message via socket
+    socket.emit('chat:message', {
+      roomId: activeTab,
+      userId: currentUserId,
+      username: currentUsername,
+      message: message.trim(),
     });
 
-    setTabs(copy);
+    // Message will be added when we receive it back from server via 'chat:message' event
   };
 
   const handleKickMenuPress = () => {
