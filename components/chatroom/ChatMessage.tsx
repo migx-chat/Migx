@@ -25,6 +25,18 @@ export function ChatMessage({
 }: ChatMessageProps) {
   
   const { theme } = useThemeCustom();
+  
+  // Debug logging
+  React.useEffect(() => {
+    console.log('💬 Rendering message:', {
+      username,
+      message: message.substring(0, 50),
+      isSystem,
+      isNotice,
+      userType,
+      isOwnMessage
+    });
+  }, [username, message]);
 
   const getUsernameColor = () => {
     if (isOwnMessage) return roleColors.own;

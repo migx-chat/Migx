@@ -129,6 +129,13 @@ module.exports = (io, socket) => {
 
       // Send current users list to the user who just joined
       const currentUsersList = await getRoomUsersList(roomId);
+      console.log('📤 Sending room:joined event:', {
+        roomId,
+        roomName: room.name,
+        userCount,
+        username
+      });
+      
       socket.emit('room:joined', {
         roomId,
         room,

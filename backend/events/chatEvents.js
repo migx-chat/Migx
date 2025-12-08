@@ -82,12 +82,16 @@ module.exports = (io, socket) => {
     try {
       const { roomId, limit = 50, offset = 0 } = data;
       
+      console.log('📥 Get messages request:', { roomId, limit, offset });
+      
       if (!roomId) {
         socket.emit('error', { message: 'Room ID required' });
         return;
       }
       
       const messages = await messageService.getMessages(roomId, limit, offset);
+      
+      console.log('📤 Sending messages:', messages.length);
       
       socket.emit('chat:messages', {
         roomId,

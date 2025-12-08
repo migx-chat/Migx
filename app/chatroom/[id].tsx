@@ -60,6 +60,10 @@ export default function ChatRoomScreen() {
   // Initialize socket connection
   useEffect(() => {
     console.log('🔌 Connecting to socket server:', API_BASE_URL);
+    console.log('📍 Room ID:', roomId);
+    console.log('👤 Username:', currentUsername);
+    console.log('🆔 User ID:', currentUserId);
+    
     const newSocket = io(API_BASE_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -69,12 +73,32 @@ export default function ChatRoomScreen() {
     });
 
     newSocket.on('connect', () => {
-      console.log('Socket connected');
-      newSocket.emit('join_room', { roomId, username: currentUsername });
+      console.log('✅ Socket connected:', newSocket.id);
+      if (currentUsername && currentUserId) {
+        console.log('📤 Emitting join_room:', { roomId, userId: currentUserId, username: currentUsername });
+        newSocket.emit('join_room', { 
+          roomId, 
+          userId: currentUserId, 
+          username: currentUsername 
+        });
+      }
     });
 
-    newSocket.on('system-message', (data: { message: string }) => {
+    newSocket.on('system:message', (data: { roomId: string; message: string; type: string }) => {
+      console.log('📨 System message received:', data);
       addSystemMessage(data.message);
+    });
+
+    newSocket.on('room:joined', (data: any) => {
+      console.log('🎯 Room joined successfully:', data);
+      if (data.room) {
+        const copy = [...tabs];
+        const index = copy.findIndex(t => t.id === roomId);
+        if (index !== -1) {
+          copy[index].name = data.room.name;
+          setTabs(copy);
+        }
+      }
     });
 
     // Real-time message receiving
@@ -82,23 +106,6 @@ export default function ChatRoomScreen() {
       console.log('📨 Received message:', data);
       const index = tabs.findIndex(t => t.id === roomId);
       if (index === -1) return;
-
-  // Load user data from storage
-  useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const userDataStr = await AsyncStorage.getItem('user_data');
-        if (userDataStr) {
-          const userData = JSON.parse(userDataStr);
-          setCurrentUsername(userData.username || 'migx');
-          setCurrentUserId(userData.id || '');
-        }
-      } catch (error) {
-        console.error('Error loading user data:', error);
-      }
-    };
-    loadUserData();
-  }, []);
 
 
 
@@ -152,10 +159,13 @@ export default function ChatRoomScreen() {
     setSocket(newSocket);
 
     return () => {
-      newSocket.emit('leave_room', { roomId, username: currentUsername });
+      if (currentUsername && currentUserId) {
+        console.log('📤 Emitting leave_room');
+        newSocket.emit('leave_room', { roomId, username: currentUsername });
+      }
       newSocket.close();
     };
-  }, [roomId, currentUsername]);
+  }, [roomId, currentUsername, currentUserId]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -175,17 +185,31 @@ export default function ChatRoomScreen() {
       id: roomId,
       name: roomName,
       type: 'room',
-      messages: [
-        { id: '1', username: 'Indonesia', message: 'Welcome to Indonesia...', isSystem: true },
-        { id: '2', username: 'Indonesia', message: 'Currently users in the room: migx, mad', isSystem: true },
-        { id: '3', username: 'Indonesia', message: 'This room created by migx', isSystem: true },
-        { id: '4', username: 'Indonesia', message: 'migx [1] has entered', isSystem: true },
-        { id: '5', username: '', message: '🔊 <<Welcome Migx community happy fun!!>>', isNotice: true },
-      ],
+      messages: [],
     },
   ]);
 
   const [activeTab, setActiveTab] = useState(roomId);
+
+  // Load user data from storage FIRST
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const userDataStr = await AsyncStorage.getItem('user_data');
+        if (userDataStr) {
+          const userData = JSON.parse(userDataStr);
+          console.log('👤 User data loaded:', userData);
+          setCurrentUsername(userData.username || 'migx');
+          setCurrentUserId(userData.id || '');
+        } else {
+          console.log('⚠️ No user data found in storage');
+        }
+      } catch (error) {
+        console.error('❌ Error loading user data:', error);
+      }
+    };
+    loadUserData();
+  }, []);
 
   const addSystemMessage = (message: string) => {
     const index = tabs.findIndex(t => t.id === activeTab);

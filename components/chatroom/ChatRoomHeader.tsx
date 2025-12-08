@@ -21,6 +21,8 @@ interface ChatRoomHeaderProps {
 export function ChatRoomHeader({ tabs, activeTab, onTabChange, onCloseTab }: ChatRoomHeaderProps) {
   const router = useRouter();
   const { theme } = useThemeCustom();
+  
+  const currentTab = tabs.find(t => t.id === activeTab);
 
   return (
     <View style={[styles.container, { backgroundColor: '#0a5229' }]}>
@@ -32,7 +34,9 @@ export function ChatRoomHeader({ tabs, activeTab, onTabChange, onCloseTab }: Cha
           <BackIcon color={theme.text} size={24} />
         </TouchableOpacity>
         
-        <View style={styles.spacer} />
+        <View style={styles.centerContent}>
+          <Text style={styles.roomName}>{currentTab?.name || 'Room'}</Text>
+        </View>
         
         <TouchableOpacity 
           onPress={() => {/* Handle menu grid action */}}
@@ -87,8 +91,15 @@ const styles = StyleSheet.create({
   iconButton: {
     padding: 8,
   },
-  spacer: {
+  centerContent: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roomName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   tabsContainer: {
     flexDirection: 'row',
