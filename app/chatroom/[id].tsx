@@ -46,6 +46,12 @@ export default function ChatRoomScreen() {
   const [currentUserId, setCurrentUserId] = useState(''); 
   const [isAdmin, setIsAdmin] = useState(false);
   const [roomUsers, setRoomUsers] = useState<string[]>(['migx', 'mad', 'user1', 'user2']);
+  const [roomInfo, setRoomInfo] = useState<{
+    name: string;
+    description: string;
+    creatorName: string;
+    currentUsers: string[];
+  } | null>(null);
   const [kickModalVisible, setKickModalVisible] = useState(false);
   const [selectedUserToKick, setSelectedUserToKick] = useState<string | null>(null);
   const [participantsModalVisible, setParticipantsModalVisible] = useState(false); // State for participants modal
@@ -98,6 +104,14 @@ export default function ChatRoomScreen() {
           copy[index].name = data.room.name;
           setTabs(copy);
         }
+        
+        // Save room info
+        setRoomInfo({
+          name: data.room.name,
+          description: data.room.description || '',
+          creatorName: data.room.creator_name || 'admin',
+          currentUsers: data.currentUsers || []
+        });
       }
     });
 
@@ -345,6 +359,7 @@ export default function ChatRoomScreen() {
           setTabs(filtered);
           if (activeTab === id) setActiveTab(filtered[0].id);
         }}
+        roomInfo={roomInfo}
       />
 
       <View style={[styles.contentContainer, { backgroundColor: theme.background }]}>
