@@ -5,6 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const profileService = require('../services/profileService');
+const authMiddleware = require('../middleware/auth');
 
 // Configure multer for avatar uploads
 const storage = multer.diskStorage({
@@ -43,39 +44,28 @@ const upload = multer({
 
 // ==================== AVATAR ====================
 
-router.post('/avatar/upload', upload.single('avatar'), async (req, res) => {
+router.post('/avatar/upload', authMiddleware, upload.single('avatar'), async (req, res) => {
   try {
     console.log('📥 Avatar upload request received');
-    console.log('📋 Headers:', req.headers);
-    console.log('📋 Body:', req.body);
+    console.log('📋 Authenticated user:', req.user);
     console.log('📋 File:', req.file ? req.file.filename : 'No file');
-    
-    // Check authorization header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('❌ No authorization header');
-      return res.status(401).json({ 
-        success: false,
-        error: 'User not logged in',
-        message: 'Authorization token required' 
-      });
-    }
-    
-    const { userId } = req.body;
-    
-    if (!userId) {
-      console.log('❌ No userId provided');
-      return res.status(400).json({ 
-        success: false,
-        error: 'User ID is required' 
-      });
-    }
     
     if (!req.file) {
       console.log('❌ No file uploaded');
       return res.status(400).json({ 
         success: false,
         error: 'No file uploaded' 
+      });
+    }
+    
+    // Use authenticated user ID from token
+    const userId = req.user.id || req.user.userId || req.body.userId;
+    
+    if (!userId) {
+      console.log('❌ No userId in token or body');
+      return res.status(400).json({ 
+        success: false,
+        error: 'User ID is required' 
       });
     }
     

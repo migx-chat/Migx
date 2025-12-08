@@ -1,9 +1,9 @@
-
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const userService = require('../services/userService');
 const { getUserLevel } = require('../utils/xpLeveling');
-const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { sendOtpEmail, sendActivationEmail, sendPasswordChangeOtp } = require('../utils/emailService');
 
@@ -22,16 +22,16 @@ function generateActivationToken() {
 router.post('/login', async (req, res, next) => {
   try {
     console.log('LOGIN REQUEST RECEIVED:', { username: req.body.username });
-    
+
     const { username, password, rememberMe, invisible } = req.body;
-    
+
     if (!username) {
       console.log('LOGIN FAILED: Username missing');
       return res.status(400).json({ success: false, error: 'Username is required' });
     }
-    
+
     let user = await userService.getUserByUsername(username);
-    
+
     if (!user) {
       console.log('LOGIN FAILED: User not found');
       return res.status(400).json({ success: false, error: 'Invalid username or password' });
@@ -57,12 +57,27 @@ router.post('/login', async (req, res, next) => {
       await userService.updateUserInvisible(user.id, invisible);
       user.is_invisible = invisible;
     }
-    
+
     const levelData = await getUserLevel(user.id);
-    
+
     console.log('LOGIN SUCCESS:', username);
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        id: user.id,
+        userId: user.id,
+        username: user.username 
+      },
+      process.env.JWT_SECRET || 'migx-secret-key-2024',
+      { expiresIn: '30d' }
+    );
+
+    console.log('✅ JWT token generated for user:', user.id);
+
     res.status(200).json({
       success: true,
+      token: token,
       user: {
         id: user.id,
         username: user.username,
@@ -80,7 +95,7 @@ router.post('/login', async (req, res, next) => {
       },
       rememberMe: rememberMe || false
     });
-    
+
   } catch (error) {
     console.error('LOGIN ERROR:', error);
     console.error('ERROR STACK:', error.stack);
@@ -97,9 +112,9 @@ router.post('/register', async (req, res, next) => {
     console.log('REGISTER REQUEST RECEIVED:', { 
       body: { ...req.body, password: '[HIDDEN]' } 
     });
-    
+
     const { username, password, email, country, gender } = req.body;
-    
+
     // Validate username
     if (!username || !usernameRegex.test(username)) {
       console.log('REGISTER FAILED: Invalid username');
@@ -108,7 +123,7 @@ router.post('/register', async (req, res, next) => {
         error: 'Username must be 6-12 characters, start with a letter, and contain only lowercase letters, numbers, dots, and underscores' 
       });
     }
-    
+
     // Validate email format
     if (!email || !emailRegex.test(email)) {
       console.log('REGISTER FAILED: Invalid email format');
@@ -124,7 +139,7 @@ router.post('/register', async (req, res, next) => {
         error: `Email must be from Gmail, Yahoo, or Zoho. You used: ${emailDomain}` 
       });
     }
-    
+
     // Validate password
     if (!password || password.length < 6) {
       console.log('REGISTER FAILED: Password too short');
@@ -142,7 +157,7 @@ router.post('/register', async (req, res, next) => {
       console.log('REGISTER FAILED: Invalid gender');
       return res.status(400).json({ success: false, error: 'Gender must be male or female' });
     }
-    
+
     // Check if username exists
     const existingUser = await userService.getUserByUsername(username);
     if (existingUser) {
@@ -156,13 +171,13 @@ router.post('/register', async (req, res, next) => {
       console.log('REGISTER FAILED: Email exists');
       return res.status(400).json({ success: false, error: 'Email already registered' });
     }
-    
+
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
-    
+
     // Generate activation token
     const activationToken = generateActivationToken();
-    
+
     // Create user
     const user = await userService.createUserWithRegistration({
       username,
@@ -172,7 +187,7 @@ router.post('/register', async (req, res, next) => {
       gender,
       activationToken
     });
-    
+
     if (!user || user.error) {
       console.log('REGISTER FAILED: User creation failed');
       return res.status(400).json({ success: false, error: user?.error || 'Registration failed' });
@@ -180,7 +195,7 @@ router.post('/register', async (req, res, next) => {
 
     // Generate OTP for registration
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     // Store OTP in database
     const otpStored = await userService.storeRegistrationOtp(user.id, email, otp);
     if (!otpStored) {
@@ -188,7 +203,7 @@ router.post('/register', async (req, res, next) => {
     } else {
       console.log('OTP stored in database for user:', user.id);
     }
-    
+
     // Send OTP email
     try {
       const emailResult = await sendOtpEmail(email, otp, username);
@@ -200,7 +215,7 @@ router.post('/register', async (req, res, next) => {
     } catch (emailError) {
       console.error('Email sending error:', emailError);
     }
-    
+
     // Send activation email as well (backup method)
     try {
       const activationResult = await sendActivationEmail(email, username, activationToken);
@@ -210,7 +225,7 @@ router.post('/register', async (req, res, next) => {
     } catch (activationError) {
       console.error('Activation email error:', activationError);
     }
-    
+
     console.log('REGISTER SUCCESS:', username);
     res.status(200).json({
       success: true,
@@ -221,7 +236,7 @@ router.post('/register', async (req, res, next) => {
         email: user.email
       }
     });
-    
+
   } catch (error) {
     console.error('REGISTER ERROR:', error);
     console.error('ERROR STACK:', error.stack);
@@ -236,9 +251,9 @@ router.post('/register', async (req, res, next) => {
 router.get('/activate/:token', async (req, res) => {
   try {
     const { token } = req.params;
-    
+
     const result = await userService.activateUser(token);
-    
+
     if (!result.success) {
       return res.status(400).send(`
         <html>
@@ -249,7 +264,7 @@ router.get('/activate/:token', async (req, res) => {
         </html>
       `);
     }
-    
+
     res.send(`
       <html>
         <body style="font-family: Arial; text-align: center; padding: 50px;">
@@ -259,7 +274,7 @@ router.get('/activate/:token', async (req, res) => {
         </body>
       </html>
     `);
-    
+
   } catch (error) {
     console.error('Activation error:', error);
     res.status(500).send('Activation failed');
@@ -270,11 +285,11 @@ router.get('/check/:username', async (req, res) => {
   try {
     const { username } = req.params;
     const user = await userService.getUserByUsername(username);
-    
+
     res.json({
       exists: !!user
     });
-    
+
   } catch (error) {
     console.error('Check username error:', error);
     res.status(500).json({ error: 'Check failed' });
@@ -307,7 +322,7 @@ router.get('/genders', (req, res) => {
 router.post('/change-password', async (req, res) => {
   try {
     const { userId, oldPassword, newPassword } = req.body;
-    
+
     if (!userId || !oldPassword || !newPassword) {
       return res.status(400).json({ error: 'All fields are required' });
     }
@@ -329,9 +344,9 @@ router.post('/change-password', async (req, res) => {
 
     // Hash new password
     const newPasswordHash = await bcrypt.hash(newPassword, 10);
-    
+
     const result = await userService.updatePassword(userId, newPasswordHash);
-    
+
     if (result) {
       res.json({ success: true, message: 'Password changed successfully' });
     } else {
@@ -347,7 +362,7 @@ router.post('/change-password', async (req, res) => {
 router.post('/send-email-otp', async (req, res) => {
   try {
     const { userId, oldEmail, newEmail } = req.body;
-    
+
     if (!userId || !oldEmail || !newEmail) {
       return res.status(400).json({ error: 'All fields are required' });
     }
@@ -369,17 +384,17 @@ router.post('/send-email-otp', async (req, res) => {
 
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     // Store OTP in database temporarily
     await userService.storeEmailOtp(userId, otp, newEmail);
 
     // Send OTP email using Resend
     const emailResult = await sendPasswordChangeOtp(oldEmail, user.username, otp);
-    
+
     if (!emailResult.success) {
       return res.status(500).json({ error: 'Failed to send OTP email' });
     }
-    
+
     res.json({ success: true, message: 'OTP sent to your old email' });
   } catch (error) {
     console.error('Send email OTP error:', error);
@@ -391,9 +406,9 @@ router.post('/send-email-otp', async (req, res) => {
 router.post('/verify-otp', async (req, res) => {
   try {
     const { userId, otp } = req.body;
-    
+
     console.log('VERIFY OTP REQUEST:', { userId, otp: otp ? 'provided' : 'missing' });
-    
+
     if (!userId || !otp) {
       return res.status(400).json({ success: false, error: 'User ID and OTP are required' });
     }
@@ -420,9 +435,9 @@ router.post('/verify-otp', async (req, res) => {
     }
 
     console.log('VERIFY OTP SUCCESS: Account activated for user:', userId);
-    
+
     const levelData = await getUserLevel(userId);
-    
+
     res.status(200).json({
       success: true,
       message: 'Account verified and activated successfully!',
@@ -441,7 +456,7 @@ router.post('/verify-otp', async (req, res) => {
         createdAt: user.created_at
       }
     });
-    
+
   } catch (error) {
     console.error('VERIFY OTP ERROR:', error);
     res.status(500).json({ success: false, error: 'Verification failed' });
@@ -452,7 +467,7 @@ router.post('/verify-otp', async (req, res) => {
 router.post('/resend-otp', async (req, res) => {
   try {
     const { userId } = req.body;
-    
+
     if (!userId) {
       return res.status(400).json({ success: false, error: 'User ID is required' });
     }
@@ -467,12 +482,12 @@ router.post('/resend-otp', async (req, res) => {
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     const otpStored = await userService.storeRegistrationOtp(user.id, user.email, otp);
     if (!otpStored) {
       return res.status(500).json({ success: false, error: 'Failed to generate new OTP' });
     }
-    
+
     const emailResult = await sendOtpEmail(user.email, otp, user.username);
     if (!emailResult.success) {
       return res.status(500).json({ success: false, error: 'Failed to send OTP email' });
@@ -480,7 +495,7 @@ router.post('/resend-otp', async (req, res) => {
 
     console.log('RESEND OTP SUCCESS: New OTP sent to:', user.email);
     res.status(200).json({ success: true, message: 'New OTP sent to your email' });
-    
+
   } catch (error) {
     console.error('RESEND OTP ERROR:', error);
     res.status(500).json({ success: false, error: 'Failed to resend OTP' });
@@ -491,7 +506,7 @@ router.post('/resend-otp', async (req, res) => {
 router.post('/change-email', async (req, res) => {
   try {
     const { userId, oldEmail, newEmail, otp } = req.body;
-    
+
     if (!userId || !oldEmail || !newEmail || !otp) {
       return res.status(400).json({ error: 'All fields are required' });
     }
@@ -513,7 +528,7 @@ router.post('/change-email', async (req, res) => {
 
     // Update email
     const result = await userService.updateEmail(userId, newEmail);
-    
+
     if (result) {
       res.json({ success: true, message: 'Email changed successfully' });
     } else {
@@ -529,7 +544,7 @@ router.post('/change-email', async (req, res) => {
 router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
-    
+
     if (!email) {
       return res.status(400).json({ success: false, error: 'Email is required' });
     }
@@ -541,7 +556,7 @@ router.post('/forgot-password', async (req, res) => {
 
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     // Store OTP
     const otpStored = await userService.storeForgotPasswordOtp(user.id, otp);
     if (!otpStored) {
@@ -565,7 +580,7 @@ router.post('/forgot-password', async (req, res) => {
 router.post('/verify-forgot-otp', async (req, res) => {
   try {
     const { userId, otp } = req.body;
-    
+
     if (!userId || !otp) {
       return res.status(400).json({ success: false, error: 'User ID and OTP are required' });
     }
@@ -586,7 +601,7 @@ router.post('/verify-forgot-otp', async (req, res) => {
 router.post('/reset-password', async (req, res) => {
   try {
     const { userId, newPassword, otp } = req.body;
-    
+
     if (!userId || !newPassword || !otp) {
       return res.status(400).json({ success: false, error: 'All fields are required' });
     }
@@ -603,10 +618,10 @@ router.post('/reset-password', async (req, res) => {
 
     // Hash new password
     const newPasswordHash = await bcrypt.hash(newPassword, 10);
-    
+
     // Update password
     const result = await userService.updatePassword(userId, newPasswordHash);
-    
+
     if (result) {
       // Delete OTP
       await userService.deleteForgotPasswordOtp(userId);

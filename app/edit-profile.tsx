@@ -135,23 +135,22 @@ export default function EditProfileScreen() {
       
       formData.append('avatar', {
         uri,
-        name: `avatar-${Date.now()}.${fileType}`,
-        type: `image/${fileType}`,
+        name: `avatar.jpg`,
+        type: 'image/jpeg',
       } as any);
 
       console.log('📤 Uploading avatar...');
       console.log('📦 Endpoint:', API_ENDPOINTS.PROFILE.AVATAR_UPLOAD);
       console.log('📦 User ID:', userData.id);
-      console.log('📦 File URI:', uri);
+      console.log('📦 Token:', `Bearer ${token.substring(0, 20)}...`);
 
-      // Upload with Authorization header
+      // Upload with Authorization header - don't set Content-Type manually
       const response = await fetch(API_ENDPOINTS.PROFILE.AVATAR_UPLOAD, {
         method: 'POST',
-        body: formData,
         headers: {
           'Authorization': `Bearer ${token}`,
-          // Note: Don't set Content-Type manually for FormData, let the browser set it with boundary
         },
+        body: formData,
       });
 
       console.log('📡 Response status:', response.status);
@@ -167,19 +166,20 @@ export default function EditProfileScreen() {
         const newAvatarUrl = data.avatarUrl || data.user?.avatar || data.avatar;
         console.log('🖼️ New avatar URL:', newAvatarUrl);
         
-        // Update user data with new avatar
+        // Update user data with new avatar - keep token intact
         const updatedUser = {
           ...userData,
-          avatar: newAvatarUrl
+          avatar: newAvatarUrl,
+          token: token // Ensure token is preserved
         };
         
         setUser(updatedUser);
         
-        // Update stored user data in AsyncStorage
+        // Update stored user data in AsyncStorage - preserve token
         await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser));
         await storeUser(updatedUser);
         
-        console.log('✅ User data updated in storage');
+        console.log('✅ User data updated in storage with token preserved');
         
         // Force reload user data
         await loadUserData();
