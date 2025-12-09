@@ -139,50 +139,53 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
 
   return (
     <GestureDetector gesture={panGesture}>
-      <LinearGradient 
-        colors={['#0D5E32', '#0A4726']} 
-        start={{ x: 0, y: 0 }} 
-        end={{ x: 1, y: 0 }}
-        style={[
-          styles.tabBar, 
-          { 
-            paddingBottom: Math.max(insets.bottom, 8),
-            borderTopColor: '#0A4726',
-          }
-        ]}
-      >
-        <Animated.View
+      <View pointerEvents="box-none">
+        <LinearGradient 
+          colors={['#0D5E32', '#0A4726']} 
+          start={{ x: 0, y: 0 }} 
+          end={{ x: 1, y: 0 }}
           style={[
-            styles.indicator,
-            { backgroundColor: '#FFFFFF' },
-            indicatorStyle,
+            styles.tabBar, 
+            { 
+              paddingBottom: Math.max(insets.bottom, 8),
+              borderTopColor: '#0A4726',
+            }
           ]}
-        />
+        >
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.indicator,
+              { backgroundColor: '#FFFFFF' },
+              indicatorStyle,
+            ]}
+          />
 
-        <View style={styles.tabsRow}>
-          {VISIBLE_TABS.map((tabName, index) => {
-            const config = TAB_CONFIG[tabName];
-            if (!config) return null;
-            
-            const isActive = currentIdx === index;
-            const color = isActive ? '#FFFFFF' : 'rgba(255,255,255,0.6)';
+          <View style={styles.tabsRow}>
+            {VISIBLE_TABS.map((tabName, index) => {
+              const config = TAB_CONFIG[tabName];
+              if (!config) return null;
+              
+              const isActive = currentIdx === index;
+              const color = isActive ? '#FFFFFF' : 'rgba(255,255,255,0.6)';
 
-            return (
-              <TouchableOpacity
-                key={tabName}
-                style={styles.tab}
-                onPress={() => navigateToTab(index)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.tabContent}>
-                  {config.icon({ color, size: 24 })}
-                  <Text style={[styles.tabLabel, { color }]}>{config.title}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </LinearGradient>
+              return (
+                <TouchableOpacity
+                  key={tabName}
+                  style={styles.tab}
+                  onPress={() => navigateToTab(index)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.tabContent}>
+                    {config.icon({ color, size: 24 })}
+                    <Text style={[styles.tabLabel, { color }]}>{config.title}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </LinearGradient>
+      </View>
     </GestureDetector>
   );
 }
