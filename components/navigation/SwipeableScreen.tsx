@@ -1,20 +1,21 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useMemo } from 'react';
 import { View, StyleSheet, Platform, Dimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
-  withSpring,
+  withTiming,
   runOnJS,
-  clamp
+  interpolate,
+  Extrapolation
 } from 'react-native-reanimated';
-import { useRouter, usePathname } from 'expo-router';
+import { useRouter, usePathname, useNavigationContainerRef } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SWIPE_THRESHOLD = 60;
-const SWIPE_VELOCITY = 400;
-const MAX_TRANSLATE = 30;
+const SWIPE_THRESHOLD = 40;
+const VELOCITY_THRESHOLD = 250;
+const MAX_TAB_INDEX = 4;
 
 const PATH_TO_INDEX: Record<string, number> = {
   '/': 0,
@@ -49,12 +50,14 @@ export function SwipeableScreen({ children }: SwipeableScreenProps) {
   const translateX = useSharedValue(0);
   const isNavigating = useRef(false);
   
-  const currentIndex = PATH_TO_INDEX[pathname] ?? 0;
-  const canSwipeLeft = currentIndex < 4;
+  const currentIndex = useMemo(() => PATH_TO_INDEX[pathname] ?? 0, [pathname]);
+  const canSwipeLeft = currentIndex < MAX_TAB_INDEX;
   const canSwipeRight = currentIndex > 0;
 
   const doNavigation = useCallback((nextIndex: number) => {
     if (isNavigating.current) return;
+    if (nextIndex < 0 || nextIndex > MAX_TAB_INDEX) return;
+    
     isNavigating.current = true;
     
     const route = INDEX_TO_ROUTE[nextIndex];
@@ -67,38 +70,36 @@ export function SwipeableScreen({ children }: SwipeableScreenProps) {
       
       try {
         router.replace(route as any);
-      } catch (e) {
-        console.log('Navigation error:', e);
-      }
+      } catch (e) {}
     }
     
     setTimeout(() => {
       isNavigating.current = false;
-    }, 300);
+    }, 150);
   }, [router]);
 
-  const panGesture = Gesture.Pan()
+  const panGesture = useMemo(() => Gesture.Pan()
     .activeOffsetX([-15, 15])
-    .failOffsetY([-15, 15])
-    .minDistance(10)
+    .failOffsetY([-8, 8])
     .onUpdate((event) => {
-      let tx = event.translationX * 0.25;
+      const normalizedX = event.translationX / SCREEN_WIDTH;
+      let tx = normalizedX * 60;
       
       if (!canSwipeRight && tx > 0) {
-        tx = tx * 0.2;
+        tx *= 0.1;
       }
       if (!canSwipeLeft && tx < 0) {
-        tx = tx * 0.2;
+        tx *= 0.1;
       }
       
-      translateX.value = clamp(tx, -MAX_TRANSLATE, MAX_TRANSLATE);
+      translateX.value = Math.max(-25, Math.min(25, tx));
     })
     .onEnd((event) => {
       const velocity = event.velocityX;
       const translation = event.translationX;
       
-      const shouldGoNext = (translation < -SWIPE_THRESHOLD || velocity < -SWIPE_VELOCITY) && canSwipeLeft;
-      const shouldGoPrev = (translation > SWIPE_THRESHOLD || velocity > SWIPE_VELOCITY) && canSwipeRight;
+      const shouldGoNext = (translation < -SWIPE_THRESHOLD || velocity < -VELOCITY_THRESHOLD) && canSwipeLeft;
+      const shouldGoPrev = (translation > SWIPE_THRESHOLD || velocity > VELOCITY_THRESHOLD) && canSwipeRight;
       
       if (shouldGoNext) {
         runOnJS(doNavigation)(currentIndex + 1);
@@ -106,15 +107,17 @@ export function SwipeableScreen({ children }: SwipeableScreenProps) {
         runOnJS(doNavigation)(currentIndex - 1);
       }
       
-      translateX.value = withSpring(0, { 
-        damping: 25, 
-        stiffness: 400,
-        mass: 0.5 
-      });
-    });
+      translateX.value = withTiming(0, { duration: 120 });
+    }), [canSwipeLeft, canSwipeRight, currentIndex, doNavigation]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
+    opacity: interpolate(
+      Math.abs(translateX.value),
+      [0, 25],
+      [1, 0.95],
+      Extrapolation.CLAMP
+    ),
   }));
 
   return (
