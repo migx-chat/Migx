@@ -5,7 +5,7 @@ import { useThemeCustom } from '@/theme/provider';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { NotificationModal } from './NotificationModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createSocket, API_BASE_URL } from '@/utils/api';
+import API_BASE_URL, { createSocket } from '@/utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const UserIcon = ({ size = 24, color = '#4A90E2' }) => (
@@ -39,9 +39,9 @@ export function Header() {
       const socketInstance = createSocket();
       setSocket(socketInstance);
 
-      socketInstance.on('notif:credit', () => fetchNotificationCount());
-      socketInstance.on('notif:gift', () => fetchNotificationCount());
-      socketInstance.on('notif:follow', () => fetchNotificationCount());
+      socketInstance.on('notif:credit', fetchNotificationCount);
+      socketInstance.on('notif:gift', fetchNotificationCount);
+      socketInstance.on('notif:follow', fetchNotificationCount);
 
       fetchNotificationCount();
 
@@ -69,10 +69,8 @@ export function Header() {
     if (!username) return;
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/notifications/count/${username}`
-      );
-      const data = await response.json();
+      const res = await fetch(`${API_BASE_URL}/api/notifications/count/${username}`);
+      const data = await res.json();
       setNotificationCount(data.count || 0);
     } catch (error) {
       console.error('Error fetching notification count:', error);
@@ -80,25 +78,16 @@ export function Header() {
   };
 
   return (
-    <LinearGradient 
-      colors={['#0D5E32', '#0A4726']} 
-      start={{ x: 0, y: 0 }} 
+    <LinearGradient
+      colors={['#0D5E32', '#0A4726']}
+      start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 0 }}
-      style={[
-        styles.container,
-        { paddingTop: insets.top }
-      ]}
+      style={[styles.container, { paddingTop: insets.top }]}
     >
-      <StatusBar backgroundColor="#0D5E32" barStyle="light-content" />
+      {/* FIX GRADIENT TIDAK MUNCUL */}
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
-      <View
-        style={[
-          styles.topBar,
-          {
-            borderBottomColor: theme.border
-          }
-        ]}
-      >
+      <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
         <View style={styles.leftSection}>
           <UserIcon size={20} color="#FFFFFF" />
           <Text style={[styles.title, { color: '#FFFFFF' }]}>My Friends</Text>
@@ -129,7 +118,8 @@ export function Header() {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    marginTop: 0,
+    minHeight: 95, // FIX GRADIENT HEIGHT
+    justifyContent: 'flex-start'
   },
   topBar: {
     flexDirection: 'row',
@@ -140,18 +130,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     width: '100%'
   },
-  leftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: 'bold'
-  },
-  iconButton: {
-    padding: 4
-  },
+  leftSection: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  title: { fontSize: 16, fontWeight: 'bold' },
+  iconButton: { padding: 4 },
   notifBadge: {
     position: 'absolute',
     top: -4,
@@ -164,9 +145,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 4
   },
-  notifBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: 'bold'
-  }
+  notifBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' }
 });

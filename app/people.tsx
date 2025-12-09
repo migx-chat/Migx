@@ -305,7 +305,7 @@ export default function PeoplePage() {
         />
 
         <View style={[styles.modalContainer, { height: SCREEN_HEIGHT * 0.7, backgroundColor: theme.modalBackground }]}>
-          <View style={[styles.header, { backgroundColor: '#0a5229' }]}>
+          <View style={[styles.header, { backgroundColor: 'transparent' }]}>
             <Text style={styles.headerTitle}>People</Text>
             <TouchableOpacity
               style={styles.closeButton}

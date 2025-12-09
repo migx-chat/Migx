@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { useThemeCustom } from '@/theme/provider';
-import { API_BASE_URL } from '@/utils/api';
+import API_BASE_URL from '@/utils/api';
 
 const EditIcon = ({ size = 20 }: { size?: number }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

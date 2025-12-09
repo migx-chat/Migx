@@ -312,7 +312,7 @@ export default function LeaderboardPage() {
       <Modal visible={true} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContainer, { height: SCREEN_HEIGHT * 0.75, backgroundColor: theme.background }]}>
-            <View style={[styles.header, { backgroundColor: '#0a5229' }]}>
+            <View style={[styles.header, { backgroundColor: 'transparent' }]}>
               <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
                 <CloseIcon size={24} color="#fff" />
               </TouchableOpacity>
@@ -337,7 +337,7 @@ export default function LeaderboardPage() {
         
         <View style={[styles.modalContainer, { height: SCREEN_HEIGHT * 0.75, backgroundColor: theme.background }]}>
           {/* Header */}
-          <View style={[styles.header, { backgroundColor: '#0a5229' }]}>
+          <View style={[styles.header, { backgroundColor: 'transparent' }]}>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => router.back()}

@@ -282,3 +282,30 @@ backend/
 - `DATABASE_URL` - PostgreSQL connection string
 - `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` - Redis Cloud
 - `BACKEND_PORT` - Server port (default: 3001)
+
+## Recent Changes (Dec 9, 2025)
+
+### Emerald Gradient Theme Implementation ✅
+- Applied emerald gradient (#0D5E32 → #0A4726) to all screen headers using LinearGradient
+- Headers updated: Home, Chat, Feed, Room, Profile
+- Tab bar navigation also features the same emerald gradient
+- Fixed modal header backgrounds for People and Leaderboard screens by changing backgroundColor from solid '#0a5229' to 'transparent' so gradients display properly
+
+### Files Modified:
+1. **app/(tabs)/_layout.tsx** - Tab bar now uses LinearGradient with emerald colors
+2. **components/home/Header.tsx** - Fixed API_BASE_URL import (default export), gradient styling
+3. **components/chat/ChatHeader.tsx** - Added LinearGradient emerald theme
+4. **components/room/RoomHeader.tsx** - Added LinearGradient emerald theme
+5. **components/profile/ProfileHeader.tsx** - Fixed API_BASE_URL import, gradient styling
+6. **app/(tabs)/feed.tsx** - Added LinearGradient for post creation header
+7. **app/people.tsx** - Changed modal header backgroundColor to 'transparent' (line 311)
+8. **app/leaderboard.tsx** - Changed modal header backgroundColor to 'transparent' (lines 318, 343)
+
+### API Import Fixes:
+- Fixed Header.tsx import: `API_BASE_URL, { createSocket }` (was destructured incorrectly)
+- Fixed ProfileHeader.tsx import: default import `API_BASE_URL` (was destructured incorrectly)
+
+### Theme System Updates:
+- Gradient colors (#0D5E32 → #0A4726) defined in theme/index.ts
+- All header components properly styled with LinearGradient from expo-linear-gradient
+- StatusBar configured with emerald color (#0D5E32) for visual consistency
