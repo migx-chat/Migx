@@ -1,10 +1,11 @@
-
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeCustom } from '@/theme/provider';
 import Svg, { Path } from 'react-native-svg';
 import { API_ENDPOINTS } from '@/utils/api';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 
 const StatsIcon = ({ size = 20, color = '#4A90E2' }: { size?: number; color?: string }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -15,6 +16,7 @@ const StatsIcon = ({ size = 20, color = '#4A90E2' }: { size?: number; color?: st
 
 export function ChatHeader() {
   const { theme } = useThemeCustom();
+  const insets = useSafeAreaInsets();
   const [stats, setStats] = useState({
     users: 0,
     rooms: 0,
@@ -31,7 +33,7 @@ export function ChatHeader() {
     try {
       const response = await fetch(API_ENDPOINTS.ROOM.LIST);
       const data = await response.json();
-      
+
       if (data.success) {
         const totalUsers = data.rooms.reduce((sum: number, room: any) => sum + room.user_count, 0);
         setStats({
@@ -50,27 +52,30 @@ export function ChatHeader() {
     if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
     return num.toString();
   };
-  
+
   return (
-    <LinearGradient 
-      colors={['#0D5E32', '#0A4726']} 
-      start={{ x: 0, y: 0 }} 
-      end={{ x: 1, y: 0 }}
-      style={styles.container}
-    >
-      <View style={styles.statsBar}>
-        <StatsIcon size={18} color="#FFFFFF" />
-        <Text style={[styles.statsText, { color: '#FFFFFF' }]}>
-          {formatNumber(stats.users)} users. {formatNumber(stats.rooms)} rooms. {formatNumber(stats.groups)} groups.
-        </Text>
-      </View>
-    </LinearGradient>
+    <>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <LinearGradient
+        colors={['#0D5E32', '#0A4726']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 8 }]}
+      >
+        <View style={styles.statsBar}>
+          <StatsIcon size={18} color="#FFFFFF" />
+          <Text style={[styles.statsText, { color: '#FFFFFF' }]}>
+            {formatNumber(stats.users)} users. {formatNumber(stats.rooms)} rooms. {formatNumber(stats.groups)} groups.
+          </Text>
+        </View>
+      </LinearGradient>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingTop: 48,
+  header: {
+    paddingBottom: 10,
   },
   statsBar: {
     flexDirection: 'row',

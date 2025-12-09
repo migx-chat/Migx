@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -71,7 +70,7 @@ export default function FeedScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  
+
   // Comment modal
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -97,20 +96,20 @@ export default function FeedScreen() {
 
   const fetchPosts = async (pageNum: number, isRefresh = false) => {
     if (loading) return;
-    
+
     setLoading(true);
     try {
       const userDataStr = await AsyncStorage.getItem('user_data');
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       const token = userData?.token;
-      
+
       const response = await fetch(`${API_ENDPOINTS.FEED.LIST}?page=${pageNum}&limit=10`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
       const data = await response.json();
-      
+
       if (data.success) {
         if (isRefresh) {
           setPosts(data.posts);
@@ -171,12 +170,12 @@ export default function FeedScreen() {
       const token = userData?.token;
       const formData = new FormData();
       formData.append('content', postContent);
-      
+
       if (selectedImage) {
         const filename = selectedImage.split('/').pop() || 'image.jpg';
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : 'image/jpeg';
-        
+
         formData.append('image', {
           uri: selectedImage,
           name: filename,
@@ -293,7 +292,7 @@ export default function FeedScreen() {
 
   const handleShare = async (post: Post) => {
     const message = `${post.username}: ${post.content}\n\nShared from MigX Community`;
-    
+
     Alert.alert(
       'Share Post',
       'Choose platform to share:',
@@ -333,7 +332,7 @@ export default function FeedScreen() {
     const date = new Date(dateString);
     const now = new Date();
     const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
+
     if (diff < 60) return 'Just now';
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
@@ -380,10 +379,10 @@ export default function FeedScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient 
-        colors={['#0D5E32', '#0A4726']} 
-        start={{ x: 0, y: 0 }} 
-        end={{ x: 1, y: 0 }}
+      <LinearGradient
+        colors={['#0D5E32', '#0A4726']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={[styles.header, { borderBottomColor: theme.border }]}
       >
         <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>Feed</Text>

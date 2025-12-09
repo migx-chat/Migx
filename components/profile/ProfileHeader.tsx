@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { useThemeCustom } from '@/theme/provider';
 import API_BASE_URL from '@/utils/api';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const EditIcon = ({ size = 20 }: { size?: number }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -33,7 +34,8 @@ interface ProfileHeaderProps {
 
 export function ProfileHeader({ avatar, username, level, onEditPress }: ProfileHeaderProps) {
   const { theme } = useThemeCustom();
-  
+  const insets = useSafeAreaInsets();
+
   const avatarUri = avatar?.startsWith('http') 
     ? avatar 
     : avatar 
@@ -41,49 +43,51 @@ export function ProfileHeader({ avatar, username, level, onEditPress }: ProfileH
       : null;
 
   return (
-    <LinearGradient 
-      colors={['#0D5E32', '#0A4726']} 
-      start={{ x: 0, y: 0 }} 
-      end={{ x: 1, y: 0 }}
-      style={styles.container}
-    >
-      <View style={styles.headerContent}>
-        <View style={styles.leftSection}>
-          <View style={styles.avatarContainer}>
-            {avatarUri ? (
-              <Image 
-                source={{ uri: avatarUri }} 
-                style={styles.avatar}
-                onError={(e) => console.log('❌ Avatar load error:', e.nativeEvent.error)}
-              />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>👤</Text>
+    <>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <LinearGradient
+        colors={['#0D5E32', '#0A4726']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 8 }]}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.leftSection}>
+            <View style={styles.avatarContainer}>
+              {avatarUri ? (
+                <Image 
+                  source={{ uri: avatarUri }} 
+                  style={styles.avatar}
+                  onError={(e) => console.log('❌ Avatar load error:', e.nativeEvent.error)}
+                />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarText}>👤</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={styles.username}>{username}</Text>
+              <View style={styles.levelBadge}>
+                <Text style={styles.levelText}>Level {level}</Text>
               </View>
-            )}
-          </View>
-          <View style={styles.userInfo}>
-            <Text style={styles.username}>{username}</Text>
-            <View style={styles.levelBadge}>
-              <Text style={styles.levelText}>Level {level}</Text>
             </View>
           </View>
+          <TouchableOpacity 
+            style={styles.editButton}
+            onPress={onEditPress}
+            activeOpacity={0.7}
+          >
+            <EditIcon size={20} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity 
-          style={styles.editButton}
-          onPress={onEditPress}
-          activeOpacity={0.7}
-        >
-          <EditIcon size={20} />
-        </TouchableOpacity>
-      </View>
-    </LinearGradient>
+      </LinearGradient>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingTop: 40,
+  header: {
     paddingBottom: 20,
   },
   headerContent: {

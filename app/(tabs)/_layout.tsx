@@ -42,9 +42,9 @@ interface CustomTabBarProps {
 function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
   const { theme, isDark } = useThemeCustom();
   const insets = useSafeAreaInsets();
-  
+
   const animatedIndex = useSharedValue(state.index);
-  
+
   const TAB_WIDTH = SCREEN_WIDTH / TABS.length;
   const INDICATOR_WIDTH = 40;
   const INDICATOR_OFFSET = (TAB_WIDTH - INDICATOR_WIDTH) / 2;
@@ -103,7 +103,7 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
           indicatorStyle,
         ]}
       />
-      
+
       <View style={styles.tabsRow}>
         {TABS.map((tab, index) => {
           const isActive = state.index === index;

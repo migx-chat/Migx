@@ -1,9 +1,9 @@
-
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeCustom } from '@/theme/provider';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const HomeIcon = ({ size = 20, color = '#4A90E2' }: { size?: number; color?: string }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -26,14 +26,17 @@ const MenuIcon = ({ size = 20, color = '#fff' }: { size?: number; color?: string
 
 export function RoomHeader() {
   const { theme } = useThemeCustom();
-  
+  const insets = useSafeAreaInsets();
+
   return (
-    <LinearGradient 
-      colors={['#0D5E32', '#0A4726']} 
-      start={{ x: 0, y: 0 }} 
-      end={{ x: 1, y: 0 }}
-      style={styles.container}
-    >
+    <>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <LinearGradient
+        colors={['#0D5E32', '#0A4726']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 8 }]}
+      >
       <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
         <View style={styles.leftSection}>
           <HomeIcon size={20} color="#FFFFFF" />
@@ -52,12 +55,13 @@ export function RoomHeader() {
         </View>
       </View>
     </LinearGradient>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingTop: 40,
+  header: {
+    paddingBottom: 10,
   },
   topBar: {
     flexDirection: 'row',
