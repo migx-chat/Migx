@@ -7,12 +7,19 @@ import {
   Keyboard,
   Alert,
   AppState,
+  Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeCustom } from '@/theme/provider';
 import { io, Socket } from 'socket.io-client';
 import API_BASE_URL from '@/utils/api';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS, interpolate } from 'react-native-reanimated';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const SWIPE_THRESHOLD = 60;
+const VELOCITY_THRESHOLD = 300;
 
 import { ChatRoomHeader } from '@/components/chatroom/ChatRoomHeader';
 import { ChatRoomContent } from '@/components/chatroom/ChatRoomContent';
@@ -446,6 +453,60 @@ export default function ChatRoomScreen() {
   };
 
   const currentTab = tabs.find(t => t.id === activeTab);
+  const currentTabIndex = tabs.findIndex(t => t.id === activeTab);
+  const translateX = useSharedValue(0);
+
+  const handleSwipeTab = (direction: number) => {
+    const newIndex = currentTabIndex + direction;
+    if (newIndex >= 0 && newIndex < tabs.length) {
+      setActiveTab(tabs[newIndex].id);
+    }
+  };
+
+  const contentGesture = Gesture.Pan()
+    .activeOffsetX([-25, 25])
+    .failOffsetY([-20, 20])
+    .onUpdate((event) => {
+      'worklet';
+      const canSwipeLeft = currentTabIndex < tabs.length - 1;
+      const canSwipeRight = currentTabIndex > 0;
+      
+      let translation = event.translationX * 0.5;
+      
+      if (!canSwipeRight && translation > 0) {
+        translation *= 0.2;
+      }
+      if (!canSwipeLeft && translation < 0) {
+        translation *= 0.2;
+      }
+      
+      translateX.value = Math.max(-40, Math.min(40, translation));
+    })
+    .onEnd((event) => {
+      'worklet';
+      const shouldSwipeLeft = event.translationX < -SWIPE_THRESHOLD || event.velocityX < -VELOCITY_THRESHOLD;
+      const shouldSwipeRight = event.translationX > SWIPE_THRESHOLD || event.velocityX > VELOCITY_THRESHOLD;
+      
+      if (shouldSwipeLeft && currentTabIndex < tabs.length - 1) {
+        runOnJS(handleSwipeTab)(1);
+      } else if (shouldSwipeRight && currentTabIndex > 0) {
+        runOnJS(handleSwipeTab)(-1);
+      }
+      
+      translateX.value = withSpring(0, {
+        damping: 20,
+        stiffness: 200,
+      });
+    });
+
+  const contentAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+    opacity: interpolate(
+      Math.abs(translateX.value),
+      [0, 40],
+      [1, 0.92]
+    ),
+  }));
 
   return (
     <View style={[styles.container, { backgroundColor: HEADER_COLOR }]}>
@@ -479,20 +540,22 @@ export default function ChatRoomScreen() {
         roomInfo={roomInfo}
       />
 
-      <View style={[styles.contentContainer, { backgroundColor: theme.background }]}>
-        {activeVote && (
-          <VoteKickButton
-            target={activeVote.target}
-            remainingVotes={activeVote.remainingVotes}
-            remainingSeconds={activeVote.remainingSeconds}
-            hasVoted={hasVoted}
-            onVote={handleVoteKick}
-          />
-        )}
-        {currentTab && (
-          <ChatRoomContent messages={currentTab.messages} roomInfo={roomInfo} />
-        )}
-      </View>
+      <GestureDetector gesture={contentGesture}>
+        <Animated.View style={[styles.contentContainer, { backgroundColor: theme.background }, contentAnimatedStyle]}>
+          {activeVote && (
+            <VoteKickButton
+              target={activeVote.target}
+              remainingVotes={activeVote.remainingVotes}
+              remainingSeconds={activeVote.remainingSeconds}
+              hasVoted={hasVoted}
+              onVote={handleVoteKick}
+            />
+          )}
+          {currentTab && (
+            <ChatRoomContent messages={currentTab.messages} roomInfo={roomInfo} />
+          )}
+        </Animated.View>
+      </GestureDetector>
 
       <View 
         style={[

@@ -1,9 +1,14 @@
 
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useThemeCustom } from '@/theme/provider';
 import { BackIcon, MenuGridIcon } from '@/components/ui/SvgIcons';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const SWIPE_THRESHOLD = 50;
 
 interface ChatTab {
   id: string;
@@ -27,8 +32,54 @@ interface ChatRoomHeaderProps {
 export function ChatRoomHeader({ tabs, activeTab, onTabChange, onCloseTab, roomInfo }: ChatRoomHeaderProps) {
   const router = useRouter();
   const { theme } = useThemeCustom();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const translateX = useSharedValue(0);
   
   const currentTab = tabs.find(t => t.id === activeTab);
+  const currentIndex = tabs.findIndex(t => t.id === activeTab);
+
+  const handleTabSwipe = (direction: number) => {
+    const newIndex = currentIndex + direction;
+    if (newIndex >= 0 && newIndex < tabs.length) {
+      onTabChange(tabs[newIndex].id);
+      
+      // Auto scroll to new tab
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({
+          x: newIndex * 120,
+          animated: true,
+        });
+      }
+    }
+  };
+
+  const panGesture = Gesture.Pan()
+    .activeOffsetX([-20, 20])
+    .failOffsetY([-15, 15])
+    .onUpdate((event) => {
+      'worklet';
+      translateX.value = event.translationX * 0.3;
+    })
+    .onEnd((event) => {
+      'worklet';
+      const shouldSwipeLeft = event.translationX < -SWIPE_THRESHOLD && event.velocityX < -200;
+      const shouldSwipeRight = event.translationX > SWIPE_THRESHOLD && event.velocityX > 200;
+      
+      if (shouldSwipeLeft) {
+        runOnJS(handleTabSwipe)(1); // Next tab
+      } else if (shouldSwipeRight) {
+        runOnJS(handleTabSwipe)(-1); // Previous tab
+      }
+      
+      translateX.value = withSpring(0, {
+        damping: 15,
+        stiffness: 150,
+      });
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
 
   return (
     <View style={[styles.container, { backgroundColor: '#0a5229' }]}>
@@ -52,32 +103,38 @@ export function ChatRoomHeader({ tabs, activeTab, onTabChange, onCloseTab, roomI
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={[styles.tabsContainer, { backgroundColor: '#0a5229' }]}
-      >
-        {tabs.map((tab) => (
-          <View key={tab.id} style={styles.tabWrapper}>
-            <TouchableOpacity
-              style={[
-                styles.tab,
-                activeTab === tab.id && styles.activeTab,
-              ]}
-              onPress={() => onTabChange(tab.id)}
-            >
-              <Text style={[
-                styles.tabText,
-                { color: '#FFFFFF' }, // White color for inactive tabs
-                activeTab === tab.id && { color: '#FFFFFF' }, // White color for active tab
-              ]}>
-                {tab.name}
-              </Text>
-            </TouchableOpacity>
-            {activeTab === tab.id && <View style={[styles.activeIndicator, { backgroundColor: '#FF8C00' }]} />}
-          </View>
-        ))}
-      </ScrollView>
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={animatedStyle}>
+          <ScrollView 
+            ref={scrollViewRef}
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={[styles.tabsContainer, { backgroundColor: '#0a5229' }]}
+            scrollEnabled={false}
+          >
+            {tabs.map((tab) => (
+              <View key={tab.id} style={styles.tabWrapper}>
+                <TouchableOpacity
+                  style={[
+                    styles.tab,
+                    activeTab === tab.id && styles.activeTab,
+                  ]}
+                  onPress={() => onTabChange(tab.id)}
+                >
+                  <Text style={[
+                    styles.tabText,
+                    { color: '#FFFFFF' },
+                    activeTab === tab.id && { color: '#FFFFFF' },
+                  ]}>
+                    {tab.name}
+                  </Text>
+                </TouchableOpacity>
+                {activeTab === tab.id && <View style={[styles.activeIndicator, { backgroundColor: '#FF8C00' }]} />}
+              </View>
+            ))}
+          </ScrollView>
+        </Animated.View>
+      </GestureDetector>
     </View>
   );
 }
