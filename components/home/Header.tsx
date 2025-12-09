@@ -78,14 +78,14 @@ export function Header() {
   };
 
   return (
-    <LinearGradient
-      colors={['#0D5E32', '#0A4726']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      style={[styles.container, { paddingTop: insets.top }]}
-    >
-      {/* FIX GRADIENT TIDAK MUNCUL */}
+    <>
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <LinearGradient
+        colors={['#0D5E32', '#0A4726']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.container, { paddingTop: insets.top }]}
+      >
 
       <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
         <View style={styles.leftSection}>
@@ -118,8 +118,7 @@ export function Header() {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    minHeight: 95, // FIX GRADIENT HEIGHT
-    justifyContent: 'flex-start'
+    paddingBottom: 12,
   },
   topBar: {
     flexDirection: 'row',
