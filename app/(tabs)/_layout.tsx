@@ -139,7 +139,7 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
 
   return (
     <GestureDetector gesture={panGesture}>
-      <View pointerEvents="box-none">
+      <View pointerEvents="box-none" style={{ width: '100%' }}>
         <LinearGradient 
           colors={['#0D5E32', '#0A4726']} 
           start={{ x: 0, y: 0 }} 

@@ -15,6 +15,7 @@ import {
   Linking,
   Platform,
 } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useThemeCustom } from '@/theme/provider';
 import { API_ENDPOINTS } from '@/utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -378,150 +379,152 @@ export default function FeedScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient
-        colors={['#0D5E32', '#0A4726']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.header, { borderBottomColor: theme.border }]}
-      >
-        <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>Feed</Text>
-      </LinearGradient>
-
-      <FlatList
-        data={posts}
-        renderItem={renderPost}
-        keyExtractor={item => item.id.toString()}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
-        }
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={
-          loading && !refreshing ? (
-            <ActivityIndicator size="small" color={theme.primary} style={styles.loader} />
-          ) : null
-        }
-        contentContainerStyle={styles.listContent}
-      />
-
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setShowCreateModal(true)}
-      >
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <LinearGradient
-          colors={['#00AA00', '#66CC66']}
-          style={styles.fabGradient}
+          colors={['#0D5E32', '#0A4726']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { borderBottomColor: theme.border }]}
         >
-          <PlusCircleIcon color="#FFF" size={32} />
+          <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>Feed</Text>
         </LinearGradient>
-      </TouchableOpacity>
 
-      {/* Create Post Modal */}
-      <Modal visible={showCreateModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Create Post</Text>
-              <TouchableOpacity onPress={() => setShowCreateModal(false)}>
-                <CloseIcon color={theme.text} size={24} />
-              </TouchableOpacity>
-            </View>
+        <FlatList
+          data={posts}
+          renderItem={renderPost}
+          keyExtractor={item => item.id.toString()}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
+          }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loading && !refreshing ? (
+              <ActivityIndicator size="small" color={theme.primary} style={styles.loader} />
+            ) : null
+          }
+          contentContainerStyle={styles.listContent}
+        />
 
-            <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
-              placeholder="What's on your mind?"
-              placeholderTextColor={theme.secondary}
-              multiline
-              value={postContent}
-              onChangeText={setPostContent}
-            />
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => setShowCreateModal(true)}
+        >
+          <LinearGradient
+            colors={['#00AA00', '#66CC66']}
+            style={styles.fabGradient}
+          >
+            <PlusCircleIcon color="#FFF" size={32} />
+          </LinearGradient>
+        </TouchableOpacity>
 
-            {selectedImage && (
-              <View style={styles.imagePreview}>
-                <Image source={{ uri: selectedImage }} style={styles.previewImage} />
-                <TouchableOpacity
-                  style={styles.removeImageButton}
-                  onPress={() => setSelectedImage(null)}
-                >
-                  <CloseIcon color="#FFF" size={16} />
+        {/* Create Post Modal */}
+        <Modal visible={showCreateModal} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Create Post</Text>
+                <TouchableOpacity onPress={() => setShowCreateModal(false)}>
+                  <CloseIcon color={theme.text} size={24} />
                 </TouchableOpacity>
               </View>
-            )}
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
-                <CameraIcon color={theme.primary} size={28} />
-              </TouchableOpacity>
+              <TextInput
+                style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+                placeholder="What's on your mind?"
+                placeholderTextColor={theme.secondary}
+                multiline
+                value={postContent}
+                onChangeText={setPostContent}
+              />
 
-              <TouchableOpacity onPress={handleCreatePost} disabled={posting}>
-                <LinearGradient
-                  colors={['#00AA00', '#66CC66']}
-                  style={styles.sendButton}
-                >
-                  {posting ? (
-                    <ActivityIndicator color="#FFF" />
-                  ) : (
-                    <SendIcon color="#FFF" size={20} />
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Comment Modal */}
-      <Modal visible={showCommentModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.card, height: '80%' }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Comments</Text>
-              <TouchableOpacity onPress={() => setShowCommentModal(false)}>
-                <CloseIcon color={theme.text} size={24} />
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={comments}
-              renderItem={({ item }) => (
-                <View style={styles.commentItem}>
-                  <Image
-                    source={{ uri: item.avatar_url || 'https://via.placeholder.com/30' }}
-                    style={styles.commentAvatar}
-                  />
-                  <View style={styles.commentContent}>
-                    <Text style={[styles.commentUsername, { color: theme.text }]}>{item.username}</Text>
-                    <Text style={[styles.commentText, { color: theme.text }]}>{item.content}</Text>
-                    <Text style={[styles.commentTime, { color: theme.secondary }]}>{formatTime(item.created_at)}</Text>
-                  </View>
+              {selectedImage && (
+                <View style={styles.imagePreview}>
+                  <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+                  <TouchableOpacity
+                    style={styles.removeImageButton}
+                    onPress={() => setSelectedImage(null)}
+                  >
+                    <CloseIcon color="#FFF" size={16} />
+                  </TouchableOpacity>
                 </View>
               )}
-              keyExtractor={item => item.id.toString()}
-              contentContainerStyle={styles.commentsList}
-            />
 
-            <View style={[styles.commentInputContainer, { borderTopColor: theme.border }]}>
-              <TextInput
-                style={[styles.commentInput, { color: theme.text, backgroundColor: theme.background }]}
-                placeholder="Write a comment..."
-                placeholderTextColor={theme.secondary}
-                value={commentText}
-                onChangeText={setCommentText}
-              />
-              <TouchableOpacity onPress={handleSendComment}>
-                <LinearGradient
-                  colors={['#00AA00', '#66CC66']}
-                  style={styles.commentSendButton}
-                >
-                  <SendIcon color="#FFF" size={18} />
-                </LinearGradient>
-              </TouchableOpacity>
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
+                  <CameraIcon color={theme.primary} size={28} />
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={handleCreatePost} disabled={posting}>
+                  <LinearGradient
+                    colors={['#00AA00', '#66CC66']}
+                    style={styles.sendButton}
+                  >
+                    {posting ? (
+                      <ActivityIndicator color="#FFF" />
+                    ) : (
+                      <SendIcon color="#FFF" size={20} />
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+
+        {/* Comment Modal */}
+        <Modal visible={showCommentModal} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: theme.card, height: '80%' }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Comments</Text>
+                <TouchableOpacity onPress={() => setShowCommentModal(false)}>
+                  <CloseIcon color={theme.text} size={24} />
+                </TouchableOpacity>
+              </View>
+
+              <FlatList
+                data={comments}
+                renderItem={({ item }) => (
+                  <View style={styles.commentItem}>
+                    <Image
+                      source={{ uri: item.avatar_url || 'https://via.placeholder.com/30' }}
+                      style={styles.commentAvatar}
+                    />
+                    <View style={styles.commentContent}>
+                      <Text style={[styles.commentUsername, { color: theme.text }]}>{item.username}</Text>
+                      <Text style={[styles.commentText, { color: theme.text }]}>{item.content}</Text>
+                      <Text style={[styles.commentTime, { color: theme.secondary }]}>{formatTime(item.created_at)}</Text>
+                    </View>
+                  </View>
+                )}
+                keyExtractor={item => item.id.toString()}
+                contentContainerStyle={styles.commentsList}
+              />
+
+              <View style={[styles.commentInputContainer, { borderTopColor: theme.border }]}>
+                <TextInput
+                  style={[styles.commentInput, { color: theme.text, backgroundColor: theme.background }]}
+                  placeholder="Write a comment..."
+                  placeholderTextColor={theme.secondary}
+                  value={commentText}
+                  onChangeText={setCommentText}
+                />
+                <TouchableOpacity onPress={handleSendComment}>
+                  <LinearGradient
+                    colors={['#00AA00', '#66CC66']}
+                    style={styles.commentSendButton}
+                  >
+                    <SendIcon color="#FFF" size={18} />
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
