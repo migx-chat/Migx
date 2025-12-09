@@ -71,6 +71,11 @@ export default function ChatRoomScreen() {
 
   // Initialize socket connection
   useEffect(() => {
+    if (!tabsLoaded || !currentUsername || !currentUserId) {
+      console.log('⏳ Waiting for tabs and user data to load...');
+      return;
+    }
+
     console.log('🔌 Connecting to socket server:', API_BASE_URL);
     console.log('📍 Room ID:', roomId);
     console.log('👤 Username:', currentUsername);
@@ -191,7 +196,7 @@ export default function ChatRoomScreen() {
       // User only leaves when explicitly clicking leave button
       console.log('⚠️ Component unmounting but socket stays connected');
     };
-  }, [roomId, currentUsername, currentUserId]);
+  }, [roomId, currentUsername, currentUserId, tabsLoaded]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -225,18 +230,11 @@ export default function ChatRoomScreen() {
     };
   }, [socket]);
 
-  const [tabs, setTabs] = useState<ChatTab[]>([
-    {
-      id: roomId,
-      name: roomName,
-      type: 'room',
-      messages: [],
-    },
-  ]);
-
+  const [tabs, setTabs] = useState<ChatTab[]>([]);
   const [activeTab, setActiveTab] = useState(roomId);
+  const [tabsLoaded, setTabsLoaded] = useState(false);
 
-  // Load user data from storage FIRST
+  // Load user data and tabs from storage FIRST
   useEffect(() => {
     const loadUserData = async () => {
       try {
@@ -249,12 +247,63 @@ export default function ChatRoomScreen() {
         } else {
           console.log('⚠️ No user data found in storage');
         }
+
+        // Load saved tabs
+        const savedTabsStr = await AsyncStorage.getItem('chatroom_tabs');
+        if (savedTabsStr) {
+          const savedTabs = JSON.parse(savedTabsStr);
+          console.log('📑 Loaded saved tabs:', savedTabs);
+          
+          // Check if current room already exists in saved tabs
+          const existingTab = savedTabs.find((t: ChatTab) => t.id === roomId);
+          if (existingTab) {
+            setTabs(savedTabs);
+          } else {
+            // Add current room to saved tabs
+            const newTabs = [...savedTabs, {
+              id: roomId,
+              name: roomName,
+              type: 'room' as const,
+              messages: [],
+            }];
+            setTabs(newTabs);
+            await AsyncStorage.setItem('chatroom_tabs', JSON.stringify(newTabs));
+          }
+        } else {
+          // No saved tabs, create new one
+          const newTabs = [{
+            id: roomId,
+            name: roomName,
+            type: 'room' as const,
+            messages: [],
+          }];
+          setTabs(newTabs);
+          await AsyncStorage.setItem('chatroom_tabs', JSON.stringify(newTabs));
+        }
+        
+        setTabsLoaded(true);
       } catch (error) {
         console.error('❌ Error loading user data:', error);
+        // Fallback to single tab
+        setTabs([{
+          id: roomId,
+          name: roomName,
+          type: 'room' as const,
+          messages: [],
+        }]);
+        setTabsLoaded(true);
       }
     };
     loadUserData();
-  }, []);
+  }, [roomId, roomName]);
+
+  // Save tabs whenever they change
+  useEffect(() => {
+    if (tabsLoaded && tabs.length > 0) {
+      AsyncStorage.setItem('chatroom_tabs', JSON.stringify(tabs))
+        .catch(error => console.error('❌ Error saving tabs:', error));
+    }
+  }, [tabs, tabsLoaded]);
 
   const addSystemMessage = (message: string) => {
     const index = tabs.findIndex(t => t.id === activeTab);
@@ -274,6 +323,8 @@ export default function ChatRoomScreen() {
   const handleSendMessage = (message: string) => {
     if (!socket || !message.trim() || !currentUserId) return;
 
+    console.log('📤 Sending message to room:', activeTab);
+    
     // Send message via socket
     socket.emit('chat:message', {
       roomId: activeTab,
@@ -373,11 +424,24 @@ export default function ChatRoomScreen() {
     }
   };
 
-  const handleLeaveRoom = () => {
+  const handleLeaveRoom = async () => {
     if (socket && currentUsername && currentUserId) {
-      console.log('🚪 User explicitly leaving room');
-      socket.emit('leave_room', { roomId, username: currentUsername, userId: currentUserId });
+      console.log('🚪 User explicitly leaving room:', activeTab);
+      socket.emit('leave_room', { roomId: activeTab, username: currentUsername, userId: currentUserId });
     }
+    
+    // Remove tab from storage
+    const remainingTabs = tabs.filter(t => t.id !== activeTab);
+    try {
+      if (remainingTabs.length > 0) {
+        await AsyncStorage.setItem('chatroom_tabs', JSON.stringify(remainingTabs));
+      } else {
+        await AsyncStorage.removeItem('chatroom_tabs');
+      }
+    } catch (error) {
+      console.error('❌ Error saving tabs:', error);
+    }
+    
     router.back();
   };
 
@@ -391,10 +455,25 @@ export default function ChatRoomScreen() {
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        onCloseTab={(id) => {
+        onCloseTab={async (id) => {
           if (tabs.length === 1) return handleLeaveRoom();
+          
+          // Leave room via socket
+          if (socket && currentUsername && currentUserId) {
+            console.log('🚪 Leaving room:', id);
+            socket.emit('leave_room', { roomId: id, username: currentUsername, userId: currentUserId });
+          }
+          
           const filtered = tabs.filter(t => t.id !== id);
           setTabs(filtered);
+          
+          // Update storage
+          try {
+            await AsyncStorage.setItem('chatroom_tabs', JSON.stringify(filtered));
+          } catch (error) {
+            console.error('❌ Error saving tabs:', error);
+          }
+          
           if (activeTab === id) setActiveTab(filtered[0].id);
         }}
         roomInfo={roomInfo}
