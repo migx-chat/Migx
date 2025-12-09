@@ -42,18 +42,10 @@ interface CustomTabBarProps {
 function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
   const { theme, isDark } = useThemeCustom();
   const insets = useSafeAreaInsets();
-  const swipeProgress = useSharedValue(0);
-  const isNavigatingRef = useRef(false);
   
   const currentRouteName = state.routes[state.index]?.name || 'index';
   const visualIndex = VISIBLE_TABS.indexOf(currentRouteName);
   const currentIdx = visualIndex >= 0 ? visualIndex : 0;
-  
-  const currentIndexShared = useSharedValue(currentIdx);
-  
-  useEffect(() => {
-    currentIndexShared.value = currentIdx;
-  }, [currentIdx]);
   
   const animatedIndex = useSharedValue(currentIdx);
 
@@ -71,22 +63,13 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
 
   const indicatorStyle = useAnimatedStyle(() => {
     const basePosition = animatedIndex.value * TAB_WIDTH + INDICATOR_OFFSET;
-    const swipeOffset = interpolate(
-      swipeProgress.value,
-      [-1, 0, 1],
-      [TAB_WIDTH, 0, -TAB_WIDTH],
-      Extrapolation.CLAMP
-    );
     return {
-      transform: [{ translateX: basePosition + swipeOffset * 0.3 }],
+      transform: [{ translateX: basePosition }],
     };
   });
 
   const navigateToTab = useCallback((targetIdx: number) => {
-    if (isNavigatingRef.current) return;
     if (targetIdx < 0 || targetIdx >= TOTAL_TABS) return;
-    
-    isNavigatingRef.current = true;
     
     if (Platform.OS === 'ios') {
       try {
@@ -98,43 +81,22 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
     if (targetRoute) {
       navigation.navigate(targetRoute);
     }
-    
-    setTimeout(() => {
-      isNavigatingRef.current = false;
-    }, 100);
   }, [navigation]);
 
-  const navigateToTabJS = useCallback((targetIdx: number) => {
-    navigateToTab(targetIdx);
-  }, [navigateToTab]);
-
   const panGesture = Gesture.Pan()
-    .activeOffsetX([-15, 15])
-    .failOffsetY([-12, 12])
-    .onUpdate((event) => {
-      'worklet';
-      const normalized = event.translationX / SCREEN_WIDTH;
-      let progress = normalized * 2.5;
-      
-      const idx = currentIndexShared.value;
-      if (idx <= 0 && progress > 0) progress *= 0.15;
-      if (idx >= TOTAL_TABS - 1 && progress < 0) progress *= 0.15;
-      
-      swipeProgress.value = Math.max(-1, Math.min(1, progress));
-    })
+    .activeOffsetX([-10, 10])
+    .failOffsetY([-15, 15])
     .onEnd((event) => {
       'worklet';
-      const tx = event.translationX;
       const vx = event.velocityX;
-      const idx = currentIndexShared.value;
-      
-      if ((tx < -SWIPE_THRESHOLD || vx < -VELOCITY_THRESHOLD) && idx < TOTAL_TABS - 1) {
-        runOnJS(navigateToTabJS)(idx + 1);
-      } else if ((tx > SWIPE_THRESHOLD || vx > VELOCITY_THRESHOLD) && idx > 0) {
-        runOnJS(navigateToTabJS)(idx - 1);
+      const tx = event.translationX;
+      const index = state.index;
+
+      if ((tx < -50 || vx < -300) && index < TOTAL_TABS - 1) {
+        runOnJS(navigation.navigate)(VISIBLE_TABS[index + 1]);
+      } else if ((tx > 50 || vx > 300) && index > 0) {
+        runOnJS(navigation.navigate)(VISIBLE_TABS[index - 1]);
       }
-      
-      swipeProgress.value = withTiming(0, { duration: 120 });
     });
 
   return (
