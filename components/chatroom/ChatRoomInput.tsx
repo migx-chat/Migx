@@ -17,6 +17,8 @@ import { GiftModal } from './GiftModal';
 interface ChatRoomInputProps {
   onSend: (message: string) => void;
   onMenuItemPress?: (action: string) => void;
+  onMenuPress?: () => void;
+  onOpenParticipants?: () => void;
 }
 
 const MenuIcon = ({ size = 20, color = '#666' }) => (
@@ -51,7 +53,7 @@ const SendIcon = ({ size = 22, color = '#8B5CF6' }) => (
   </Svg>
 );
 
-export function ChatRoomInput({ onSend, onMenuItemPress: externalMenuItemPress }: ChatRoomInputProps) {
+export function ChatRoomInput({ onSend, onMenuItemPress: externalMenuItemPress, onOpenParticipants }: ChatRoomInputProps) {
   const [message, setMessage] = useState('');
   const [menuVisible, setMenuVisible] = useState(false);
   const [emojiVisible, setEmojiVisible] = useState(false);
@@ -82,6 +84,8 @@ export function ChatRoomInput({ onSend, onMenuItemPress: externalMenuItemPress }
       setCmdListVisible(true);
     } else if (action === 'send-gift') {
       setGiftModalVisible(true);
+    } else if (action === 'participants' && onOpenParticipants) {
+      onOpenParticipants();
     } else if (externalMenuItemPress) {
       externalMenuItemPress(action);
     }
@@ -129,6 +133,7 @@ export function ChatRoomInput({ onSend, onMenuItemPress: externalMenuItemPress }
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
         onMenuItemPress={handleMenuItemPress}
+        onOpenParticipants={onOpenParticipants}
       />
 
       <EmojiPicker

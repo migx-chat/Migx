@@ -687,7 +687,8 @@ export default function ChatRoomScreen() {
         <ChatRoomInput 
           onSend={handleSendMessage} 
           onMenuItemPress={handleMenuItemPress}
-          onMenuPress={() => setMenuVisible(true)} // Assuming ChatRoomInput has a prop to open the menu
+          onMenuPress={() => setMenuVisible(true)}
+          onOpenParticipants={handleOpenParticipants}
         />
       </View>
 
