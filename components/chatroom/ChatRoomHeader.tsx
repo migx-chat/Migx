@@ -112,8 +112,8 @@ export function ChatRoomHeader({ tabs, activeTab, onTabChange, onCloseTab, roomI
             style={[styles.tabsContainer, { backgroundColor: '#0a5229' }]}
             scrollEnabled={false}
           >
-            {tabs.map((tab) => (
-              <View key={tab.id} style={styles.tabWrapper}>
+            {tabs.map((tab, index) => (
+              <View key={`${tab.id}-${index}`} style={styles.tabWrapper}>
                 <TouchableOpacity
                   style={[
                     styles.tab,
@@ -128,6 +128,17 @@ export function ChatRoomHeader({ tabs, activeTab, onTabChange, onCloseTab, roomI
                   ]}>
                     {tab.name}
                   </Text>
+                  {tabs.length > 1 && (
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        onCloseTab(tab.id);
+                      }}
+                    >
+                      <Text style={styles.closeButtonText}>×</Text>
+                    </TouchableOpacity>
+                  )}
                 </TouchableOpacity>
                 {activeTab === tab.id && <View style={[styles.activeIndicator, { backgroundColor: '#FF8C00' }]} />}
               </View>
@@ -186,9 +197,12 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
     backgroundColor: 'transparent',
+    gap: 8,
   },
   activeTab: {
     backgroundColor: 'transparent',
@@ -196,6 +210,21 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 15,
     fontWeight: '500',
+  },
+  closeButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+  },
+  closeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    lineHeight: 18,
   },
   activeIndicator: {
     position: 'absolute',

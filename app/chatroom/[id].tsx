@@ -539,13 +539,6 @@ export default function ChatRoomScreen() {
         username: currentUsername, 
         userId: currentUserId 
       });
-      
-      // Clean up socket listeners for this room
-      socket.off(`room:${roomIdToLeave}:message`);
-      socket.off(`room:${roomIdToLeave}:system`);
-      socket.off('chat:message');
-      socket.off('room:user:joined');
-      socket.off('room:user:left');
     }
     
     // Remove the tab and update UI
@@ -617,15 +610,21 @@ export default function ChatRoomScreen() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onCloseTab={async (id) => {
-          if (tabs.length === 1) return handleLeaveRoom();
-          
           // Leave room via socket
           if (socket && currentUsername && currentUserId) {
-            console.log('🚪 Leaving room:', id);
+            console.log('🚪 Closing tab and leaving room:', id);
             socket.emit('leave_room', { roomId: id, username: currentUsername, userId: currentUserId });
           }
           
           const filtered = tabs.filter(t => t.id !== id);
+          
+          if (filtered.length === 0) {
+            // No more tabs, go back to room list
+            await AsyncStorage.removeItem('chatroom_tabs');
+            router.back();
+            return;
+          }
+          
           setTabs(filtered);
           
           // Update storage
@@ -635,7 +634,10 @@ export default function ChatRoomScreen() {
             console.error('❌ Error saving tabs:', error);
           }
           
-          if (activeTab === id) setActiveTab(filtered[0].id);
+          // Switch to another tab if closing the active one
+          if (activeTab === id) {
+            setActiveTab(filtered[0].id);
+          }
         }}
         roomInfo={roomInfo}
       />
