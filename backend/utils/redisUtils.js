@@ -6,7 +6,7 @@ const ONLINE_PRESENCE_TTL = 180;
 const RECENT_ROOMS_KEY = (username) => `recent:${username}`;
 const USER_ROOMS_KEY = (username) => `user:rooms:${username}`;
 const ROOM_USERS_KEY = (roomId) => `room:users:${roomId}`;
-const FAVORITE_ROOMS_KEY = (username) => `favorite:${username}`;
+const FAVORITE_ROOMS_KEY = (username) => `user:${username}:favorites`;
 const HOT_ROOMS_KEY = 'hot:rooms';
 const ROOM_ACTIVE_KEY = (roomId) => `room:active:${roomId}`;
 
@@ -230,7 +230,6 @@ const getRoomUsersList = async (roomId) => {
   }
 };
 
-// Room Participants (Real-time Redis only - MIG33 style)
 const getRoomParticipants = async (roomId) => {
   try {
     const redis = getRedisClient();
@@ -262,6 +261,17 @@ const removeRoomParticipant = async (roomId, username) => {
     return true;
   } catch (error) {
     console.error('Error removing room participant:', error);
+    return false;
+  }
+};
+
+const clearRoomParticipants = async (roomId) => {
+  try {
+    const redis = getRedisClient();
+    await redis.del(`room:participants:${roomId}`);
+    return true;
+  } catch (error) {
+    console.error('Error clearing room participants:', error);
     return false;
   }
 };
@@ -555,8 +565,6 @@ const clearRecentRooms = async (username) => {
     return false;
   }
 };
-
-const FAVORITE_ROOMS_KEY = (username) => `user:${username}:favorites`;
 
 const getFavoriteRooms = async (username) => {
   try {
