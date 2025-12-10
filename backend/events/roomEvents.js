@@ -107,6 +107,9 @@ module.exports = (io, socket) => {
       socket.join(`room:${roomId}`);
       socket.join(`user:${username}`);
 
+      // Store username on socket for disconnect handler
+      socket.username = username;
+
       await addUserRoom(username, roomId, room.name);
 
       // Get current users before adding new user
@@ -114,6 +117,10 @@ module.exports = (io, socket) => {
 
       // Add user to Redis presence
       await addUserToRoom(roomId, username);
+      
+      // Add to participants (MIG33 style - Redis only)
+      const { addRoomParticipant, getRoomParticipants } = require('../utils/redisUtils');
+      await addRoomParticipant(roomId, username);
 
       // Get updated count after adding user
       const newUserCount = await getRoomUserCount(roomId);
@@ -276,6 +283,14 @@ module.exports = (io, socket) => {
         maxUsers: room.max_users
       });
 
+      // Broadcast participants update (MIG33 style)
+      const participants = await getRoomParticipants(roomId);
+      io.to(`room:${roomId}`).emit('room:participantsUpdated', {
+        roomId,
+        participants,
+        count: participants.length
+      });
+
     } catch (error) {
       console.error('Error joining room:', error);
       socket.emit('error', { message: 'Failed to join room' });
@@ -296,6 +311,10 @@ module.exports = (io, socket) => {
 
       // Remove user from Redis presence
       await removeUserFromRoom(roomId, username);
+      
+      // Remove from participants (MIG33 style)
+      const { removeRoomParticipant, getRoomParticipants } = require('../utils/redisUtils');
+      await removeRoomParticipant(roomId, username);
 
       // Get updated count after removing user
       const userCount = await getRoomUserCount(roomId);
@@ -358,6 +377,14 @@ module.exports = (io, socket) => {
         roomId,
         userCount,
         maxUsers: room?.max_users || 25
+      });
+
+      // Broadcast participants update (MIG33 style)
+      const participants = await getRoomParticipants(roomId);
+      io.to(`room:${roomId}`).emit('room:participantsUpdated', {
+        roomId,
+        participants,
+        count: participants.length
       });
 
     } catch (error) {
@@ -689,9 +716,67 @@ module.exports = (io, socket) => {
   socket.on('disconnect', async () => {
     try {
       console.log(`⚠️ Socket disconnected: ${socket.id}`);
+      
+      const username = socket.username;
+      
+      // Handle disconnect with participants system (MIG33 style)
+      if (username) {
+        const { getUserCurrentRoom, removeRoomParticipant, getRoomParticipants } = require('../utils/redisUtils');
+        const currentRoomId = await getUserCurrentRoom(username);
+        
+        if (currentRoomId) {
+          console.log(`🚪 Disconnect - removing ${username} from room ${currentRoomId}`);
+          
+          // Remove from participants
+          await removeRoomParticipant(currentRoomId, username);
+          
+          // Remove from presence
+          await removeUserFromRoom(currentRoomId, username);
+          await removeUserRoom(username, currentRoomId);
+          
+          const room = await roomService.getRoomById(currentRoomId);
+          const userCount = await getRoomUserCount(currentRoomId);
+          
+          // Send leave message
+          const leftMsg = `${username} [${userCount}] has left`;
+          const leftMessage = {
+            roomId: currentRoomId,
+            username: room?.name || 'Room',
+            message: leftMsg,
+            timestamp: new Date().toISOString(),
+            type: 'system',
+            messageType: 'system'
+          };
 
-      // Remove user from ALL rooms immediately on disconnect
-      // This matches MIG33 behavior - no lingering in rooms
+          io.to(`room:${currentRoomId}`).emit('chat:message', leftMessage);
+          await addSystemMessage(currentRoomId, `${room?.name || 'Room'} : ${leftMsg}`);
+
+          const updatedUsers = await getRoomPresenceUsers(currentRoomId);
+          io.to(`room:${currentRoomId}`).emit('room:user:left', {
+            roomId: currentRoomId,
+            username,
+            users: updatedUsers
+          });
+          
+          // Broadcast participants update
+          const participants = await getRoomParticipants(currentRoomId);
+          io.to(`room:${currentRoomId}`).emit('room:participantsUpdated', {
+            roomId: currentRoomId,
+            participants,
+            count: participants.length
+          });
+
+          await decrementRoomActive(currentRoomId);
+
+          io.emit('rooms:updateCount', {
+            roomId: currentRoomId,
+            userCount,
+            maxUsers: room?.max_users || 25
+          });
+        }
+      }
+
+      // Fallback: Remove user from ALL rooms immediately on disconnect
       const rooms = Array.from(socket.rooms).filter(room => room !== socket.id);
 
       for (const roomId of rooms) {
@@ -700,10 +785,8 @@ module.exports = (io, socket) => {
         const actualRoomId = roomId.replace('room:', '');
         const roomUsers = await getRoomPresenceUsers(actualRoomId);
         
-        // Find user by socket ID
         for (const username of roomUsers) {
-          // Remove user immediately - no timer delay
-          console.log(`🚪 Disconnect - removing user from room: ${username}`);
+          console.log(`🚪 Disconnect fallback - removing user from room: ${username}`);
           
           await removeUserFromRoom(actualRoomId, username);
           await removeUserRoom(username, actualRoomId);

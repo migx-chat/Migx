@@ -215,6 +215,64 @@ const getRoomUsersList = async (roomId) => {
   }
 };
 
+// Room Participants (Real-time Redis only - MIG33 style)
+const getRoomParticipants = async (roomId) => {
+  try {
+    const redis = getRedisClient();
+    const participants = await redis.sMembers(`room:participants:${roomId}`);
+    return participants || [];
+  } catch (error) {
+    console.error('Error getting room participants:', error);
+    return [];
+  }
+};
+
+const addRoomParticipant = async (roomId, username) => {
+  try {
+    const redis = getRedisClient();
+    await redis.sAdd(`room:participants:${roomId}`, username);
+    await redis.set(`room:userRoom:${username}`, roomId.toString());
+    return true;
+  } catch (error) {
+    console.error('Error adding room participant:', error);
+    return false;
+  }
+};
+
+const removeRoomParticipant = async (roomId, username) => {
+  try {
+    const redis = getRedisClient();
+    await redis.sRem(`room:participants:${roomId}`, username);
+    await redis.del(`room:userRoom:${username}`);
+    return true;
+  } catch (error) {
+    console.error('Error removing room participant:', error);
+    return false;
+  }
+};
+
+const getUserCurrentRoom = async (username) => {
+  try {
+    const redis = getRedisClient();
+    const roomId = await redis.get(`room:userRoom:${username}`);
+    return roomId;
+  } catch (error) {
+    console.error('Error getting user current room:', error);
+    return null;
+  }
+};
+
+const getRoomParticipantCount = async (roomId) => {
+  try {
+    const redis = getRedisClient();
+    const count = await redis.sCard(`room:participants:${roomId}`);
+    return count || 0;
+  } catch (error) {
+    console.error('Error getting room participant count:', error);
+    return 0;
+  }
+};
+
 const setUserRoom = async (username, roomId) => {
   try {
     const redis = getRedisClient();
@@ -618,6 +676,11 @@ module.exports = {
   removeUserFromRoom,
   getRoomUserCount,
   getRoomUsersList,
+  getRoomParticipants,
+  addRoomParticipant,
+  removeRoomParticipant,
+  getUserCurrentRoom,
+  getRoomParticipantCount,
   DEFAULT_TTL,
   ONLINE_PRESENCE_TTL
 };

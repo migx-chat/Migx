@@ -538,4 +538,28 @@ router.get('/joined/:username', async (req, res) => {
   }
 });
 
+router.get('/:roomId/participants', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    
+    if (!roomId) {
+      return res.status(400).json({ error: 'Room ID is required' });
+    }
+    
+    const { getRoomParticipants } = require('../utils/redisUtils');
+    const participants = await getRoomParticipants(roomId);
+    
+    res.json({
+      success: true,
+      roomId,
+      participants,
+      count: participants.length
+    });
+    
+  } catch (error) {
+    console.error('Get room participants error:', error);
+    res.status(500).json({ error: 'Failed to get room participants' });
+  }
+});
+
 module.exports = router;

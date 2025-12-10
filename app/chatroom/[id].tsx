@@ -263,6 +263,14 @@ export default function ChatRoomScreen() {
       }
     });
 
+    newSocket.on('room:participantsUpdated', (data: { roomId: string; participants: string[]; count: number }) => {
+      console.log('👥 Participants updated:', data);
+      if (data.roomId === roomId) {
+        setRoomUsers(data.participants);
+        console.log('📋 Updated participants list:', data.participants);
+      }
+    });
+
     setSocket(newSocket);
 
     return () => {
