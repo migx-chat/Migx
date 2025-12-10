@@ -1,0 +1,81 @@
+const { getRedisClient } = require('../redis');
+
+async function checkJoinAllowed(username, roomId) {
+  const redis = getRedisClient();
+
+  const globalBanKey = `ban:global:${username}`;
+  const isGlobalBanned = await redis.get(globalBanKey);
+  if (isGlobalBanned === 'true') {
+    return {
+      allowed: false,
+      reason: 'You are globally banned from all rooms.',
+      type: 'globalBan'
+    };
+  }
+
+  const adminCooldownKey = `cooldown:adminKick:${username}:${roomId}`;
+  const adminCooldown = await redis.ttl(adminCooldownKey);
+  if (adminCooldown > 0) {
+    const minutes = Math.ceil(adminCooldown / 60);
+    return {
+      allowed: false,
+      reason: `You have been kicked by admin. Please wait ${minutes} minute(s) before rejoining.`,
+      type: 'adminKick',
+      remainingSeconds: adminCooldown
+    };
+  }
+
+  const voteCooldownKey = `cooldown:voteKick:${username}:${roomId}`;
+  const voteCooldown = await redis.ttl(voteCooldownKey);
+  if (voteCooldown > 0) {
+    const minutes = Math.ceil(voteCooldown / 60);
+    return {
+      allowed: false,
+      reason: `You have been vote-kicked. Please wait ${minutes} minute(s) before rejoining.`,
+      type: 'voteKick',
+      remainingSeconds: voteCooldown
+    };
+  }
+
+  return { allowed: true };
+}
+
+async function clearAdminCooldown(username, roomId) {
+  const redis = getRedisClient();
+  const cooldownKey = `cooldown:adminKick:${username}:${roomId}`;
+  await redis.del(cooldownKey);
+  return { success: true };
+}
+
+async function clearVoteCooldown(username, roomId) {
+  const redis = getRedisClient();
+  const cooldownKey = `cooldown:voteKick:${username}:${roomId}`;
+  await redis.del(cooldownKey);
+  return { success: true };
+}
+
+async function getCooldownStatus(username, roomId) {
+  const redis = getRedisClient();
+  
+  const globalBanKey = `ban:global:${username}`;
+  const isGlobalBanned = await redis.get(globalBanKey);
+  
+  const adminCooldownKey = `cooldown:adminKick:${username}:${roomId}`;
+  const adminCooldown = await redis.ttl(adminCooldownKey);
+  
+  const voteCooldownKey = `cooldown:voteKick:${username}:${roomId}`;
+  const voteCooldown = await redis.ttl(voteCooldownKey);
+  
+  return {
+    isGlobalBanned: isGlobalBanned === 'true',
+    adminKickCooldown: adminCooldown > 0 ? adminCooldown : 0,
+    voteKickCooldown: voteCooldown > 0 ? voteCooldown : 0
+  };
+}
+
+module.exports = {
+  checkJoinAllowed,
+  clearAdminCooldown,
+  clearVoteCooldown,
+  getCooldownStatus
+};
