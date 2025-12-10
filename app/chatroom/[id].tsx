@@ -114,11 +114,7 @@ export default function ChatRoomScreen() {
     newSocket.on('connect', async () => {
       console.log('✅ Socket connected:', newSocket.id);
       
-      // Clear all tabs on connect/reconnect
-      console.log('🗑️ Clearing all tabs on connect...');
-      await clearRoomTabs();
-      
-      // Load fresh tabs from server
+      // Load/add room tab (don't clear existing tabs)
       if (currentUsername) {
         await loadActiveRooms(currentUsername);
       }
@@ -341,6 +337,15 @@ export default function ChatRoomScreen() {
   const [tabsLoaded, setTabsLoaded] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
 
+  // Save tabs to AsyncStorage whenever they change
+  useEffect(() => {
+    if (tabs.length > 0) {
+      AsyncStorage.setItem('chatroom_tabs', JSON.stringify(tabs))
+        .then(() => console.log('💾 Saved tabs to storage:', tabs.length))
+        .catch(err => console.log('❌ Error saving tabs:', err));
+    }
+  }, [tabs]);
+
   // Clear all room tabs
   const clearRoomTabs = async () => {
     console.log('🗑️ Clearing all room tabs');
@@ -354,36 +359,51 @@ export default function ChatRoomScreen() {
     try {
       console.log('📥 Loading active rooms from server for:', username);
       
-      // ALWAYS start fresh with only current room
-      // Don't load old rooms from server to match MIG33 behavior
-      const newTabs = [{
-        id: roomId,
-        name: roomName,
-        type: 'room' as const,
-        messages: [],
-      }];
+      // Check if room already exists in tabs
+      setTabs(prevTabs => {
+        const existingTab = prevTabs.find(t => t.id === roomId);
+        
+        if (existingTab) {
+          // Room already exists, just switch to it
+          console.log('📑 Room already in tabs, switching to it:', roomId);
+          return prevTabs;
+        } else {
+          // Add new tab for this room
+          const newTab = {
+            id: roomId,
+            name: roomName,
+            type: 'room' as const,
+            messages: [],
+          };
+          
+          console.log('📑 Adding new tab for room:', roomId);
+          return [...prevTabs, newTab];
+        }
+      });
       
-      console.log('📑 Starting fresh with current room only:', newTabs);
-      setTabs(newTabs);
       setActiveTab(roomId);
       
-      return newTabs;
+      return [];
     } catch (error) {
       console.error('❌ Error loading active rooms:', error);
-      // Fallback to current room
-      const newTabs = [{
-        id: roomId,
-        name: roomName,
-        type: 'room' as const,
-        messages: [],
-      }];
-      setTabs(newTabs);
+      // Fallback - add current room if not exists
+      setTabs(prevTabs => {
+        const existingTab = prevTabs.find(t => t.id === roomId);
+        if (existingTab) return prevTabs;
+        
+        return [...prevTabs, {
+          id: roomId,
+          name: roomName,
+          type: 'room' as const,
+          messages: [],
+        }];
+      });
       setActiveTab(roomId);
-      return newTabs;
+      return [];
     }
   };
 
-  // Load user data - DON'T load tabs from AsyncStorage
+  // Load user data and existing tabs from AsyncStorage
   useEffect(() => {
     const loadUserData = async () => {
       try {
@@ -403,8 +423,51 @@ export default function ChatRoomScreen() {
           setCurrentUserId('guest-id');
         }
 
-        // DON'T load tabs here - let socket connect event handle it
-        // Just mark tabs as loaded so socket can connect
+        // Load existing tabs from AsyncStorage
+        try {
+          const savedTabsStr = await AsyncStorage.getItem('chatroom_tabs');
+          if (savedTabsStr) {
+            const savedTabs = JSON.parse(savedTabsStr);
+            console.log('📂 Loaded existing tabs from storage:', savedTabs);
+            
+            // Check if current room already in tabs
+            const existingTab = savedTabs.find((t: ChatTab) => t.id === roomId);
+            
+            if (existingTab) {
+              // Use existing tabs
+              setTabs(savedTabs);
+            } else {
+              // Add current room to tabs
+              const newTab = {
+                id: roomId,
+                name: roomName,
+                type: 'room' as const,
+                messages: [],
+              };
+              setTabs([...savedTabs, newTab]);
+            }
+          } else {
+            // No saved tabs, create first tab
+            console.log('📂 No saved tabs, creating first tab');
+            setTabs([{
+              id: roomId,
+              name: roomName,
+              type: 'room' as const,
+              messages: [],
+            }]);
+          }
+        } catch (err) {
+          console.log('⚠️ Error loading tabs:', err);
+          // Fallback to single tab
+          setTabs([{
+            id: roomId,
+            name: roomName,
+            type: 'room' as const,
+            messages: [],
+          }]);
+        }
+
+        setActiveTab(roomId);
         setTabsLoaded(true);
       } catch (error) {
         console.error('❌ Error loading user data:', error);
