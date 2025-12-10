@@ -10,6 +10,7 @@ interface ChatMessageProps {
   timestamp: string;
   isSystem?: boolean;
   isNotice?: boolean;
+  isCmd?: boolean;
   userType?: 'creator' | 'admin' | 'normal' | 'mentor' | 'merchant';
   isOwnMessage?: boolean;
 }
@@ -20,6 +21,7 @@ export function ChatMessage({
   timestamp,
   isSystem,
   isNotice,
+  isCmd,
   userType,
   isOwnMessage
 }: ChatMessageProps) {
@@ -40,6 +42,16 @@ export function ChatMessage({
     if (isSystem) return '#000000';
     return theme.text;
   };
+
+  if (isCmd) {
+    return (
+      <View style={styles.messageContainer}>
+        <Text style={styles.cmdText}>
+          {message}
+        </Text>
+      </View>
+    );
+  }
 
   if (isNotice) {
     return (
@@ -126,5 +138,11 @@ const styles = StyleSheet.create({
   noticeText: {
     fontSize: 13,
     textAlign: 'center',
+  },
+  cmdText: {
+    color: '#D77A7A',
+    fontStyle: 'italic',
+    fontWeight: '500',
+    fontSize: 13,
   },
 });

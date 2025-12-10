@@ -52,17 +52,29 @@ module.exports = (io, socket) => {
 
         const cmd = MIG33_CMD[cmdKey];
         if (cmd) {
+          // If command requires target but none provided, show hint
+          if (cmd.requiresTarget && !target) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Command /${cmdKey} requires a target. Usage: /${cmdKey} <username>`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
           const text = cmd.requiresTarget 
             ? cmd.message(username, target)
             : cmd.message(username);
 
+          const formatted = `** ${text} **`;
+
           const systemMsg = {
             id: generateMessageId(),
             roomId,
-            username: 'system',
-            message: text,
-            messageType: 'system',
-            type: 'system',
+            message: formatted,
+            messageType: 'cmd',
+            type: 'cmd',
             timestamp: new Date().toISOString()
           };
 

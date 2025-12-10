@@ -165,6 +165,7 @@ export default function ChatRoomScreen() {
         isOwnMessage: data.username === currentUsername,
         isSystem: data.messageType === 'system' || data.type === 'system',
         isNotice: data.messageType === 'notice',
+        isCmd: data.messageType === 'cmd' || data.type === 'cmd',
       };
 
       // Use functional update to get latest tabs state

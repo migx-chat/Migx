@@ -9,6 +9,7 @@ interface Message {
   isOwnMessage?: boolean;
   isSystem?: boolean;
   isNotice?: boolean;
+  isCmd?: boolean;
   userType?: 'creator' | 'admin' | 'normal' | 'mentor' | 'merchant';
 }
 
@@ -51,6 +52,7 @@ export function ChatRoomContent({ messages, roomInfo }: ChatRoomContentProps) {
           timestamp=""
           isSystem={item.isSystem}
           isNotice={item.isNotice}
+          isCmd={item.isCmd}
           userType={item.userType}
           isOwnMessage={item.isOwnMessage}
         />
