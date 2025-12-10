@@ -16,6 +16,7 @@ interface RoomInfoModalProps {
   visible: boolean;
   onClose: () => void;
   roomId: string;
+  info?: any;
 }
 
 interface RoomInfo {
@@ -32,19 +33,24 @@ interface RoomInfo {
   participants: string[];
 }
 
-export function RoomInfoModal({ visible, onClose, roomId }: RoomInfoModalProps) {
+export function RoomInfoModal({ visible, onClose, roomId, info }: RoomInfoModalProps) {
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    console.log('RoomInfoModal props:', { visible, roomId });
+    console.log('RoomInfoModal props:', { visible, roomId, hasInfo: !!info });
     console.log('RoomInfoModal rendering, visible:', visible);
     
-    if (visible && roomId) {
-      console.log('Fetching room info for roomId:', roomId);
-      fetchRoomInfo();
+    if (visible) {
+      if (info) {
+        console.log('Using passed info:', info);
+        setRoomInfo(info);
+      } else if (roomId) {
+        console.log('Fetching room info for roomId:', roomId);
+        fetchRoomInfo();
+      }
     }
-  }, [visible, roomId]);
+  }, [visible, roomId, info]);
 
   const fetchRoomInfo = async () => {
     try {

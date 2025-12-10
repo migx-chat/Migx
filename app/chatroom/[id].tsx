@@ -70,7 +70,8 @@ export default function ChatRoomScreen() {
   const [kickModalVisible, setKickModalVisible] = useState(false);
   const [selectedUserToKick, setSelectedUserToKick] = useState<string | null>(null);
   const [participantsModalVisible, setParticipantsModalVisible] = useState(false);
-  const [roomInfoModalVisible, setRoomInfoModalVisible] = useState(false); // State for participants modal
+  const [roomInfoModalVisible, setRoomInfoModalVisible] = useState(false);
+  const [roomInfoData, setRoomInfoData] = useState<any>(null);
   const [activeVote, setActiveVote] = useState<{
     target: string;
     remainingVotes: number;
@@ -517,13 +518,20 @@ export default function ChatRoomScreen() {
     
     if (action === 'room-info') {
       console.log('Opening RoomInfoModal...');
-      console.log('roomInfoVisible =', roomInfoModalVisible);
       
-      // Open modal immediately
+      // WAJIB: Set visible immediately
       setRoomInfoModalVisible(true);
       
-      console.log('Modal state set to true');
-      console.log('RoomInfoModal should now be visible');
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/info`);
+        const data = await response.json();
+        console.log('Room info loaded:', data);
+        if (data.success) {
+          setRoomInfoData(data.roomInfo);
+        }
+      } catch (err) {
+        console.log('Error loading room info:', err);
+      }
     } else if (action === 'kick') {
       setKickModalVisible(true);
     } else if (action === 'participants') {
@@ -734,7 +742,9 @@ export default function ChatRoomScreen() {
         onClose={() => {
           console.log('Closing room info modal');
           setRoomInfoModalVisible(false);
+          setRoomInfoData(null);
         }}
+        info={roomInfoData}
         roomId={roomId}
       />
 
