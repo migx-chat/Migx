@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   TextInput,
   StyleSheet,
   TouchableOpacity,
+  TextInput as TextInputType,
 } from 'react-native';
 import { useThemeCustom } from '@/theme/provider';
 
@@ -57,6 +58,7 @@ export function ChatRoomInput({ onSend, onMenuItemPress: externalMenuItemPress }
   const [cmdListVisible, setCmdListVisible] = useState(false);
   const [giftModalVisible, setGiftModalVisible] = useState(false);
   const { theme } = useThemeCustom();
+  const inputRef = useRef<TextInputType>(null);
 
   const handleSend = () => {
     if (!message.trim()) return;
@@ -68,13 +70,15 @@ export function ChatRoomInput({ onSend, onMenuItemPress: externalMenuItemPress }
     setMessage((prev) => prev + emoji);
   };
 
-  const handleSelectCmd = (cmd: string) => {
-    setMessage(cmd + ' ');
+  const handleSelectCmd = (cmdKey: string, requiresTarget: boolean) => {
+    const ready = requiresTarget ? `/${cmdKey} ` : `/${cmdKey}`;
+    setMessage(ready);
+    setTimeout(() => inputRef.current?.focus(), 50);
   };
 
   const handleMenuItemPress = (action: string) => {
     console.log('Menu action:', action);
-    if (action === 'commands') {
+    if (action === 'cmd') {
       setCmdListVisible(true);
     } else if (action === 'send-gift') {
       setGiftModalVisible(true);
@@ -96,6 +100,7 @@ export function ChatRoomInput({ onSend, onMenuItemPress: externalMenuItemPress }
 
       <View style={[styles.inputContainer, { backgroundColor: theme.card }]}>
         <TextInput
+          ref={inputRef}
           style={[styles.input, { color: theme.text }]}
           placeholder="Type a message..."
           placeholderTextColor={theme.secondary}
@@ -124,7 +129,6 @@ export function ChatRoomInput({ onSend, onMenuItemPress: externalMenuItemPress }
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
         onMenuItemPress={handleMenuItemPress}
-        onOpenCmdList={() => setCmdListVisible(true)}
       />
 
       <EmojiPicker

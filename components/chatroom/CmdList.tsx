@@ -15,7 +15,7 @@ import { MIG33_CMD, CmdKey } from '@/utils/cmdMapping';
 interface CmdListProps {
   visible: boolean;
   onClose: () => void;
-  onSelectCmd: (cmd: string) => void;
+  onSelectCmd: (cmdKey: string, requiresTarget: boolean) => void;
 }
 
 export function CmdList({ visible, onClose, onSelectCmd }: CmdListProps) {
@@ -28,8 +28,8 @@ export function CmdList({ visible, onClose, onSelectCmd }: CmdListProps) {
     key.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSelectCmd = (cmd: string) => {
-    onSelectCmd(`/${cmd}`);
+  const handleSelectCmd = (cmdKey: string, requiresTarget: boolean) => {
+    onSelectCmd(cmdKey, requiresTarget);
     onClose();
     setSearchQuery('');
   };
@@ -72,7 +72,7 @@ export function CmdList({ visible, onClose, onSelectCmd }: CmdListProps) {
               <TouchableOpacity
                 key={key}
                 style={[styles.cmdItem, { borderBottomColor: theme.border }]}
-                onPress={() => handleSelectCmd(key)}
+                onPress={() => handleSelectCmd(key, value.requiresTarget)}
               >
                 <View style={styles.cmdContent}>
                   <Text style={[styles.cmdName, { color: theme.text }]}>
