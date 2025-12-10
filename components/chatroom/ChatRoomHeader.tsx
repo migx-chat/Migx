@@ -21,6 +21,7 @@ interface ChatRoomHeaderProps {
   activeTab: string;
   onTabChange: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
+  onBack?: () => void;
   roomInfo?: {
     name: string;
     description: string;
@@ -29,7 +30,7 @@ interface ChatRoomHeaderProps {
   } | null;
 }
 
-export function ChatRoomHeader({ tabs, activeTab, onTabChange, onCloseTab, roomInfo }: ChatRoomHeaderProps) {
+export function ChatRoomHeader({ tabs, activeTab, onTabChange, onCloseTab, onBack, roomInfo }: ChatRoomHeaderProps) {
   const router = useRouter();
   const { theme } = useThemeCustom();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -85,7 +86,7 @@ export function ChatRoomHeader({ tabs, activeTab, onTabChange, onCloseTab, roomI
     <View style={[styles.container, { backgroundColor: '#0a5229' }]}>
       <View style={[styles.topBar, { backgroundColor: '#0a5229', borderBottomColor: theme.border }]}>
         <TouchableOpacity 
-          onPress={() => router.back()}
+          onPress={() => onBack ? onBack() : router.back()}
           style={styles.iconButton}
         >
           <BackIcon color={theme.text} size={24} />

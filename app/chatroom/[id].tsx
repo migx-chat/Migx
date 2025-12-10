@@ -8,6 +8,7 @@ import {
   Alert,
   AppState,
   Dimensions,
+  BackHandler,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -234,6 +235,18 @@ export default function ChatRoomScreen() {
       hideSub.remove();
     };
   }, []);
+
+  // Handle Android back button - just navigate back without disconnecting
+  useEffect(() => {
+    const backAction = () => {
+      router.back();
+      return true; // Prevent default behavior
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+
+    return () => backHandler.remove();
+  }, [router]);
 
   // Handle app state changes (background/foreground)
   useEffect(() => {
@@ -557,6 +570,10 @@ export default function ChatRoomScreen() {
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        onBack={() => {
+          // Just navigate back without disconnecting from room
+          router.back();
+        }}
         onCloseTab={async (id) => {
           // Leave room via socket
           if (socket && currentUsername && currentUserId) {
