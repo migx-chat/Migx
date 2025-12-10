@@ -54,7 +54,7 @@ export default function ChatRoomScreen() {
   const [currentUsername, setCurrentUsername] = useState('');
   const [currentUserId, setCurrentUserId] = useState(''); 
   const [isAdmin, setIsAdmin] = useState(false);
-  const [roomUsers, setRoomUsers] = useState<string[]>(['migx', 'mad', 'user1', 'user2']);
+  const [roomUsers, setRoomUsers] = useState<string[]>([]);
   const [roomInfo, setRoomInfo] = useState<{
     name: string;
     description: string;
@@ -119,6 +119,12 @@ export default function ChatRoomScreen() {
           userId: currentUserId, 
           username: currentUsername 
         });
+        
+        // Request room users list
+        setTimeout(() => {
+          console.log('📤 Requesting room users...');
+          newSocket.emit('room:users:get', { roomId });
+        }, 500);
       }
     });
 
@@ -137,18 +143,28 @@ export default function ChatRoomScreen() {
           setTabs(copy);
         }
         
+        // Extract usernames from users array
+        const usernames = data.users 
+          ? data.users.map((u: any) => u.username || u)
+          : data.currentUsers || [];
+        
         // Update room info
         setRoomInfo({
           name: data.room.name,
           description: data.room.description || 'Welcome to this chat room',
           creatorName: data.room.creator_name || data.room.owner_name || 'admin',
-          currentUsers: data.currentUsers || []
+          currentUsers: usernames
         });
+        
+        // Update room users list
+        setRoomUsers(usernames);
         
         console.log('📋 Room info updated:', {
           name: data.room.name,
           description: data.room.description,
-          creator: data.room.creator_name || data.room.owner_name
+          creator: data.room.creator_name || data.room.owner_name,
+          userCount: usernames.length,
+          users: usernames
         });
       }
     });
@@ -214,8 +230,37 @@ export default function ChatRoomScreen() {
       }
     });
 
-    newSocket.on('room-users', (data: { users: string[] }) => {
-      setRoomUsers(data.users);
+    newSocket.on('room:users', (data: { roomId: string; users: any[]; count: number }) => {
+      console.log('📥 Room users updated:', data);
+      if (data.roomId === roomId) {
+        const usernames = data.users.map((u: any) => u.username || u);
+        setRoomUsers(usernames);
+      }
+    });
+
+    newSocket.on('room:user:joined', (data: { roomId: string; user: any; users: any[] }) => {
+      console.log('👤 User joined room:', data);
+      if (data.roomId === roomId) {
+        const usernames = data.users.map((u: any) => u.username || u);
+        setRoomUsers(usernames);
+      }
+    });
+
+    newSocket.on('room:user:left', (data: { roomId: string; username: string; users: any[] }) => {
+      console.log('👋 User left room:', data);
+      if (data.roomId === roomId) {
+        const usernames = Array.isArray(data.users) 
+          ? data.users.map((u: any) => typeof u === 'string' ? u : u.username)
+          : data.users || [];
+        setRoomUsers(usernames);
+      }
+    });
+
+    newSocket.on('room:user:kicked', (data: { roomId: string; username: string }) => {
+      console.log('🚫 User kicked from room:', data);
+      if (data.roomId === roomId) {
+        setRoomUsers(prev => prev.filter(u => u !== data.username));
+      }
     });
 
     setSocket(newSocket);

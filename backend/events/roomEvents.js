@@ -370,6 +370,13 @@ module.exports = (io, socket) => {
     try {
       const { roomId } = data;
       const users = await roomService.getRoomUsers(roomId);
+      
+      console.log('📤 Sending room users to client:', {
+        roomId,
+        userCount: users.length,
+        users: users.map(u => u.username || u)
+      });
+      
       socket.emit('room:users', {
         roomId,
         users,

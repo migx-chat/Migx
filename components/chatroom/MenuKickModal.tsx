@@ -36,6 +36,9 @@ export function MenuKickModal({ visible, onClose, users, currentUsername, onSele
           >
             <View style={[styles.header, { borderBottomColor: theme.border }]}>
               <Text style={[styles.title, { color: theme.text }]}>Select User to Kick</Text>
+              <Text style={[styles.subtitle, { color: theme.secondary }]}>
+                {otherUsers.length} user{otherUsers.length !== 1 ? 's' : ''} in room
+              </Text>
             </View>
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -101,6 +104,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
   },
   scrollView: {
     maxHeight: 300,
