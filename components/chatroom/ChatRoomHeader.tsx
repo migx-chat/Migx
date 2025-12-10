@@ -84,12 +84,12 @@ export function ChatRoomHeader({ tabs, activeTab, onTabChange, onCloseTab, onBac
 
   return (
     <View style={[styles.container, { backgroundColor: '#0a5229' }]}>
-      <View style={[styles.topBar, { backgroundColor: '#0a5229', borderBottomColor: theme.border }]}>
+      <View style={[styles.topBar, { backgroundColor: '#0a5229' }]}>
         <TouchableOpacity 
           onPress={() => onBack ? onBack() : router.back()}
           style={styles.iconButton}
         >
-          <BackIcon color={theme.text} size={24} />
+          <BackIcon color="#FFFFFF" size={24} />
         </TouchableOpacity>
         
         <View style={styles.centerContent}>
@@ -100,7 +100,7 @@ export function ChatRoomHeader({ tabs, activeTab, onTabChange, onCloseTab, onBac
           onPress={() => {/* Handle menu grid action */}}
           style={styles.iconButton}
         >
-          <MenuGridIcon color={theme.text} size={24} />
+          <MenuGridIcon color="#FFFFFF" size={24} />
         </TouchableOpacity>
       </View>
 
@@ -161,7 +161,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingVertical: 12,
-    borderBottomWidth: 1,
   },
   iconButton: {
     padding: 8,
