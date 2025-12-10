@@ -301,9 +301,10 @@ export default function ChatRoomScreen() {
     };
   }, []);
 
-  // Handle Android back button - just navigate back without disconnecting
+  // Handle Android back button - navigate back without leaving room or disconnecting
   useEffect(() => {
     const backAction = () => {
+      console.log('📱 Back button pressed - navigating back (keeping socket alive)');
       router.back();
       return true; // Prevent default behavior
     };
@@ -337,21 +338,14 @@ export default function ChatRoomScreen() {
   const [tabsLoaded, setTabsLoaded] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
 
-  // Save tabs to AsyncStorage whenever they change
-  useEffect(() => {
-    if (tabs.length > 0) {
-      AsyncStorage.setItem('chatroom_tabs', JSON.stringify(tabs))
-        .then(() => console.log('💾 Saved tabs to storage:', tabs.length))
-        .catch(err => console.log('❌ Error saving tabs:', err));
-    }
-  }, [tabs]);
+  // DO NOT save tabs to AsyncStorage - always start fresh
+  // Tabs are temporary and should not persist between sessions
 
-  // Clear all room tabs
+  // Clear all room tabs (no AsyncStorage involved)
   const clearRoomTabs = async () => {
     console.log('🗑️ Clearing all room tabs');
     setTabs([]);
     setActiveTab(roomId);
-    await AsyncStorage.removeItem('chatroom_tabs');
   };
 
   // Load active rooms from server
@@ -423,49 +417,14 @@ export default function ChatRoomScreen() {
           setCurrentUserId('guest-id');
         }
 
-        // Load existing tabs from AsyncStorage
-        try {
-          const savedTabsStr = await AsyncStorage.getItem('chatroom_tabs');
-          if (savedTabsStr) {
-            const savedTabs = JSON.parse(savedTabsStr);
-            console.log('📂 Loaded existing tabs from storage:', savedTabs);
-            
-            // Check if current room already in tabs
-            const existingTab = savedTabs.find((t: ChatTab) => t.id === roomId);
-            
-            if (existingTab) {
-              // Use existing tabs
-              setTabs(savedTabs);
-            } else {
-              // Add current room to tabs
-              const newTab = {
-                id: roomId,
-                name: roomName,
-                type: 'room' as const,
-                messages: [],
-              };
-              setTabs([...savedTabs, newTab]);
-            }
-          } else {
-            // No saved tabs, create first tab
-            console.log('📂 No saved tabs, creating first tab');
-            setTabs([{
-              id: roomId,
-              name: roomName,
-              type: 'room' as const,
-              messages: [],
-            }]);
-          }
-        } catch (err) {
-          console.log('⚠️ Error loading tabs:', err);
-          // Fallback to single tab
-          setTabs([{
-            id: roomId,
-            name: roomName,
-            type: 'room' as const,
-            messages: [],
-          }]);
-        }
+        // Always start with fresh single tab - DO NOT load from storage
+        console.log('📂 Starting with fresh single tab for room:', roomId);
+        setTabs([{
+          id: roomId,
+          name: roomName,
+          type: 'room' as const,
+          messages: [],
+        }]);
 
         setActiveTab(roomId);
         setTabsLoaded(true);
@@ -709,8 +668,7 @@ export default function ChatRoomScreen() {
       // Switch to first remaining tab
       setActiveTab(filteredTabs[0].id);
       
-      // Save updated tabs to AsyncStorage
-      await AsyncStorage.setItem('chatroom_tabs', JSON.stringify(filteredTabs));
+      // No need to save - tabs are temporary
     }
   };
 
@@ -783,7 +741,8 @@ export default function ChatRoomScreen() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onBack={() => {
-          // Just navigate back without disconnecting from room
+          // Navigate back without leaving room or disconnecting socket
+          console.log('🔙 Header back pressed - keeping connection alive');
           router.back();
         }}
         onCloseTab={async (id) => {
