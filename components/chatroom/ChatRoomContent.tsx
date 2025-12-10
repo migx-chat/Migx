@@ -36,39 +36,8 @@ export function ChatRoomContent({ messages, roomInfo }: ChatRoomContentProps) {
   }, [messages]);
 
   const allMessages = useMemo(() => {
-    const result: Message[] = [];
-    
-    if (roomInfo) {
-      if (roomInfo.description) {
-        result.push({
-          id: 'room-info-description',
-          username: roomInfo.name || 'Room',
-          message: roomInfo.description,
-          isSystem: true,
-        });
-      }
-      
-      if (roomInfo.currentUsers && roomInfo.currentUsers.length > 0) {
-        result.push({
-          id: 'room-info-users',
-          username: roomInfo.name || 'Room',
-          message: `Currently users in the room: ${roomInfo.currentUsers.join(', ')}`,
-          isSystem: true,
-        });
-      }
-      
-      if (roomInfo.creatorName) {
-        result.push({
-          id: 'room-info-creator',
-          username: roomInfo.name || 'Room',
-          message: `This room created by ${roomInfo.creatorName}`,
-          isSystem: true,
-        });
-      }
-    }
-    
-    return [...result, ...messages];
-  }, [messages, roomInfo]);
+    return messages;
+  }, [messages]);
 
   return (
     <FlatList
