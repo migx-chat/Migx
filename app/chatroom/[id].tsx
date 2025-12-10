@@ -513,54 +513,69 @@ export default function ChatRoomScreen() {
     setHasVoted(true);
   };
 
-  const handleMenuAction = async (action: string) => {
-    console.log('Menu action:', action);
+  const handleMenuAction = (action: string) => {
+    console.log('Menu action received:', action, 'type:', typeof action);
     
-    if (action === 'room-info') {
-      console.log('Opening RoomInfoModal...');
-      
-      // WAJIB: Set visible immediately
+    const trimmedAction = action?.trim?.() || action;
+    console.log('Trimmed action:', trimmedAction);
+    
+    if (trimmedAction === 'room-info') {
+      console.log('Opening RoomInfoModal NOW...');
       setRoomInfoModalVisible(true);
+      console.log('roomInfoModalVisible set to true');
       
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/info`);
-        const data = await response.json();
-        console.log('Room info loaded:', data);
-        if (data.success) {
-          setRoomInfoData(data.roomInfo);
-        }
-      } catch (err) {
-        console.log('Error loading room info:', err);
-      }
-    } else if (action === 'add-favorite') {
-      try {
-        console.log('Adding room to favorites:', roomId);
-        const response = await fetch(`${API_BASE_URL}/api/rooms/favorites/add`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: currentUsername,
-            roomId: roomId,
-          }),
+      fetch(`${API_BASE_URL}/api/rooms/${roomId}/info`)
+        .then(response => response.json())
+        .then(data => {
+          console.log('Room info loaded:', data);
+          if (data.success) {
+            setRoomInfoData(data.roomInfo);
+          }
+        })
+        .catch(err => {
+          console.log('Error loading room info:', err);
         });
-        
-        const data = await response.json();
-        if (data.success) {
-          Alert.alert('Success', 'Room added to favorites!');
-        } else {
-          Alert.alert('Error', data.message || 'Failed to add favorite');
-        }
-      } catch (err) {
-        console.log('Error adding favorite:', err);
-        Alert.alert('Error', 'Failed to add room to favorites');
-      }
-    } else if (action === 'kick') {
+      return;
+    }
+    
+    if (trimmedAction === 'add-favorite') {
+      console.log('Adding room to favorites:', roomId);
+      fetch(`${API_BASE_URL}/api/rooms/favorites/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: currentUsername,
+          roomId: roomId,
+        }),
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            Alert.alert('Success', 'Room added to favorites!');
+          } else {
+            Alert.alert('Error', data.message || 'Failed to add favorite');
+          }
+        })
+        .catch(err => {
+          console.log('Error adding favorite:', err);
+          Alert.alert('Error', 'Failed to add room to favorites');
+        });
+      return;
+    }
+    
+    if (trimmedAction === 'kick') {
       setKickModalVisible(true);
-    } else if (action === 'participants') {
+      return;
+    }
+    
+    if (trimmedAction === 'participants') {
       setParticipantsModalVisible(true);
-    } else if (action === 'leave-room') {
+      return;
+    }
+    
+    if (trimmedAction === 'leave-room') {
       Alert.alert(
         'Leave Room',
         'Are you sure you want to leave this room?',
