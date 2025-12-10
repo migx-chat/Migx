@@ -1,0 +1,132 @@
+Copy-paste ke Replit kamu pada file router room & socket.
+
+
+---
+
+1️⃣ Saat USER JOIN ROOM → simpan di Redis
+
+// Redis save user room
+await redis.sadd(`user:rooms:${username}`, roomId);
+
+// Update last message system: "X joined"
+await redis.hset(`room:lastmsg:${roomId}`, {
+  message: `${username} joined`,
+  username,
+  timestamp: Date.now()
+});
+
+// Emit update ke chatlist
+io.to(username).emit("chatlist:update", { roomId });
+
+
+---
+
+2️⃣ Saat USER LEAVE ROOM → hapus room dari Redis user
+
+await redis.srem(`user:rooms:${username}`, roomId);
+
+io.to(username).emit("chatlist:update", { roomId });
+
+
+---
+
+3️⃣ Saat pesan baru dikirim → simpan sebagai LAST MESSAGE
+
+redis.hset(`room:lastmsg:${roomId}`, {
+  message,
+  username,
+  timestamp: Date.now()
+});
+
+io.to(roomId).emit("chatlist:update", { roomId });
+
+
+---
+
+4️⃣ BUAT API BARU → GET /api/chat/list
+
+Tambahkan file baru routes/chat.js:
+
+router.get("/list/:username", async (req, res) => {
+  const { username } = req.params;
+
+  const rooms = await redis.smembers(`user:rooms:${username}`);
+
+  const result = [];
+
+  for (const roomId of rooms) {
+    const last = await redis.hgetall(`room:lastmsg:${roomId}`);
+
+    const roomInfo = await prisma.rooms.findUnique({
+      where: { id: Number(roomId) },
+      select: { name: true, id: true }
+    });
+
+    result.push({
+      roomId,
+      roomName: roomInfo?.name,
+      lastMessage: last.message || "",
+      lastUsername: last.username || "",
+      timestamp: last.timestamp || null
+    });
+  }
+
+  res.json({ rooms: result });
+});
+
+Sekarang backend siap.
+
+
+---
+
+✔ PROMPT UNTUK REPLIT (FRONTEND ChatList.tsx)
+
+Agar menu CHAT memuat daftar room yang diikuti user seperti Miggi.
+
+useEffect(() => {
+  loadRooms();
+
+  socket.on("chatlist:update", loadRooms);
+
+  return () => {
+    socket.off("chatlist:update", loadRooms);
+  };
+}, []);
+
+const loadRooms = async () => {
+  setLoading(true);
+
+  const res = await fetch(`${API_BASE_URL}/api/chat/list/${username}`);
+  const data = await res.json();
+
+  setChatRooms(data.rooms);
+  setLoading(false);
+};
+
+
+---
+
+✔ HASIL AKHIR YANG DIDAPAT
+
+Setelah kode ini berjalan:
+
+Di menu CHAT akan muncul:
+
+Indonesia      nunik [08:47] SMA donk       (unread 1)
+Dhaka cafe     user123 [09:11] Halo kak      (unread 0)
+Big game       user45 [07:02] Join yuk       (unread 3)
+
+Seperti gambar ke-2.
+
+Dan:
+
+Masuk room → otomatis muncul di menu CHAT
+
+Leave room → otomatis hilang
+
+Server restart → room list tetap ada (Redis)
+
+Last message update real-time via socket
+
+List akan tampil walau user tidak membuka room
+
