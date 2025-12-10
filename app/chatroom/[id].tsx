@@ -155,27 +155,33 @@ export default function ChatRoomScreen() {
     // Real-time message receiving
     newSocket.on('chat:message', (data: any) => {
       console.log('📨 Received message:', data);
-      const index = tabs.findIndex(t => t.id === roomId);
-      if (index === -1) return;
-
-
-
-      const copy = [...tabs];
+      const targetRoomId = data.roomId || roomId;
+      
       const newMessage = {
         id: data.id || Date.now().toString(),
         username: data.username,
         message: data.message,
         isOwnMessage: data.username === currentUsername,
-        isSystem: data.messageType === 'system',
+        isSystem: data.messageType === 'system' || data.type === 'system',
         isNotice: data.messageType === 'notice',
       };
 
-      // Only add if not already in the list (avoid duplicates)
-      const messageExists = copy[index].messages.some(m => m.id === newMessage.id);
-      if (!messageExists) {
-        copy[index].messages.push(newMessage);
-        setTabs(copy);
-      }
+      // Use functional update to get latest tabs state
+      setTabs(prevTabs => {
+        const index = prevTabs.findIndex(t => t.id === targetRoomId);
+        if (index === -1) return prevTabs;
+
+        // Only add if not already in the list (avoid duplicates)
+        const messageExists = prevTabs[index].messages.some(m => m.id === newMessage.id);
+        if (messageExists) return prevTabs;
+
+        const copy = [...prevTabs];
+        copy[index] = {
+          ...copy[index],
+          messages: [...copy[index].messages, newMessage]
+        };
+        return copy;
+      });
     });
 
     newSocket.on('vote-started', (data: { target: string; remainingVotes: number; remainingSeconds: number }) => {
