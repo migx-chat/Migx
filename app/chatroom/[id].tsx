@@ -507,9 +507,12 @@ export default function ChatRoomScreen() {
   const handleMenuAction = (action: string) => {
     console.log('Menu action:', action);
     if (action === 'room-info') {
+      console.log('Opening room info modal...');
       setRoomInfoModalVisible(true);
     } else if (action === 'kick') {
       setKickModalVisible(true);
+    } else if (action === 'participants') {
+      setParticipantsModalVisible(true);
     } else if (action === 'leave-room') {
       Alert.alert(
         'Leave Room',
