@@ -692,8 +692,8 @@ export default function ChatRoomScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: HEADER_COLOR }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <StatusBar barStyle="light-content" backgroundColor={HEADER_COLOR} />
 
@@ -809,5 +809,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 });
