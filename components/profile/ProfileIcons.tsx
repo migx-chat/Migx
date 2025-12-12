@@ -98,3 +98,19 @@ export const SettingsIcon = ({ size = 24 }: { size?: number }) => (
     />
   </Svg>
 );
+
+export const AdminPanelIcon = ({ size = 24 }: { size?: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path 
+      d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" 
+      fill="#E74C3C"
+    />
+    <Path 
+      d="M10 12l2 2 4-4" 
+      stroke="#FFFFFF" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    />
+  </Svg>
+);

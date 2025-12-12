@@ -11,7 +11,8 @@ import {
   PeopleIcon, 
   LeaderboardIcon, 
   DashboardIcon,
-  SettingsIcon 
+  SettingsIcon,
+  AdminPanelIcon 
 } from '@/components/profile/ProfileIcons';
 import { ModeToggle } from '@/components/profile/ModeToggle';
 import API_BASE_URL from '@/utils/api';
@@ -50,6 +51,7 @@ export function ProfileMenuModal({ visible, onClose, userData }: ProfileMenuModa
 
   const userRole = userData.role || 'user';
   const isMerchant = userRole === 'merchant';
+  const isSuperAdmin = userRole === 'super_admin';
 
   const handleEditProfile = () => {
     onClose();
@@ -89,6 +91,11 @@ export function ProfileMenuModal({ visible, onClose, userData }: ProfileMenuModa
   const handleSettings = () => {
     onClose();
     router.push('/settings');
+  };
+
+  const handleAdminPanel = () => {
+    onClose();
+    router.push('/admin-panel');
   };
 
   return (
@@ -186,6 +193,16 @@ export function ProfileMenuModal({ visible, onClose, userData }: ProfileMenuModa
                 icon={<DashboardIcon size={24} />}
                 title="Merchant Dashboard"
                 onPress={handleMerchantDashboard}
+                theme={theme}
+                showDivider={!isSuperAdmin}
+              />
+            )}
+
+            {isSuperAdmin && (
+              <MenuItem 
+                icon={<AdminPanelIcon size={24} />}
+                title="Admin Panel"
+                onPress={handleAdminPanel}
                 theme={theme}
                 showDivider={false}
               />

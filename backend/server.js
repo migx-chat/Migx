@@ -258,6 +258,9 @@ app.use('/api/leaderboard', leaderboardRoute);
 const feedRoute = require('./api/feed.route');
 app.use('/api/feed', feedRoute);
 
+const adminRoute = require('./api/admin.route');
+app.use('/api/admin', adminRoute);
+
 // Admin unban endpoint
 const { clearGlobalBan, getAdminKickCount } = require('./utils/adminKick');
 const { clearAdminCooldown, clearVoteCooldown, getCooldownStatus } = require('./utils/roomCooldown');
