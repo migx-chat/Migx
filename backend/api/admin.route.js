@@ -94,4 +94,94 @@ router.put('/users/:userId/unban', authMiddleware, superAdminMiddleware, async (
   }
 });
 
+router.post('/add-coin', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try {
+    const { username, amount } = req.body;
+    
+    if (!username || !amount || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid username or amount' });
+    }
+    
+    const pool = getPool();
+    
+    const userResult = await pool.query(
+      'SELECT id, credits FROM users WHERE username = $1',
+      [username]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = userResult.rows[0];
+    const newCredits = (user.credits || 0) + amount;
+    
+    await pool.query(
+      'UPDATE users SET credits = $1 WHERE id = $2',
+      [newCredits, user.id]
+    );
+    
+    await pool.query(
+      `INSERT INTO transactions (sender_id, receiver_id, amount, type, description, created_at) 
+       VALUES ($1, $2, $3, $4, $5, NOW())`,
+      [null, user.id, amount, 'admin_add', 'System coin addition (IDR transfer)']
+    );
+    
+    console.log(`✅ Admin added ${amount} coins to ${username}`);
+    res.json({ success: true, message: `Added ${amount} coins to ${username}`, newBalance: newCredits });
+  } catch (error) {
+    console.error('Error adding coins:', error);
+    res.status(500).json({ error: 'Failed to add coins' });
+  }
+});
+
+const bcrypt = require('bcrypt');
+
+router.post('/create-account', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    
+    if (!username || username.length < 1 || username.length > 12) {
+      return res.status(400).json({ error: 'Username must be 1-12 characters' });
+    }
+    
+    if (!/^[a-zA-Z0-9]+$/.test(username)) {
+      return res.status(400).json({ error: 'Username can only contain letters and numbers' });
+    }
+    
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Invalid email' });
+    }
+    
+    if (!password || password.length < 4) {
+      return res.status(400).json({ error: 'Password must be at least 4 characters' });
+    }
+    
+    const pool = getPool();
+    
+    const existingUser = await pool.query(
+      'SELECT id FROM users WHERE username = $1 OR email = $2',
+      [username, email]
+    );
+    
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ error: 'Username or email already exists' });
+    }
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const result = await pool.query(
+      `INSERT INTO users (username, email, password, role, credits, created_at) 
+       VALUES ($1, $2, $3, 'user', 0, NOW()) RETURNING id, username, email`,
+      [username, email, hashedPassword]
+    );
+    
+    console.log(`✅ Admin created account: ${username}`);
+    res.json({ success: true, user: result.rows[0] });
+  } catch (error) {
+    console.error('Error creating account:', error);
+    res.status(500).json({ error: 'Failed to create account' });
+  }
+});
+
 module.exports = router;

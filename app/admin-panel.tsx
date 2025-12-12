@@ -8,12 +8,16 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeCustom } from '@/theme/provider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE_URL from '@/utils/api';
+import { Ionicons } from '@expo/vector-icons';
 
 const HEADER_COLOR = '#0a5229';
 
@@ -26,6 +30,19 @@ export default function AdminPanelScreen() {
   const [users, setUsers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'users' | 'rooms' | 'announcements'>('users');
+  
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [addCoinModalVisible, setAddCoinModalVisible] = useState(false);
+  const [createAccountModalVisible, setCreateAccountModalVisible] = useState(false);
+  
+  const [coinUsername, setCoinUsername] = useState('');
+  const [coinAmount, setCoinAmount] = useState('');
+  const [coinLoading, setCoinLoading] = useState(false);
+  
+  const [newUsername, setNewUsername] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [createLoading, setCreateLoading] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -122,6 +139,103 @@ export default function AdminPanelScreen() {
     }
   };
 
+  const handleAddCoin = async () => {
+    if (!coinUsername.trim()) {
+      Alert.alert('Error', 'Please enter username');
+      return;
+    }
+    if (!coinAmount.trim() || isNaN(Number(coinAmount)) || Number(coinAmount) <= 0) {
+      Alert.alert('Error', 'Please enter valid amount');
+      return;
+    }
+
+    setCoinLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/admin/add-coin`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: coinUsername.trim(),
+          amount: Number(coinAmount),
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        Alert.alert('Success', `Added ${coinAmount} coins to ${coinUsername}`);
+        setCoinUsername('');
+        setCoinAmount('');
+        setAddCoinModalVisible(false);
+      } else {
+        Alert.alert('Error', data.error || 'Failed to add coins');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add coins');
+    } finally {
+      setCoinLoading(false);
+    }
+  };
+
+  const handleCreateAccount = async () => {
+    if (!newUsername.trim()) {
+      Alert.alert('Error', 'Please enter username');
+      return;
+    }
+    if (newUsername.length < 1 || newUsername.length > 12) {
+      Alert.alert('Error', 'Username must be 1-12 characters');
+      return;
+    }
+    if (!/^[a-zA-Z0-9]+$/.test(newUsername)) {
+      Alert.alert('Error', 'Username can only contain letters and numbers');
+      return;
+    }
+    if (!newEmail.trim() || !newEmail.includes('@')) {
+      Alert.alert('Error', 'Please enter valid email');
+      return;
+    }
+    if (!newPassword.trim() || newPassword.length < 4) {
+      Alert.alert('Error', 'Password must be at least 4 characters');
+      return;
+    }
+
+    setCreateLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/admin/create-account`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: newUsername.trim(),
+          email: newEmail.trim(),
+          password: newPassword,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        Alert.alert('Success', `Account ${newUsername} created successfully`);
+        setNewUsername('');
+        setNewEmail('');
+        setNewPassword('');
+        setCreateAccountModalVisible(false);
+        fetchUsers();
+      } else {
+        Alert.alert('Error', data.error || 'Failed to create account');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create account');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
@@ -129,8 +243,171 @@ export default function AdminPanelScreen() {
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Admin Panel</Text>
-        <View style={styles.placeholder} />
+        <TouchableOpacity onPress={() => setMenuVisible(true)} style={styles.menuButton}>
+          <Ionicons name="menu" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={[styles.menuDropdown, { top: insets.top + 50 }]}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                setAddCoinModalVisible(true);
+              }}
+            >
+              <Ionicons name="cash-outline" size={20} color="#2ECC71" />
+              <Text style={styles.menuItemText}>Add Coin</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                setCreateAccountModalVisible(true);
+              }}
+            >
+              <Ionicons name="person-add-outline" size={20} color="#3498DB" />
+              <Text style={styles.menuItemText}>Create Account</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={addCoinModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAddCoinModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.formModal, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Add Coin</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
+              Add coins to user for IDR transfer
+            </Text>
+            
+            <TextInput
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text }]}
+              placeholder="Username"
+              placeholderTextColor={theme.textSecondary}
+              value={coinUsername}
+              onChangeText={setCoinUsername}
+              autoCapitalize="none"
+            />
+            
+            <TextInput
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text }]}
+              placeholder="Amount"
+              placeholderTextColor={theme.textSecondary}
+              value={coinAmount}
+              onChangeText={setCoinAmount}
+              keyboardType="numeric"
+            />
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setAddCoinModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.submitButton]}
+                onPress={handleAddCoin}
+                disabled={coinLoading}
+              >
+                {coinLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Add Coin</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal
+        visible={createAccountModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCreateAccountModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.formModal, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Create Account</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
+              Create new user account (username 1-12 characters)
+            </Text>
+            
+            <TextInput
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text }]}
+              placeholder="Username (1-12 characters)"
+              placeholderTextColor={theme.textSecondary}
+              value={newUsername}
+              onChangeText={setNewUsername}
+              autoCapitalize="none"
+              maxLength={12}
+            />
+            
+            <TextInput
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text }]}
+              placeholder="Email"
+              placeholderTextColor={theme.textSecondary}
+              value={newEmail}
+              onChangeText={setNewEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            
+            <TextInput
+              style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text }]}
+              placeholder="Password"
+              placeholderTextColor={theme.textSecondary}
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry
+            />
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setCreateAccountModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.submitButton]}
+                onPress={handleCreateAccount}
+                disabled={createLoading}
+              >
+                {createLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Create</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <View style={styles.tabContainer}>
         {(['users', 'rooms', 'announcements'] as const).map(tab => (
@@ -255,8 +532,89 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
-  placeholder: {
-    width: 40,
+  menuButton: {
+    padding: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuDropdown: {
+    position: 'absolute',
+    right: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 8,
+    minWidth: 180,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  formModal: {
+    width: '90%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 24,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    marginBottom: 20,
+  },
+  modalInput: {
+    height: 48,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    fontSize: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  modalButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#ddd',
+  },
+  cancelButtonText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  submitButton: {
+    backgroundColor: HEADER_COLOR,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   tabContainer: {
     flexDirection: 'row',
