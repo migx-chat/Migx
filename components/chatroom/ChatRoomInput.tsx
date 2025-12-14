@@ -5,6 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput as TextInputType,
+  NativeSyntheticEvent,
+  TextInputContentSizeChangeEventData,
 } from 'react-native';
 import { useThemeCustom } from '@/theme/provider';
 
@@ -19,6 +21,7 @@ interface ChatRoomInputProps {
   onMenuItemPress?: (action: string) => void;
   onMenuPress?: () => void;
   onOpenParticipants?: () => void;
+  bottomInset?: number;
 }
 
 const MenuIcon = ({ size = 20, color = '#666' }) => (
@@ -53,14 +56,20 @@ const SendIcon = ({ size = 22, color = '#8B5CF6' }) => (
   </Svg>
 );
 
-export function ChatRoomInput({ onSend, onMenuItemPress: externalMenuItemPress, onOpenParticipants }: ChatRoomInputProps) {
+export function ChatRoomInput({ onSend, onMenuItemPress: externalMenuItemPress, onOpenParticipants, bottomInset = 0 }: ChatRoomInputProps) {
   const [message, setMessage] = useState('');
   const [menuVisible, setMenuVisible] = useState(false);
   const [emojiVisible, setEmojiVisible] = useState(false);
   const [cmdListVisible, setCmdListVisible] = useState(false);
   const [giftModalVisible, setGiftModalVisible] = useState(false);
+  const [inputHeight, setInputHeight] = useState(42);
   const { theme } = useThemeCustom();
   const inputRef = useRef<TextInputType>(null);
+
+  const handleContentSizeChange = (e: NativeSyntheticEvent<TextInputContentSizeChangeEventData>) => {
+    const newHeight = Math.min(Math.max(42, e.nativeEvent.contentSize.height), 120);
+    setInputHeight(newHeight);
+  };
 
   const handleSend = () => {
     if (!message.trim()) return;
@@ -97,7 +106,7 @@ export function ChatRoomInput({ onSend, onMenuItemPress: externalMenuItemPress, 
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background, paddingBottom: bottomInset }]}>
       <TouchableOpacity style={styles.iconButton} onPress={() => setMenuVisible(true)}>
         <MenuIcon color={theme.secondary} />
       </TouchableOpacity>
@@ -105,11 +114,14 @@ export function ChatRoomInput({ onSend, onMenuItemPress: externalMenuItemPress, 
       <View style={[styles.inputContainer, { backgroundColor: theme.card }]}>
         <TextInput
           ref={inputRef}
-          style={[styles.input, { color: theme.text }]}
+          style={[styles.input, { color: theme.text, height: inputHeight }]}
           placeholder="Type a message..."
           placeholderTextColor={theme.secondary}
           value={message}
           onChangeText={setMessage}
+          multiline
+          textAlignVertical="top"
+          onContentSizeChange={handleContentSizeChange}
         />
       </View>
 
@@ -160,13 +172,14 @@ export function ChatRoomInput({ onSend, onMenuItemPress: externalMenuItemPress, 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     paddingHorizontal: 8,
     paddingVertical: 6,
     gap: 6,
   },
   iconButton: {
     padding: 6,
+    marginBottom: 4,
   },
   inputContainer: {
     flex: 1,
@@ -176,9 +189,11 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: 14,
-    minHeight: 24,
+    minHeight: 42,
+    maxHeight: 120,
   },
   sendButton: {
     padding: 6,
+    marginBottom: 4,
   },
 });
