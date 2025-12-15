@@ -15,16 +15,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeCustom } from '@/theme/provider';
 import { io, Socket } from 'socket.io-client';
 import API_BASE_URL from '@/utils/api';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, runOnJS, interpolate } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SWIPE_THRESHOLD = 60;
-const VELOCITY_THRESHOLD = 300;
 
 import { ChatRoomHeader } from '@/components/chatroom/ChatRoomHeader';
-import { ChatRoomContent } from '@/components/chatroom/ChatRoomContent';
+import { ChatTabsContainer } from '@/components/chatroom/ChatTabsContainer';
 import { ChatRoomInput } from '@/components/chatroom/ChatRoomInput';
 import { EmojiPicker, EMOJI_PICKER_HEIGHT } from '@/components/chatroom/EmojiPicker';
 import { MenuKickModal } from '@/components/chatroom/MenuKickModal';
@@ -46,6 +42,8 @@ export default function ChatRoomScreen() {
   const roomName = (params.name as string) || 'Mobile fun';
 
   const {
+    openRooms,
+    activeIndex,
     roomTabs,
     activeRoomId,
     socket,
@@ -56,6 +54,7 @@ export default function ChatRoomScreen() {
     openTab,
     closeTab,
     switchTab,
+    switchTabByIndex,
     addMessage,
     updateRoomName,
     clearAllTabs,
@@ -96,6 +95,10 @@ export default function ChatRoomScreen() {
   const [isConnected, setIsConnected] = useState(false);
   const socketInitialized = useRef(false);
   const joinedRooms = useRef<Set<string>>(new Set());
+
+  const activeRoomName = roomTabs.length > 0 && activeIndex < roomTabs.length
+    ? roomTabs[activeIndex].roomName
+    : roomName;
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -330,6 +333,10 @@ export default function ChatRoomScreen() {
     return () => subscription.remove();
   }, [socket]);
 
+  const handleTabIndexChange = useCallback((newIndex: number) => {
+    switchTabByIndex(newIndex);
+  }, [switchTabByIndex]);
+
   const handleSendMessage = useCallback((message: string) => {
     if (!socket || !message.trim() || !currentUserId) return;
 
@@ -479,120 +486,44 @@ export default function ChatRoomScreen() {
     }
   }, [socket, activeRoomId, roomId, currentUsername, currentUserId, roomTabs, closeTab, clearAllTabs, switchTab, router]);
 
-  const currentTab = getTab(activeRoomId || roomId);
-  const currentTabIndex = roomTabs.findIndex(t => t.roomId === (activeRoomId || roomId));
-  const translateX = useSharedValue(0);
-
-  const handleSwipeTab = useCallback((direction: number) => {
-    const newIndex = currentTabIndex + direction;
-    if (newIndex >= 0 && newIndex < roomTabs.length) {
-      switchTab(roomTabs[newIndex].roomId);
-    }
-  }, [currentTabIndex, roomTabs, switchTab]);
-
-  const contentGesture = Gesture.Pan()
-    .activeOffsetX([-25, 25])
-    .failOffsetY([-20, 20])
-    .onUpdate((event) => {
-      'worklet';
-      const canSwipeLeft = currentTabIndex < roomTabs.length - 1;
-      const canSwipeRight = currentTabIndex > 0;
-      
-      let translation = event.translationX * 0.5;
-      
-      if (!canSwipeRight && translation > 0) translation *= 0.2;
-      if (!canSwipeLeft && translation < 0) translation *= 0.2;
-      
-      translateX.value = Math.max(-40, Math.min(40, translation));
-    })
-    .onEnd((event) => {
-      'worklet';
-      const shouldSwipeLeft = event.translationX < -SWIPE_THRESHOLD || event.velocityX < -VELOCITY_THRESHOLD;
-      const shouldSwipeRight = event.translationX > SWIPE_THRESHOLD || event.velocityX > VELOCITY_THRESHOLD;
-      
-      if (shouldSwipeLeft && currentTabIndex < roomTabs.length - 1) {
-        runOnJS(handleSwipeTab)(1);
-      } else if (shouldSwipeRight && currentTabIndex > 0) {
-        runOnJS(handleSwipeTab)(-1);
-      }
-      
-      translateX.value = withSpring(0);
-    });
-
-  const contentAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-    opacity: interpolate(Math.abs(translateX.value), [0, 40], [1, 0.9]),
-  }));
-
   const handleHeaderBack = useCallback(() => {
     console.log('📱 Header back pressed - navigating back (keeping socket alive)');
     router.back();
   }, [router]);
 
-  const tabs = roomTabs.map(tab => ({
-    id: tab.roomId,
-    name: tab.roomName,
-    type: 'room' as const,
-    messages: tab.messages,
-  }));
+  const renderVoteButton = useCallback(() => {
+    if (!activeVote) return null;
+    return (
+      <VoteKickButton
+        target={activeVote.target}
+        remainingVotes={activeVote.remainingVotes}
+        remainingSeconds={activeVote.remainingSeconds}
+        hasVoted={hasVoted}
+        onVote={handleVoteKick}
+      />
+    );
+  }, [activeVote, hasVoted, handleVoteKick]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar backgroundColor={HEADER_COLOR} barStyle="light-content" />
       
       <ChatRoomHeader
-        tabs={tabs}
-        activeTab={activeRoomId || roomId}
-        onTabChange={(id) => switchTab(id)}
-        onCloseTab={(id) => {
-          if (roomTabs.length === 1) {
-            handleLeaveRoom();
-            return;
-          }
-          
-          const tabToClose = roomTabs.find(t => t.roomId === id);
-          if (tabToClose && socket) {
-            socket.emit('leave_room', {
-              roomId: id,
-              username: currentUsername,
-              userId: currentUserId
-            });
-          }
-          
-          joinedRooms.current.delete(id);
-          closeTab(id);
-          
-          if (activeRoomId === id && roomTabs.length > 1) {
-            const remainingTabs = roomTabs.filter(t => t.roomId !== id);
-            if (remainingTabs.length > 0) {
-              switchTab(remainingTabs[0].roomId);
-            }
-          }
-        }}
-        roomInfo={roomInfo}
+        openRooms={openRooms}
+        activeIndex={activeIndex}
+        activeRoomName={activeRoomName}
         onBack={handleHeaderBack}
+        onMenuPress={() => setMenuVisible(true)}
+        roomInfo={roomInfo}
       />
 
-      <GestureDetector gesture={contentGesture}>
-        <Animated.View style={[styles.contentContainer, { backgroundColor: theme.background }, contentAnimatedStyle]}>
-          {activeVote && (
-            <VoteKickButton
-              target={activeVote.target}
-              remainingVotes={activeVote.remainingVotes}
-              remainingSeconds={activeVote.remainingSeconds}
-              hasVoted={hasVoted}
-              onVote={handleVoteKick}
-            />
-          )}
-          {currentTab && (
-            <ChatRoomContent 
-              messages={currentTab.messages} 
-              roomInfo={roomInfo}
-              bottomPadding={70 + insets.bottom}
-            />
-          )}
-        </Animated.View>
-      </GestureDetector>
+      <ChatTabsContainer
+        roomTabs={roomTabs}
+        activeIndex={activeIndex}
+        onIndexChange={handleTabIndexChange}
+        bottomPadding={70 + insets.bottom}
+        renderVoteButton={renderVoteButton}
+      />
 
       <EmojiPicker
         visible={emojiVisible}
@@ -649,9 +580,6 @@ export default function ChatRoomScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
-  contentContainer: {
     flex: 1,
   },
 });

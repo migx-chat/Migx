@@ -1,12 +1,13 @@
-import React, { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, ReactNode, useMemo } from 'react';
 import { Socket } from 'socket.io-client';
 
 export interface RoomTab {
   roomId: string;
   roomName: string;
+  unreadCount: number;
   lastReadTime: number;
   messages: Message[];
-  isActive: boolean;
+  messageVersion: number;
 }
 
 export interface Message {
@@ -20,7 +21,15 @@ export interface Message {
   timestamp?: string;
 }
 
+interface OpenRoom {
+  roomId: string;
+  roomName: string;
+  unreadCount: number;
+}
+
 interface TabRoomContextType {
+  openRooms: OpenRoom[];
+  activeIndex: number;
   roomTabs: RoomTab[];
   activeRoomId: string | null;
   socket: Socket | null;
@@ -33,10 +42,13 @@ interface TabRoomContextType {
   openTab: (roomId: string, roomName: string) => void;
   closeTab: (roomId: string) => void;
   switchTab: (roomId: string) => void;
+  switchTabByIndex: (index: number) => void;
   
   addMessage: (roomId: string, message: Message) => void;
   updateRoomName: (roomId: string, newName: string) => void;
   clearAllTabs: () => void;
+  incrementUnread: (roomId: string) => void;
+  resetUnread: (roomId: string) => void;
   
   getTab: (roomId: string) => RoomTab | undefined;
   hasTab: (roomId: string) => boolean;
@@ -46,12 +58,33 @@ const TabRoomContext = createContext<TabRoomContextType | undefined>(undefined);
 
 export function TabRoomProvider({ children }: { children: ReactNode }) {
   const [roomTabs, setRoomTabs] = useState<RoomTab[]>([]);
-  const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number>(0);
   const [socket, setSocketState] = useState<Socket | null>(null);
   const [currentUsername, setCurrentUsername] = useState('');
   const [currentUserId, setCurrentUserId] = useState('');
   
   const socketRef = useRef<Socket | null>(null);
+  const activeIndexRef = useRef<number>(0);
+  const activeRoomIdRef = useRef<string | null>(null);
+  
+  activeIndexRef.current = activeIndex;
+  
+  const activeRoomId = useMemo(() => {
+    if (roomTabs.length > 0 && activeIndex >= 0 && activeIndex < roomTabs.length) {
+      const id = roomTabs[activeIndex].roomId;
+      activeRoomIdRef.current = id;
+      return id;
+    }
+    activeRoomIdRef.current = null;
+    return null;
+  }, [roomTabs, activeIndex]);
+
+  const openRooms: OpenRoom[] = useMemo(() => 
+    roomTabs.map(tab => ({
+      roomId: tab.roomId,
+      roomName: tab.roomName,
+      unreadCount: tab.unreadCount,
+    })), [roomTabs]);
   
   const setSocket = useCallback((newSocket: Socket | null) => {
     socketRef.current = newSocket;
@@ -68,61 +101,91 @@ export function TabRoomProvider({ children }: { children: ReactNode }) {
       const existingTabIndex = prevTabs.findIndex(t => t.roomId === roomId);
       
       if (existingTabIndex !== -1) {
-        console.log('📑 Tab already exists, activating:', roomId);
-        return prevTabs.map((tab, index) => ({
-          ...tab,
-          isActive: index === existingTabIndex
-        }));
+        console.log('📑 Tab already exists, switching to:', roomId);
+        setActiveIndex(existingTabIndex);
+        activeIndexRef.current = existingTabIndex;
+        return prevTabs.map((tab, index) => 
+          index === existingTabIndex 
+            ? { ...tab, unreadCount: 0 }
+            : tab
+        );
       }
       
       console.log('📑 Creating new tab for room:', roomId);
       const newTab: RoomTab = {
         roomId,
         roomName,
+        unreadCount: 0,
         lastReadTime: Date.now(),
         messages: [],
-        isActive: true,
+        messageVersion: 0,
       };
       
-      return [
-        ...prevTabs.map(tab => ({ ...tab, isActive: false })),
-        newTab
-      ];
+      const newTabs = [...prevTabs, newTab];
+      const newIndex = newTabs.length - 1;
+      setActiveIndex(newIndex);
+      activeIndexRef.current = newIndex;
+      return newTabs;
     });
-    
-    setActiveRoomId(roomId);
   }, []);
 
   const closeTab = useCallback((roomId: string) => {
     setRoomTabs(prevTabs => {
-      const filtered = prevTabs.filter(t => t.roomId !== roomId);
+      const tabIndex = prevTabs.findIndex(t => t.roomId === roomId);
+      if (tabIndex === -1) return prevTabs;
       
-      if (filtered.length > 0 && activeRoomId === roomId) {
-        filtered[0].isActive = true;
-        setActiveRoomId(filtered[0].roomId);
-      } else if (filtered.length === 0) {
-        setActiveRoomId(null);
+      const filtered = prevTabs.filter(t => t.roomId !== roomId);
+      const currentActiveIndex = activeIndexRef.current;
+      
+      if (filtered.length === 0) {
+        setActiveIndex(0);
+        activeIndexRef.current = 0;
+      } else if (tabIndex <= currentActiveIndex) {
+        const newIndex = Math.max(0, currentActiveIndex - 1);
+        setActiveIndex(newIndex);
+        activeIndexRef.current = newIndex;
       }
       
       return filtered;
     });
-  }, [activeRoomId]);
+  }, []);
 
   const switchTab = useCallback((roomId: string) => {
     setRoomTabs(prevTabs => {
-      const tabExists = prevTabs.some(t => t.roomId === roomId);
-      if (!tabExists) return prevTabs;
+      const tabIndex = prevTabs.findIndex(t => t.roomId === roomId);
+      if (tabIndex === -1) return prevTabs;
       
-      return prevTabs.map(tab => ({
-        ...tab,
-        isActive: tab.roomId === roomId
-      }));
+      setActiveIndex(tabIndex);
+      activeIndexRef.current = tabIndex;
+      
+      return prevTabs.map((tab, index) => 
+        index === tabIndex 
+          ? { ...tab, unreadCount: 0, lastReadTime: Date.now() }
+          : tab
+      );
     });
-    
-    setActiveRoomId(roomId);
   }, []);
 
-  const addMessage = useCallback((roomId: string, message: Message) => {
+  const switchTabByIndex = useCallback((index: number) => {
+    if (index < 0) return;
+    
+    setRoomTabs(prevTabs => {
+      if (index >= prevTabs.length) return prevTabs;
+      
+      setActiveIndex(index);
+      activeIndexRef.current = index;
+      
+      return prevTabs.map((tab, i) => 
+        i === index 
+          ? { ...tab, unreadCount: 0, lastReadTime: Date.now() }
+          : tab
+      );
+    });
+  }, []);
+
+  const addMessage = useCallback((roomId: string, message: Message, forceActiveRoomId?: string) => {
+    const resolvedActiveRoomId = forceActiveRoomId || activeRoomIdRef.current;
+    
     setRoomTabs(prevTabs => {
       const tabIndex = prevTabs.findIndex(t => t.roomId === roomId);
       if (tabIndex === -1) return prevTabs;
@@ -131,11 +194,49 @@ export function TabRoomProvider({ children }: { children: ReactNode }) {
       const messageExists = tab.messages.some(m => m.id === message.id);
       if (messageExists) return prevTabs;
       
+      const isActiveTab = roomId === resolvedActiveRoomId;
+      
+      const newMessages = [...tab.messages, message];
+      
       const updatedTabs = [...prevTabs];
       updatedTabs[tabIndex] = {
         ...tab,
-        messages: [...tab.messages, message],
-        lastReadTime: Date.now()
+        messages: newMessages,
+        messageVersion: tab.messageVersion + 1,
+        lastReadTime: isActiveTab ? Date.now() : tab.lastReadTime,
+        unreadCount: isActiveTab ? 0 : tab.unreadCount + (message.isOwnMessage ? 0 : 1),
+      };
+      
+      return updatedTabs;
+    });
+  }, []);
+
+  const incrementUnread = useCallback((roomId: string) => {
+    setRoomTabs(prevTabs => {
+      const tabIndex = prevTabs.findIndex(t => t.roomId === roomId);
+      const currentActiveIndex = activeIndexRef.current;
+      if (tabIndex === -1 || tabIndex === currentActiveIndex) return prevTabs;
+      
+      const updatedTabs = [...prevTabs];
+      updatedTabs[tabIndex] = {
+        ...updatedTabs[tabIndex],
+        unreadCount: updatedTabs[tabIndex].unreadCount + 1,
+      };
+      
+      return updatedTabs;
+    });
+  }, []);
+
+  const resetUnread = useCallback((roomId: string) => {
+    setRoomTabs(prevTabs => {
+      const tabIndex = prevTabs.findIndex(t => t.roomId === roomId);
+      if (tabIndex === -1) return prevTabs;
+      
+      const updatedTabs = [...prevTabs];
+      updatedTabs[tabIndex] = {
+        ...updatedTabs[tabIndex],
+        unreadCount: 0,
+        lastReadTime: Date.now(),
       };
       
       return updatedTabs;
@@ -150,7 +251,7 @@ export function TabRoomProvider({ children }: { children: ReactNode }) {
       const updatedTabs = [...prevTabs];
       updatedTabs[tabIndex] = {
         ...updatedTabs[tabIndex],
-        roomName: newName
+        roomName: newName,
       };
       
       return updatedTabs;
@@ -159,7 +260,8 @@ export function TabRoomProvider({ children }: { children: ReactNode }) {
 
   const clearAllTabs = useCallback(() => {
     setRoomTabs([]);
-    setActiveRoomId(null);
+    setActiveIndex(0);
+    activeIndexRef.current = 0;
   }, []);
 
   const getTab = useCallback((roomId: string) => {
@@ -171,6 +273,8 @@ export function TabRoomProvider({ children }: { children: ReactNode }) {
   }, [roomTabs]);
 
   const value: TabRoomContextType = {
+    openRooms,
+    activeIndex,
     roomTabs,
     activeRoomId,
     socket,
@@ -183,10 +287,13 @@ export function TabRoomProvider({ children }: { children: ReactNode }) {
     openTab,
     closeTab,
     switchTab,
+    switchTabByIndex,
     
     addMessage,
     updateRoomName,
     clearAllTabs,
+    incrementUnread,
+    resetUnread,
     
     getTab,
     hasTab,
