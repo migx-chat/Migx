@@ -274,21 +274,39 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
     
     console.log("SYSTEM MESSAGE INJECTED", roomId);
     
+    const timestamp = new Date().toISOString();
     const userList = users.length > 0 ? users.join(', ') : 'No users online';
-    const systemMessage: Message = {
-      id: `welcome-${roomId}-${Date.now()}`,
-      username: 'System',
-      message: `Welcome to ${roomName}\nManaged by ${admin || 'admin'}\nCurrently in the room: ${userList}`,
-      isSystem: true,
-      timestamp: new Date().toISOString(),
-    };
+    
+    const systemMessages: Message[] = [
+      {
+        id: `sys-welcome-${roomId}-${Date.now()}`,
+        username: roomName,
+        message: 'welcome',
+        isSystem: true,
+        timestamp,
+      },
+      {
+        id: `sys-managed-${roomId}-${Date.now()}`,
+        username: roomName,
+        message: `This Room Managed by ${admin || 'admin'}`,
+        isSystem: true,
+        timestamp,
+      },
+      {
+        id: `sys-users-${roomId}-${Date.now()}`,
+        username: roomName,
+        message: `currently in the room ${userList}`,
+        isSystem: true,
+        timestamp,
+      },
+    ];
     
     const existingMessages = state.messagesByRoom[roomId] || [];
     const newSystemMessageInjected = new Set(state.systemMessageInjected);
     newSystemMessageInjected.add(roomId);
     
     set({
-      messagesByRoom: { ...state.messagesByRoom, [roomId]: [systemMessage, ...existingMessages] },
+      messagesByRoom: { ...state.messagesByRoom, [roomId]: [...systemMessages, ...existingMessages] },
       systemMessageInjected: newSystemMessageInjected,
     });
   },
