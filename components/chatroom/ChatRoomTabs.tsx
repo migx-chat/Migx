@@ -9,7 +9,6 @@ import {
   ListRenderItemInfo,
 } from 'react-native';
 import { useRoomTabsStore, useRoomTabsData, OpenRoom } from '@/stores/useRoomTabsStore';
-import { useShallow } from 'zustand/react/shallow';
 import { ChatRoomInstance } from './ChatRoomInstance';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -24,7 +23,6 @@ export function ChatRoomTabs({
   renderVoteButton,
 }: ChatRoomTabsProps) {
   const { openRoomIds, openRoomsById, activeRoomId } = useRoomTabsData();
-  
   const setActiveRoom = useRoomTabsStore(state => state.setActiveRoom);
   
   const openRooms = useMemo(() => {
@@ -40,62 +38,58 @@ export function ChatRoomTabs({
   }, [activeRoomId, openRoomIds]);
   
   const flatListRef = useRef<FlatList>(null);
-  const isScrolling = useRef(false);
-  const lastActiveIndex = useRef(activeIndex);
-  const pendingActiveRoom = useRef<string | null>(null);
-  const setActiveRoomRef = useRef(setActiveRoom);
+  const isUserSwiping = useRef(false);
+  const programmaticScrollInProgress = useRef(false);
+  const lastKnownActiveIndex = useRef(activeIndex);
   
   useEffect(() => {
-    setActiveRoomRef.current = setActiveRoom;
-  }, [setActiveRoom]);
-  
-  const scrollToIndex = useCallback((index: number) => {
-    if (flatListRef.current && index >= 0 && index < openRooms.length) {
-      try {
-        flatListRef.current.scrollToIndex({
-          index,
-          animated: true,
-        });
-      } catch (e) {
-        console.log('scrollToIndex error:', e);
+    if (programmaticScrollInProgress.current) {
+      return;
+    }
+    
+    if (activeIndex !== lastKnownActiveIndex.current && !isUserSwiping.current) {
+      lastKnownActiveIndex.current = activeIndex;
+      
+      if (flatListRef.current && activeIndex >= 0 && activeIndex < openRooms.length) {
+        programmaticScrollInProgress.current = true;
+        try {
+          flatListRef.current.scrollToIndex({
+            index: activeIndex,
+            animated: true,
+          });
+        } catch (e) {
+          console.log('scrollToIndex error:', e);
+        }
+        setTimeout(() => {
+          programmaticScrollInProgress.current = false;
+        }, 300);
       }
     }
-  }, [openRooms.length]);
+  }, [activeIndex, openRooms.length]);
   
-  useEffect(() => {
-    if (activeIndex !== lastActiveIndex.current && !isScrolling.current) {
-      scrollToIndex(activeIndex);
-      lastActiveIndex.current = activeIndex;
-    }
-  }, [activeIndex, scrollToIndex]);
-  
-  useEffect(() => {
-    if (pendingActiveRoom.current !== null) {
-      const roomId = pendingActiveRoom.current;
-      pendingActiveRoom.current = null;
-      setActiveRoomRef.current(roomId);
-    }
-  });
+  const handleScrollBeginDrag = useCallback(() => {
+    isUserSwiping.current = true;
+  }, []);
   
   const handleMomentumScrollEnd = useCallback((
     event: NativeSyntheticEvent<NativeScrollEvent>
   ) => {
-    isScrolling.current = false;
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const newIndex = Math.round(contentOffsetX / SCREEN_WIDTH);
     
-    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < openRooms.length) {
-      lastActiveIndex.current = newIndex;
+    if (newIndex >= 0 && newIndex < openRooms.length) {
       const targetRoom = openRooms[newIndex];
-      if (targetRoom) {
-        pendingActiveRoom.current = targetRoom.roomId;
+      if (targetRoom && targetRoom.roomId !== activeRoomId) {
+        lastKnownActiveIndex.current = newIndex;
+        setActiveRoom(targetRoom.roomId);
+        console.log('📑 Swiped to room:', targetRoom.roomId, targetRoom.name);
       }
     }
-  }, [activeIndex, openRooms]);
-  
-  const handleScrollBeginDrag = useCallback(() => {
-    isScrolling.current = true;
-  }, []);
+    
+    setTimeout(() => {
+      isUserSwiping.current = false;
+    }, 100);
+  }, [openRooms, activeRoomId, setActiveRoom]);
   
   const renderRoomItem = useCallback(({ item }: ListRenderItemInfo<OpenRoom>) => {
     return (
@@ -116,8 +110,6 @@ export function ChatRoomTabs({
     offset: SCREEN_WIDTH * index,
     index,
   }), []);
-  
-  const flatListStyle = useMemo(() => [styles.flatList], []);
   
   const safeInitialScrollIndex = useMemo(() => {
     if (openRooms.length === 0) return 0;
@@ -140,15 +132,15 @@ export function ChatRoomTabs({
         showsHorizontalScrollIndicator={false}
         bounces={false}
         scrollEventThrottle={16}
-        onMomentumScrollEnd={handleMomentumScrollEnd}
         onScrollBeginDrag={handleScrollBeginDrag}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
         getItemLayout={getItemLayout}
         initialScrollIndex={safeInitialScrollIndex}
         removeClippedSubviews={false}
         windowSize={3}
         maxToRenderPerBatch={2}
-        initialNumToRender={1}
-        style={flatListStyle}
+        initialNumToRender={2}
+        style={styles.flatList}
         decelerationRate="fast"
         snapToInterval={SCREEN_WIDTH}
         snapToAlignment="start"
