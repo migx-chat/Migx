@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
-import { useRoomMessages } from '@/stores/useRoomTabsStore';
+import { useRoomMessagesData } from '@/stores/useRoomTabsStore';
 import { useRoomSocket } from '@/hooks/useRoomSocket';
 import { ChatRoomContent } from './ChatRoomContent';
 
@@ -21,7 +21,8 @@ export const ChatRoomInstance = React.memo(function ChatRoomInstance({
   isActive,
   renderVoteButton,
 }: ChatRoomInstanceProps) {
-  const messages = useRoomMessages(roomId);
+  const messagesData = useRoomMessagesData(roomId);
+  const messages = useMemo(() => messagesData || [], [messagesData]);
   const [roomUsers, setRoomUsers] = useState<string[]>([]);
   const [roomInfo, setRoomInfo] = useState<{
     name: string;

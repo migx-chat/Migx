@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { Socket } from 'socket.io-client';
 
 export interface Message {
@@ -222,23 +223,50 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
   },
 }));
 
-export const useOpenRooms = () => useRoomTabsStore(state => {
-  return state.openRoomIds.map(id => state.openRoomsById[id]).filter(Boolean);
-});
+export const useRoomTabsData = () => useRoomTabsStore(
+  useShallow((state) => ({
+    openRoomIds: state.openRoomIds,
+    openRoomsById: state.openRoomsById,
+    activeRoomId: state.activeRoomId,
+  }))
+);
+
+export const useRoomTabsActions = () => useRoomTabsStore(
+  useShallow((state) => ({
+    setActiveRoom: state.setActiveRoom,
+    openRoom: state.openRoom,
+    closeRoom: state.closeRoom,
+  }))
+);
 
 export const useActiveRoomId = () => useRoomTabsStore(state => state.activeRoomId);
 
-export const useActiveRoom = () => useRoomTabsStore(state => {
-  if (!state.activeRoomId) return null;
-  return state.openRoomsById[state.activeRoomId] || null;
-});
+export const useActiveRoom = () => {
+  const { activeRoomId, openRoomsById } = useRoomTabsStore(
+    useShallow((state) => ({
+      activeRoomId: state.activeRoomId,
+      openRoomsById: state.openRoomsById,
+    }))
+  );
+  
+  if (!activeRoomId) return null;
+  return openRoomsById[activeRoomId] || null;
+};
 
-export const useRoomMessages = (roomId: string) => useRoomTabsStore(state => {
-  return state.messagesByRoom[roomId] || [];
-});
+export const useRoomMessagesData = (roomId: string) => {
+  const messagesByRoom = useRoomTabsStore(state => state.messagesByRoom);
+  return messagesByRoom[roomId];
+};
 
-export const useActiveIndex = () => useRoomTabsStore(state => {
-  if (!state.activeRoomId || state.openRoomIds.length === 0) return 0;
-  const index = state.openRoomIds.indexOf(state.activeRoomId);
+export const useActiveIndex = () => {
+  const { activeRoomId, openRoomIds } = useRoomTabsStore(
+    useShallow((state) => ({
+      activeRoomId: state.activeRoomId,
+      openRoomIds: state.openRoomIds,
+    }))
+  );
+  
+  if (!activeRoomId || openRoomIds.length === 0) return 0;
+  const index = openRoomIds.indexOf(activeRoomId);
   return Math.max(0, index);
-});
+};

@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useMemo } from 'react';
+import React, { useRef, useCallback, useMemo, useEffect } from 'react';
 import { 
   View, 
   StyleSheet, 
@@ -8,7 +8,8 @@ import {
   NativeScrollEvent,
   ListRenderItemInfo,
 } from 'react-native';
-import { useRoomTabsStore, useOpenRooms, useActiveIndex, OpenRoom } from '@/stores/useRoomTabsStore';
+import { useRoomTabsStore, useRoomTabsData, OpenRoom } from '@/stores/useRoomTabsStore';
+import { useShallow } from 'zustand/react/shallow';
 import { ChatRoomInstance } from './ChatRoomInstance';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -22,14 +23,31 @@ export function ChatRoomTabs({
   bottomPadding = 70,
   renderVoteButton,
 }: ChatRoomTabsProps) {
-  const openRooms = useOpenRooms();
-  const activeIndex = useActiveIndex();
+  const { openRoomIds, openRoomsById, activeRoomId } = useRoomTabsData();
+  
   const setActiveRoom = useRoomTabsStore(state => state.setActiveRoom);
-  const activeRoomId = useRoomTabsStore(state => state.activeRoomId);
+  
+  const openRooms = useMemo(() => {
+    return openRoomIds
+      .map(id => openRoomsById[id])
+      .filter((room): room is OpenRoom => Boolean(room));
+  }, [openRoomIds, openRoomsById]);
+  
+  const activeIndex = useMemo(() => {
+    if (!activeRoomId || openRoomIds.length === 0) return 0;
+    const index = openRoomIds.indexOf(activeRoomId);
+    return Math.max(0, index);
+  }, [activeRoomId, openRoomIds]);
   
   const flatListRef = useRef<FlatList>(null);
   const isScrolling = useRef(false);
   const lastActiveIndex = useRef(activeIndex);
+  const pendingActiveRoom = useRef<string | null>(null);
+  const setActiveRoomRef = useRef(setActiveRoom);
+  
+  useEffect(() => {
+    setActiveRoomRef.current = setActiveRoom;
+  }, [setActiveRoom]);
   
   const scrollToIndex = useCallback((index: number) => {
     if (flatListRef.current && index >= 0 && index < openRooms.length) {
@@ -44,12 +62,20 @@ export function ChatRoomTabs({
     }
   }, [openRooms.length]);
   
-  React.useEffect(() => {
+  useEffect(() => {
     if (activeIndex !== lastActiveIndex.current && !isScrolling.current) {
       scrollToIndex(activeIndex);
       lastActiveIndex.current = activeIndex;
     }
   }, [activeIndex, scrollToIndex]);
+  
+  useEffect(() => {
+    if (pendingActiveRoom.current !== null) {
+      const roomId = pendingActiveRoom.current;
+      pendingActiveRoom.current = null;
+      setActiveRoomRef.current(roomId);
+    }
+  });
   
   const handleMomentumScrollEnd = useCallback((
     event: NativeSyntheticEvent<NativeScrollEvent>
@@ -62,10 +88,10 @@ export function ChatRoomTabs({
       lastActiveIndex.current = newIndex;
       const targetRoom = openRooms[newIndex];
       if (targetRoom) {
-        setActiveRoom(targetRoom.roomId);
+        pendingActiveRoom.current = targetRoom.roomId;
       }
     }
-  }, [activeIndex, openRooms, setActiveRoom]);
+  }, [activeIndex, openRooms]);
   
   const handleScrollBeginDrag = useCallback(() => {
     isScrolling.current = true;
@@ -93,6 +119,11 @@ export function ChatRoomTabs({
   
   const flatListStyle = useMemo(() => [styles.flatList], []);
   
+  const safeInitialScrollIndex = useMemo(() => {
+    if (openRooms.length === 0) return 0;
+    return Math.min(Math.max(0, activeIndex), openRooms.length - 1);
+  }, [openRooms.length, activeIndex]);
+  
   if (openRooms.length === 0) {
     return null;
   }
@@ -112,7 +143,7 @@ export function ChatRoomTabs({
         onMomentumScrollEnd={handleMomentumScrollEnd}
         onScrollBeginDrag={handleScrollBeginDrag}
         getItemLayout={getItemLayout}
-        initialScrollIndex={openRooms.length > 0 ? Math.min(Math.max(0, activeIndex), openRooms.length - 1) : 0}
+        initialScrollIndex={safeInitialScrollIndex}
         removeClippedSubviews={false}
         windowSize={3}
         maxToRenderPerBatch={2}
