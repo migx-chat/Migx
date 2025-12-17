@@ -106,6 +106,58 @@ const getRandomRooms = async (limit = 20) => {
   }
 };
 
+const getOfficialRooms = async (limit = 20) => {
+  try {
+    const result = await query(
+      `SELECT r.*, u.username as owner_name
+       FROM rooms r
+       LEFT JOIN users u ON r.owner_id = u.id
+       WHERE r.category = 'official'
+       ORDER BY r.created_at DESC
+       LIMIT $1`,
+      [limit]
+    );
+    
+    const roomsWithCount = await Promise.all(
+      result.rows.map(async (room) => {
+        const userCount = await presence.getRoomUserCount(room.id);
+        return { ...room, userCount };
+      })
+    );
+    
+    return roomsWithCount;
+  } catch (error) {
+    console.error('Error getting official rooms:', error);
+    return [];
+  }
+};
+
+const getGameRooms = async (limit = 20) => {
+  try {
+    const result = await query(
+      `SELECT r.*, u.username as owner_name
+       FROM rooms r
+       LEFT JOIN users u ON r.owner_id = u.id
+       WHERE r.category = 'game'
+       ORDER BY r.created_at DESC
+       LIMIT $1`,
+      [limit]
+    );
+    
+    const roomsWithCount = await Promise.all(
+      result.rows.map(async (room) => {
+        const userCount = await presence.getRoomUserCount(room.id);
+        return { ...room, userCount };
+      })
+    );
+    
+    return roomsWithCount;
+  } catch (error) {
+    console.error('Error getting game rooms:', error);
+    return [];
+  }
+};
+
 const updateRoom = async (roomId, updates) => {
   try {
     const { name, description, maxUsers, isPrivate, password } = updates;
@@ -295,6 +347,8 @@ module.exports = {
   getRoomByName,
   getAllRooms,
   getRandomRooms,
+  getOfficialRooms,
+  getGameRooms,
   updateRoom,
   deleteRoom,
   isRoomAdmin,
