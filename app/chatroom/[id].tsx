@@ -372,7 +372,7 @@ export default function ChatRoomScreen() {
       <ChatRoomInput 
         ref={inputRef}
         onSend={handleSendMessage} 
-        onMenuItemPress={handleMenuItemPress}
+        onMenuItemPress={handleMenuAction}
         onMenuPress={() => setMenuVisible(true)}
         onOpenParticipants={handleOpenParticipants}
         onEmojiPress={() => setEmojiVisible(!emojiVisible)}
