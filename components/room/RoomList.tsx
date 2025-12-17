@@ -43,6 +43,8 @@ export function RoomList() {
   const [allRooms, setAllRooms] = useState<Room[]>([]);
   const [recentRooms, setRecentRooms] = useState<Room[]>([]);
   const [favoriteRooms, setFavoriteRooms] = useState<Room[]>([]);
+  const [officialRooms, setOfficialRooms] = useState<Room[]>([]);
+  const [gameRooms, setGameRooms] = useState<Room[]>([]);
   const [username, setUsername] = useState<string | null>(null);
 
   const formatRoomForDisplay = (room: Room) => ({
@@ -100,6 +102,42 @@ export function RoomList() {
     }
   };
 
+  const fetchOfficialRooms = async () => {
+    try {
+      const response = await fetch(API_ENDPOINTS.ROOM.OFFICIAL);
+      const data = await response.json();
+      
+      if (data.success && data.rooms) {
+        setOfficialRooms(data.rooms.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          userCount: r.userCount || 0,
+          maxUsers: r.maxUsers || 50,
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to fetch official rooms:', error);
+    }
+  };
+
+  const fetchGameRooms = async () => {
+    try {
+      const response = await fetch(API_ENDPOINTS.ROOM.GAME);
+      const data = await response.json();
+      
+      if (data.success && data.rooms) {
+        setGameRooms(data.rooms.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          userCount: r.userCount || 0,
+          maxUsers: r.maxUsers || 50,
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to fetch game rooms:', error);
+    }
+  };
+
   const loadData = async () => {
     try {
       const userDataStr = await AsyncStorage.getItem('user_data');
@@ -109,10 +147,16 @@ export function RoomList() {
         await Promise.all([
           fetchRooms(), 
           fetchRecentRooms(userData.username),
-          fetchFavoriteRooms(userData.username)
+          fetchFavoriteRooms(userData.username),
+          fetchOfficialRooms(),
+          fetchGameRooms()
         ]);
       } else {
-        await fetchRooms();
+        await Promise.all([
+          fetchRooms(),
+          fetchOfficialRooms(),
+          fetchGameRooms()
+        ]);
       }
     } catch (error) {
       console.error('Failed to load data:', error);
@@ -164,7 +208,9 @@ export function RoomList() {
   const handleRoomPress = (roomId: string, roomName?: string) => {
     const name = roomName || allRooms.find(r => r.id === roomId)?.name || 
                  recentRooms.find(r => r.id === roomId)?.name ||
-                 favoriteRooms.find(r => r.id === roomId)?.name || 'Room';
+                 favoriteRooms.find(r => r.id === roomId)?.name ||
+                 officialRooms.find(r => r.id === roomId)?.name ||
+                 gameRooms.find(r => r.id === roomId)?.name || 'Room';
     router.push(`/chatroom/${roomId}?name=${encodeURIComponent(name)}`);
   };
 
@@ -207,11 +253,29 @@ export function RoomList() {
           />
         )}
         
+        {officialRooms.length > 0 && (
+          <RoomCategory
+            title="Official Rooms"
+            rooms={officialRooms.map(formatRoomForDisplay)}
+            backgroundColor="#4A90D9"
+            onRoomPress={handleRoomPress}
+          />
+        )}
+        
         {recentRooms.length > 0 && (
           <RoomCategory
             title="Recent Rooms"
             rooms={recentRooms.map(formatRoomForDisplay)}
             backgroundColor={theme.card}
+            onRoomPress={handleRoomPress}
+          />
+        )}
+        
+        {gameRooms.length > 0 && (
+          <RoomCategory
+            title="Game Rooms"
+            rooms={gameRooms.map(formatRoomForDisplay)}
+            backgroundColor="#9B59B6"
             onRoomPress={handleRoomPress}
           />
         )}
