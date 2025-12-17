@@ -85,6 +85,8 @@ export const API_ENDPOINTS = {
     FAVORITES: (username: string) => `${API_BASE_URL}/api/rooms/favorites/${username}`,
     ADD_FAVORITE: `${API_BASE_URL}/api/rooms/favorites/add`,
     REMOVE_FAVORITE: `${API_BASE_URL}/api/rooms/favorites/remove`,
+    OFFICIAL: `${API_BASE_URL}/api/rooms/official`,
+    GAME: `${API_BASE_URL}/api/rooms/game`,
   },
   CREDIT: {
     BALANCE: `${API_BASE_URL}/api/credit/balance`,

@@ -250,6 +250,66 @@ router.get('/more', async (req, res) => {
   }
 });
 
+router.get('/official', async (req, res) => {
+  try {
+    const { limit = 20 } = req.query;
+    const rooms = await roomService.getOfficialRooms(parseInt(limit));
+    
+    const roomsWithDetails = rooms.map((room) => ({
+      id: room.id,
+      roomId: room.room_code || room.id,
+      roomCode: room.room_code,
+      name: room.name,
+      description: room.description,
+      maxUsers: room.max_users,
+      userCount: room.userCount,
+      ownerId: room.owner_id,
+      ownerName: room.owner_name,
+      category: room.category
+    }));
+    
+    res.json({
+      success: true,
+      rooms: roomsWithDetails,
+      count: roomsWithDetails.length
+    });
+    
+  } catch (error) {
+    console.error('Get official rooms error:', error);
+    res.status(500).json({ error: 'Failed to get official rooms' });
+  }
+});
+
+router.get('/game', async (req, res) => {
+  try {
+    const { limit = 20 } = req.query;
+    const rooms = await roomService.getGameRooms(parseInt(limit));
+    
+    const roomsWithDetails = rooms.map((room) => ({
+      id: room.id,
+      roomId: room.room_code || room.id,
+      roomCode: room.room_code,
+      name: room.name,
+      description: room.description,
+      maxUsers: room.max_users,
+      userCount: room.userCount,
+      ownerId: room.owner_id,
+      ownerName: room.owner_name,
+      category: room.category
+    }));
+    
+    res.json({
+      success: true,
+      rooms: roomsWithDetails,
+      count: roomsWithDetails.length
+    });
+    
+  } catch (error) {
+    console.error('Get game rooms error:', error);
+    res.status(500).json({ error: 'Failed to get game rooms' });
+  }
+});
+
 router.post('/create', async (req, res) => {
   try {
     const { name, ownerId, creatorName, description } = req.body;
