@@ -225,32 +225,17 @@ module.exports = (io, socket) => {
         }
       }
 
-      const savedMessage = await messageService.saveMessage(roomId, userId, username, message, 'chat');
-
       const messageData = {
-        id: savedMessage?.id || generateMessageId(),
+        id: generateMessageId(),
         roomId,
         userId,
         username,
         message,
         messageType: 'chat',
-        timestamp: savedMessage?.created_at || new Date().toISOString()
+        timestamp: new Date().toISOString()
       };
 
       io.to(`room:${roomId}`).emit('chat:message', messageData);
-
-      // Save as last message in Redis for chat list
-      const redis = require('../redis').getRedisClient();
-      
-      try {
-        await redis.hSet(`room:lastmsg:${roomId}`, {
-          message,
-          username,
-          timestamp: Date.now().toString()
-        });
-      } catch (err) {
-        console.error('Error saving last message to Redis:', err.message);
-      }
 
       // Notify all room members of chatlist update
       try {

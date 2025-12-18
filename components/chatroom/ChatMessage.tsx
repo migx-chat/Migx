@@ -116,10 +116,14 @@ const styles = StyleSheet.create({
   messageContainer: {
     paddingVertical: 4,
     paddingHorizontal: 12,
+    marginRight: 50,
+    flexDirection: 'row',
   },
   messageWrapper: {
     fontSize: 13,
     lineHeight: 20,
+    flex: 1,
+    flexWrap: 'wrap',
   },
   username: {
     fontSize: 13,

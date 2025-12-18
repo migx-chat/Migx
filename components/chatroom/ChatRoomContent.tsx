@@ -24,11 +24,9 @@ export function ChatRoomContent({ messages, bottomPadding = 70 }: ChatRoomConten
 
   useEffect(() => {
     if (messages.length > 0 && flatListRef.current) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      flatListRef.current?.scrollToEnd({ animated: true });
     }
-  }, [messages]);
+  }, [messages.length]);
 
   const allMessages = useMemo(() => {
     return messages;
@@ -56,6 +54,7 @@ export function ChatRoomContent({ messages, bottomPadding = 70 }: ChatRoomConten
       onContentSizeChange={() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }}
+      removeClippedSubviews={true}
     />
   );
 }

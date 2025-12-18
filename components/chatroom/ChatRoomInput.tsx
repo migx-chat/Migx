@@ -201,7 +201,7 @@ export const ChatRoomInput = forwardRef<ChatRoomInputRef, ChatRoomInputProps>(({
           <MenuIcon color={theme.secondary} />
         </TouchableOpacity>
 
-        <View style={[styles.inputContainer, { backgroundColor: theme.card }]}>
+        <View style={[styles.inputContainer, { backgroundColor: theme.card, maxHeight: 120 }]}>
           <TextInput
             ref={textInputRef}
             style={[styles.input, { color: theme.text, height: inputHeight }]}
@@ -212,6 +212,7 @@ export const ChatRoomInput = forwardRef<ChatRoomInputRef, ChatRoomInputProps>(({
             multiline
             textAlignVertical="top"
             onContentSizeChange={handleContentSizeChange}
+            scrollEnabled={inputHeight > 100}
           />
         </View>
 
