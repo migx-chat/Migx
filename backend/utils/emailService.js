@@ -42,7 +42,7 @@ async function sendOtpEmail(email, otp, username) {
       subject: 'Your MIGX Verification Code',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
-          <div style="background: linear-gradient(135deg, #8FE9FF 0%, #00936A 100%); padding: 30px; border-radius: 10px; text-align: center;">
+          <div style="background: linear-gradient(135deg, #082919 0%, #00936A 100%); padding: 30px; border-radius: 10px; text-align: center;">
             <h1 style="color: white; margin: 0;">MIGX Community</h1>
           </div>
           <div style="background-color: white; padding: 30px; border-radius: 10px; margin-top: 20px;">
@@ -90,7 +90,7 @@ async function sendActivationEmail(email, username, token) {
       subject: 'Activate Your MIGX Account',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
-          <div style="background: linear-gradient(135deg, #8FE9FF 0%, #00936A 100%); padding: 30px; border-radius: 10px; text-align: center;">
+          <div style="background: linear-gradient(135deg, #082919 0%, #00936A 100%); padding: 30px; border-radius: 10px; text-align: center;">
             <h1 style="color: white; margin: 0;">Welcome to MIGX!</h1>
           </div>
           <div style="background-color: white; padding: 30px; border-radius: 10px; margin-top: 20px;">
@@ -135,7 +135,7 @@ async function sendPasswordChangeOtp(email, username, otp) {
       subject: 'MIGX Email Change Verification',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
-          <div style="background: linear-gradient(135deg, #8FE9FF 0%, #00936A 100%); padding: 30px; border-radius: 10px; text-align: center;">
+          <div style="background: linear-gradient(135deg, #082919 0%, #00936A 100%); padding: 30px; border-radius: 10px; text-align: center;">
             <h1 style="color: white; margin: 0;">Email Change Request</h1>
           </div>
           <div style="background-color: white; padding: 30px; border-radius: 10px; margin-top: 20px;">

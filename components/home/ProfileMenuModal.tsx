@@ -107,7 +107,7 @@ export function ProfileMenuModal({ visible, onClose, userData }: ProfileMenuModa
     >
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <LinearGradient
-          colors={['#7FB3C2', '#A8C9D4']}
+          colors={['#082919', '#082919']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}

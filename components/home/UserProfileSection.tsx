@@ -117,7 +117,7 @@ export function UserProfileSection({
   const { status: presenceStatusFromHook, setStatus: setPresenceStatus } = usePresence(username || '');
 
   return (
-    <View style={[styles.container, { backgroundColor: '#7FB3C2' }]}>
+    <View style={[styles.container, { backgroundColor: '#082919' }]}>
       <View style={styles.profileRow}>
         {/* Avatar with status indicator */}
         <TouchableOpacity 
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     bottom: -2,
     right: -2,
     borderWidth: 2,
-    borderColor: '#7FB3C2',
+    borderColor: '#082919',
   },
   userInfo: {
     flex: 1,

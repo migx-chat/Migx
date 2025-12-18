@@ -18,8 +18,8 @@ export const LightTheme: ThemeType = {
   secondary: "#64748B",
   card: "#F8F9FB",
   border: "#E5E7EB",
-  gradientStart: "#7FB3C2",
-  gradientEnd: "#A8C9D4",
+  gradientStart: "#082919",
+  gradientEnd: "#082919",
 };
 
 export const DarkTheme: ThemeType = {
@@ -30,8 +30,8 @@ export const DarkTheme: ThemeType = {
   secondary: "#94A3B8",
   card: "#1A1A1A",
   border: "#2C2C2C",
-  gradientStart: "#7FB3C2",
-  gradientEnd: "#A8C9D4",
+  gradientStart: "#082919",
+  gradientEnd: "#082919",
 };
 
 export type ThemeMode = "light" | "dark" | "system";

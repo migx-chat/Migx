@@ -362,7 +362,7 @@ export default function FeedScreen() {
 
       <View style={styles.postActions}>
         <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
-          <LikeIcon color={item.is_liked ? '#7FB3C2' : theme.secondary} size={20} filled={item.is_liked} />
+          <LikeIcon color={item.is_liked ? '#082919' : theme.secondary} size={20} filled={item.is_liked} />
           <Text style={[styles.actionText, { color: theme.secondary }]}>{item.likes_count}</Text>
         </TouchableOpacity>
 
@@ -383,7 +383,7 @@ export default function FeedScreen() {
     <SwipeableScreen>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <LinearGradient
-        colors={['#7FB3C2', '#A8C9D4']}
+        colors={['#082919', '#082919']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { borderBottomColor: theme.border }]}
@@ -417,7 +417,7 @@ export default function FeedScreen() {
           onPress={() => setShowCreateModal(true)}
         >
           <LinearGradient
-            colors={['#7FB3C2', '#A8C9D4']}
+            colors={['#082919', '#082919']}
             style={styles.fabGradient}
           >
             <PlusCircleIcon color="#FFF" size={32} />
@@ -468,7 +468,7 @@ export default function FeedScreen() {
 
                   <TouchableOpacity onPress={handleCreatePost} disabled={posting}>
                     <LinearGradient
-                      colors={['#7FB3C2', '#A8C9D4']}
+                      colors={['#082919', '#082919']}
                       style={styles.sendButton}
                     >
                       {posting ? (
@@ -530,7 +530,7 @@ export default function FeedScreen() {
                   />
                   <TouchableOpacity onPress={handleSendComment}>
                     <LinearGradient
-                      colors={['#7FB3C2', '#A8C9D4']}
+                      colors={['#082919', '#082919']}
                       style={styles.commentSendButton}
                     >
                       <SendIcon color="#FFF" size={18} />

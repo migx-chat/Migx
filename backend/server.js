@@ -80,7 +80,7 @@ app.get('/', (req, res) => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #8FE9FF 0%, #00936A 100%);
+          background: linear-gradient(135deg, #082919 0%, #00936A 100%);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           color: #fff;
           text-align: center;
@@ -184,7 +184,7 @@ app.get('/status', (req, res) => {
           align-items: center;
           min-height: 100vh;
           margin: 0;
-          background: linear-gradient(135deg, #8FE9FF 0%, #00936A 100%);
+          background: linear-gradient(135deg, #082919 0%, #00936A 100%);
         }
         .status-card {
           background: white;

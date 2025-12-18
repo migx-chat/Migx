@@ -30,7 +30,7 @@ const PlusIcon = ({ size = 16, color = '#2C5F7F' }: { size?: number; color?: str
   </Svg>
 );
 
-const ActionIcon = ({ size = 16, color = '#7FB3C2' }: { size?: number; color?: string }) => (
+const ActionIcon = ({ size = 16, color = '#082919' }: { size?: number; color?: string }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M12 5v14M5 12h14" stroke={color} strokeWidth="2" strokeLinecap="round" />
   </Svg>

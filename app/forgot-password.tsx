@@ -125,7 +125,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <LinearGradient
-      colors={['#7FB3C2', '#A8C9D4', '#7FB3C2']}
+      colors={['#082919', '#082919', '#082919']}
       style={styles.gradient}
     >
       <KeyboardAvoidingView
