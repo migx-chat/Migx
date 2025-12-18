@@ -5,11 +5,16 @@ import { useThemeCustom } from '@/theme/provider';
 import Svg, { Circle } from 'react-native-svg';
 import API_BASE_URL from '@/utils/api';
 
+interface Participant {
+  username: string;
+  role?: string;
+}
+
 interface MenuParticipantsModalProps {
   visible: boolean;
   onClose: () => void;
   roomId?: string;
-  onUserMenuPress?: (username: string) => void;
+  onUserMenuPress?: (username: string, action: string) => void;
 }
 
 const ThreeDotsIcon = ({ color = '#000', size = 24 }: { color?: string; size?: number }) => (
@@ -20,10 +25,35 @@ const ThreeDotsIcon = ({ color = '#000', size = 24 }: { color?: string; size?: n
   </Svg>
 );
 
+const getRoleColor = (role?: string): string => {
+  switch (role?.toLowerCase()) {
+    case 'admin':
+      return '#FF6B6B';
+    case 'moderator':
+      return '#FFD93D';
+    case 'vip':
+      return '#A78BFA';
+    case 'merchant':
+      return '#34D399';
+    default:
+      return '#4BA3FF';
+  }
+};
+
+const menuOptions = [
+  { label: 'View Profile', value: 'view-profile' },
+  { label: 'Follow User', value: 'follow' },
+  { label: 'Private Chat', value: 'private-chat' },
+  { label: 'Kick User', value: 'kick' },
+  { label: 'Block User', value: 'block' },
+];
+
 export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPress }: MenuParticipantsModalProps) {
   const { theme } = useThemeCustom();
-  const [participants, setParticipants] = useState<string[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
     if (visible && roomId) {
@@ -52,72 +82,124 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
     }
   };
 
+  const handleMenuPress = (username: string) => {
+    setSelectedUser(username);
+    setShowUserMenu(true);
+  };
+
+  const handleMenuOption = (action: string) => {
+    if (selectedUser && onUserMenuPress) {
+      onUserMenuPress(selectedUser, action);
+    }
+    setShowUserMenu(false);
+    setSelectedUser(null);
+  };
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
+    <>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={onClose}
       >
-        <View style={styles.modalContainer}>
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-            style={[styles.modal, { backgroundColor: theme.card }]}
-          >
-            <View style={[styles.header, { borderBottomColor: theme.border }]}>
-              <Text style={[styles.title, { color: theme.text }]}>
-                Participants ({participants.length})
-              </Text>
-            </View>
-
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-              {loading ? (
-                <View style={styles.emptyContainer}>
-                  <ActivityIndicator size="large" color={theme.primary} />
-                </View>
-              ) : participants.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                  <Text style={[styles.emptyText, { color: theme.secondary }]}>
-                    No users in the room
-                  </Text>
-                </View>
-              ) : (
-                participants.map((username, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.userItem,
-                      index < participants.length - 1 && { borderBottomColor: theme.border, borderBottomWidth: 1 }
-                    ]}
-                  >
-                    <Text style={[styles.username, { color: theme.text }]}>{username}</Text>
-                    <TouchableOpacity
-                      style={[styles.menuButton, { backgroundColor: '#FFFFFF' }]}
-                      onPress={() => onUserMenuPress && onUserMenuPress(username)}
-                    >
-                      <ThreeDotsIcon color={theme.text} size={20} />
-                    </TouchableOpacity>
-                  </View>
-                ))
-              )}
-            </ScrollView>
-
+        <TouchableOpacity
+          style={styles.overlay}
+          activeOpacity={1}
+          onPress={onClose}
+        >
+          <View style={styles.modalContainer}>
             <TouchableOpacity
-              style={[styles.cancelButton, { backgroundColor: theme.background }]}
-              onPress={onClose}
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              style={[styles.modal, { backgroundColor: '#FFFFFF' }]}
             >
-              <Text style={[styles.cancelText, { color: theme.text }]}>Close</Text>
+              {/* Blue Header */}
+              <View style={styles.header}>
+                <Text style={styles.title}>
+                  Participants ({participants.length})
+                </Text>
+              </View>
+
+              {/* Participants List */}
+              <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                {loading ? (
+                  <View style={styles.emptyContainer}>
+                    <ActivityIndicator size="large" color="#4BA3FF" />
+                  </View>
+                ) : participants.length === 0 ? (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>
+                      No users in the room
+                    </Text>
+                  </View>
+                ) : (
+                  participants.map((participant, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.userItem,
+                        index < participants.length - 1 && { borderBottomColor: '#E0E0E0', borderBottomWidth: 1 }
+                      ]}
+                    >
+                      <Text 
+                        style={[
+                          styles.username, 
+                          { color: getRoleColor(participant.role) }
+                        ]}
+                      >
+                        {participant.username}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.menuButton}
+                        onPress={() => handleMenuPress(participant.username)}
+                      >
+                        <ThreeDotsIcon color="#999" size={20} />
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
             </TouchableOpacity>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </Modal>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* User Menu Modal */}
+      <Modal
+        visible={showUserMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowUserMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.menuOverlay}
+          activeOpacity={1}
+          onPress={() => setShowUserMenu(false)}
+        >
+          <View style={styles.menuContainer}>
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              style={styles.menuContent}
+            >
+              {menuOptions.map((option, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.menuItem,
+                    index < menuOptions.length - 1 && { borderBottomColor: '#F0F0F0', borderBottomWidth: 1 }
+                  ]}
+                  onPress={() => handleMenuOption(option.value)}
+                >
+                  <Text style={styles.menuItemText}>{option.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
   );
 }
 
@@ -129,43 +211,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    width: '85%',
-    maxHeight: '70%',
+    width: '90%',
+    maxHeight: '75%',
   },
   modal: {
-    borderRadius: 10,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    paddingVertical: 14,
+    backgroundColor: '#4BA3FF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   scrollView: {
     maxHeight: 400,
+    backgroundColor: '#FFFFFF',
   },
   userItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
   },
   username: {
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '500',
     flex: 1,
   },
   menuButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 12,
   },
   emptyContainer: {
     paddingVertical: 40,
@@ -173,14 +261,35 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
+    color: '#999',
   },
-  cancelButton: {
-    paddingVertical: 14,
+  // User Menu Styles
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 1,
   },
-  cancelText: {
-    fontSize: 16,
+  menuContainer: {
+    width: '70%',
+  },
+  menuContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+  },
+  menuItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  menuItemText: {
+    fontSize: 14,
+    color: '#333',
     fontWeight: '500',
   },
 });

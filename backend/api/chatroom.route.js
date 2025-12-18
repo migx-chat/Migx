@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const roomService = require('../services/roomService');
+const userService = require('../services/userService');
 const { getRoomUserCount } = require('../utils/redisPresence');
 const { getRoomParticipants } = require('../utils/redisUtils');
 
@@ -85,13 +86,31 @@ router.get('/:roomId/participants', async (req, res) => {
       return res.status(400).json({ error: 'Room ID is required' });
     }
     
-    const participants = await getRoomParticipants(roomId);
+    const participantUsernames = await getRoomParticipants(roomId);
     const userCount = await getRoomUserCount(roomId);
+    
+    // Fetch user roles for each participant using userService
+    const participantsWithRoles = await Promise.all(
+      participantUsernames.map(async (username) => {
+        try {
+          const user = await userService.getUserByUsername(username);
+          if (user) {
+            return {
+              username,
+              role: user.role || 'user'
+            };
+          }
+        } catch (e) {
+          console.warn(`Could not fetch role for user ${username}`);
+        }
+        return { username, role: 'user' };
+      })
+    );
     
     res.json({
       success: true,
       roomId,
-      participants,
+      participants: participantsWithRoles,
       count: userCount
     });
     
