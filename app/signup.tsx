@@ -457,7 +457,7 @@ export default function SignupScreen() {
                 disabled={loading}
               >
                 <Text style={styles.signupButtonText}>
-                  {loading ? 'Creating Account...' : 'Send OTP & Create Account'}
+                  {loading ? 'Creating Account...' : 'Create Account'}
                 </Text>
               </TouchableOpacity>
 
