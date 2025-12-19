@@ -14,6 +14,7 @@ export default function EditProfileScreen() {
   const { theme } = useThemeCustom();
   const [user, setUser] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
 
   useEffect(() => {
     loadUserData();
@@ -62,8 +63,35 @@ export default function EditProfileScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      console.log('Background photo selected:', result.assets[0].uri);
-      // TODO: Upload background photo
+      await uploadBackground(result.assets[0].uri);
+    }
+  };
+
+  const uploadBackground = async (uri: string) => {
+    try {
+      console.log('📤 Setting background image...');
+      
+      // Store the background image URI locally
+      setBackgroundImage(uri);
+      
+      // Update user data with new background
+      const userDataStr = await AsyncStorage.getItem('user_data');
+      if (userDataStr) {
+        const userData = JSON.parse(userDataStr);
+        const updatedUser = {
+          ...userData,
+          background: uri,
+        };
+        
+        setUser(updatedUser);
+        await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser));
+      }
+      
+      console.log('✅ Background image set successfully!');
+      Alert.alert('Success', 'Background updated successfully');
+    } catch (error) {
+      console.error('❌ Background update error:', error);
+      Alert.alert('Error', 'Failed to update background. Please try again.');
     }
   };
 
@@ -233,6 +261,7 @@ export default function EditProfileScreen() {
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <EditProfileHeader
+            backgroundImage={backgroundImage || user?.background}
             avatarImage={user?.avatar}
             username={user?.username || "migX"}
             level={user?.level || 1}
