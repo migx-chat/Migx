@@ -76,7 +76,7 @@ export function EditProfileHeader({
       : null;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Background Image Section */}
       <View style={styles.backgroundContainer}>
         {backgroundImage ? (
@@ -249,6 +249,7 @@ const styles = StyleSheet.create({
   },
   userInfoContainer: {
     marginTop: 12,
+    paddingBottom: 8,
   },
   usernameRow: {
     flexDirection: 'row',
