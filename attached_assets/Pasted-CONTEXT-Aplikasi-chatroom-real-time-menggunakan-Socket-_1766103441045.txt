@@ -1,0 +1,143 @@
+CONTEXT
+Aplikasi chatroom real-time menggunakan Socket.IO dan Redis. Saat ini sistem kick sudah ada, tetapi pesan, rule, dan status user belum konsisten dan belum user-friendly.
+
+TUJUAN
+Merapikan sistem:
+
+1. Kick oleh admin
+2. Vote kick oleh user
+3. Pesan yang berbeda untuk user yang dikick dan user lain
+4. Cooldown admin setelah kick
+5. Auto-ban jika admin abuse kick
+6. Unban & clear kick command
+7. Vote kick dengan timer 60 detik
+
+---
+
+BAGIAN 1 – PESAN KICK (WAJIB DIPERBAIKI)
+
+A. Pesan untuk USER YANG DI-KICK (private message):
+Format:
+"Indonesia: You have been kicked by administrator [adminName]"
+
+• Hanya terlihat oleh user yang dikick
+• Dikirim tepat sebelum socket disconnect
+
+B. Pesan untuk USER LAIN DI ROOM (system message):
+Format:
+"Indonesia: [username] has been kicked by administrator [adminName]"
+
+• Broadcast ke room
+• isSystem = true
+
+---
+
+BAGIAN 2 – KICK OLEH ADMIN
+
+Rule:
+• Admin bisa kick user langsung (tanpa vote)
+• Setelah kick, admin TIDAK BOLEH masuk room yang sama selama 3 menit
+
+Redis key contoh:
+admin:kick:cooldown:{adminId}:{roomId} = TTL 180s
+
+Jika admin mencoba masuk sebelum cooldown:
+→ Tolak join
+→ Kirim pesan:
+"You must wait 3 minutes before rejoining this room"
+
+---
+
+BAGIAN 3 – AUTO BAN ADMIN (ANTI ABUSE)
+
+Rule:
+• Jika admin melakukan kick >= 3 kali (total, lintas room)
+• Maka admin otomatis:
+
+- BANNED dari SEMUA ROOM
+
+Redis:
+admin:kick:count:{adminId} (INCR)
+
+Jika count >= 3:
+• Set:
+admin:global:banned:{adminId} = true
+
+Pesan ke admin:
+"You are banned from all rooms due to excessive kicking"
+
+---
+
+BAGIAN 4 – COMMAND ADMIN
+
+1. /unban [username]
+• Menghapus global ban user/admin
+• Redis key dihapus
+
+2. /clear [username]
+• Reset kick count user/admin
+• Berguna untuk mencegah auto-ban
+
+---
+
+BAGIAN 5 – VOTE KICK OLEH USER (SEPERTI GAMBAR)
+
+Trigger:
+User mengetik:
+"/votekick username"
+
+Rule:
+• Vote kick aktif selama 60 detik
+• Jumlah vote tergantung user aktif di room
+
+Threshold:
+• Jika user di room >= 10 → butuh 10 vote
+• Jika kurang → majority (ceil(online / 2))
+
+Redis contoh:
+votekick:{roomId} = {
+targetUser,
+votes: Set(userId),
+expiresAt
+}
+
+Pesan saat vote DIMULAI (system message):
+"A vote to kick [username] has been started by [starterName], [X] more votes needed. 60s remaining."
+
+Pesan saat vote UPDATE (tiap vote masuk):
+"Vote to kick [username]: [currentVotes] vote, [remaining] more needed. [timeLeft]s remaining."
+
+Jika vote BERHASIL:
+• User dikick
+• Pesan kick mengikuti format BAGIAN 1
+
+Jika vote GAGAL (waktu habis):
+System message:
+"Failed to kick [username]"
+
+---
+
+BAGIAN 6 – KICK VIA VOTE DENGAN BIAYA (OPSIONAL)
+
+Rule:
+• User bisa bayar 500 IDR untuk memulai vote kick premium
+• Vote threshold tetap sama
+• Payment hanya unlock vote (bukan auto kick)
+
+Catatan:
+• Jangan auto kick tanpa vote meskipun bayar
+
+---
+
+LARANGAN (IMPORTANT)
+❌ Jangan mencampur pesan kick dengan chat biasa
+❌ Jangan kirim pesan private kick ke user lain
+❌ Jangan simpan vote state di memory saja (HARUS Redis)
+❌ Jangan mengubah flow join/leave yang sudah stabil
+
+HASIL AKHIR YANG DIHARAPKAN
+• Pesan kick jelas & profesional
+• Tidak ada kebingungan user
+• Admin tidak bisa abuse kick
+• Vote kick terasa “hidup” seperti contoh Miggi
+• Sistem scalable & fair
