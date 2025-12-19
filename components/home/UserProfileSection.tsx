@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: 20,
-    height: 28,
+    height: 20,
   },
   levelIcon: {
     width: 20,
@@ -244,12 +244,13 @@ const styles = StyleSheet.create({
   },
   levelNumber: {
     position: 'absolute',
-    top: 0,
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#000000',
     textAlign: 'center',
     width: '100%',
+    height: '100%',
+    lineHeight: 20,
   },
   statusInputContainer: {
     backgroundColor: '#000000',
