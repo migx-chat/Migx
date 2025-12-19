@@ -296,11 +296,6 @@ export default function LoginScreen() {
             </View>
           </Animated.View>
 
-          {/* Permission Banner */}
-          <View style={styles.permissionBanner}>
-            <Ionicons name="location" size={18} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.permissionText}>Location permission required.</Text>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
