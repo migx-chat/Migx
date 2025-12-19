@@ -1,15 +1,17 @@
 const { getRedisClient } = require('../redis');
 
-const ADMIN_KICK_COOLDOWN = 600; // 10 minutes
+const ADMIN_KICK_COOLDOWN = 600; // 10 minutes (for kicked user)
+const ADMIN_REJOIN_COOLDOWN = 180; // 3 minutes (admin cannot rejoin after kick)
 const MAX_ADMIN_KICKS = 3;
 
-async function adminKick(io, roomId, adminUsername, targetUsername) {
+async function adminKick(io, roomId, adminUsername, targetUsername, adminId) {
   const redis = getRedisClient();
   
   const cooldownKey = `cooldown:adminKick:${targetUsername}:${roomId}`;
   const kickCountKey = `ban:adminKick:${targetUsername}`;
   const globalBanKey = `ban:global:${targetUsername}`;
 
+  // Cooldown for kicked user
   await redis.set(cooldownKey, '1', { EX: ADMIN_KICK_COOLDOWN });
 
   const kickCount = await redis.incr(kickCountKey);
@@ -18,12 +20,17 @@ async function adminKick(io, roomId, adminUsername, targetUsername) {
     await redis.set(globalBanKey, 'true');
   }
 
+  // Set admin rejoin cooldown (3 minutes)
+  const adminCooldownKey = `admin:rejoin:cooldown:${adminId}:${roomId}`;
+  await redis.set(adminCooldownKey, '1', { EX: ADMIN_REJOIN_COOLDOWN });
+
   return { 
     success: true, 
     kickCount, 
     isGlobalBanned: kickCount >= MAX_ADMIN_KICKS,
     adminUsername,
-    targetUsername
+    targetUsername,
+    adminCooldownSet: true
   };
 }
 

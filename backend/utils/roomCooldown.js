@@ -1,6 +1,6 @@
 const { getRedisClient } = require('../redis');
 
-async function checkJoinAllowed(username, roomId) {
+async function checkJoinAllowed(username, roomId, userId) {
   const redis = getRedisClient();
 
   const globalBanKey = `ban:global:${username}`;
@@ -13,6 +13,7 @@ async function checkJoinAllowed(username, roomId) {
     };
   }
 
+  // Check if user was kicked (admin kick cooldown)
   const adminCooldownKey = `cooldown:adminKick:${username}:${roomId}`;
   const adminCooldown = await redis.ttl(adminCooldownKey);
   if (adminCooldown > 0) {
@@ -25,6 +26,7 @@ async function checkJoinAllowed(username, roomId) {
     };
   }
 
+  // Check if user was vote-kicked
   const voteCooldownKey = `cooldown:voteKick:${username}:${roomId}`;
   const voteCooldown = await redis.ttl(voteCooldownKey);
   if (voteCooldown > 0) {
@@ -35,6 +37,21 @@ async function checkJoinAllowed(username, roomId) {
       type: 'voteKick',
       remainingSeconds: voteCooldown
     };
+  }
+
+  // Check if admin is under cooldown from kicking (cannot rejoin for 3 minutes)
+  if (userId) {
+    const adminRejoinCooldownKey = `admin:rejoin:cooldown:${userId}:${roomId}`;
+    const adminRejoinCooldown = await redis.ttl(adminRejoinCooldownKey);
+    if (adminRejoinCooldown > 0) {
+      const minutes = Math.ceil(adminRejoinCooldown / 60);
+      return {
+        allowed: false,
+        reason: `You must wait ${minutes} minute(s) before rejoining this room.`,
+        type: 'adminRejoinCooldown',
+        remainingSeconds: adminRejoinCooldown
+      };
+    }
   }
 
   return { allowed: true };

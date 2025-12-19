@@ -53,7 +53,7 @@ module.exports = (io, socket) => {
       }
 
       // Check kick cooldowns and global ban
-      const joinCheck = await checkJoinAllowed(username, roomId);
+      const joinCheck = await checkJoinAllowed(username, roomId, userId);
       if (!joinCheck.allowed) {
         socket.emit('system:message', {
           roomId,
@@ -596,7 +596,7 @@ module.exports = (io, socket) => {
 
       if (kickerIsAdmin) {
         // Admin kick - immediate, no vote needed
-        const result = await executeAdminKick(io, roomId, kickerUsername, targetUsername);
+        const result = await executeAdminKick(io, roomId, kickerUsername, targetUsername, kickerUserId);
 
         // Send PRIVATE message to kicked user
         const roomSockets = await io.in(`room:${roomId}`).fetchSockets();
