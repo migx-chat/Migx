@@ -211,6 +211,18 @@ export default function EditProfileScreen() {
     console.log('View following');
   };
 
+  const handleFollowPress = () => {
+    console.log('Follow user');
+  };
+
+  const handleChatPress = () => {
+    console.log('Open chat');
+  };
+
+  const handleFootprintPress = () => {
+    console.log('View footprint');
+  };
+
   return (
     <Modal
       visible={true}
@@ -238,6 +250,9 @@ export default function EditProfileScreen() {
               onGiftPress={handleGiftPress}
               onFollowersPress={handleFollowersPress}
               onFollowingPress={handleFollowingPress}
+              onFollowPress={handleFollowPress}
+              onChatPress={handleChatPress}
+              onFootprintPress={handleFootprintPress}
             />
           )}
           
