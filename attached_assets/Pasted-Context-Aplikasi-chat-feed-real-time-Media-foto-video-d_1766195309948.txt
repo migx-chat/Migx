@@ -1,0 +1,83 @@
+Context:
+Aplikasi chat & feed real-time. Media (foto/video) disimpan di Cloudinary. Feed tidak disimpan ke database, hanya sementara dan harus auto delete setelah 1 jam agar app tetap ringan.
+🎯 TUJUAN
+Media tetap di Cloudinary
+Metadata feed disimpan di Redis dengan TTL
+Feed hilang otomatis dari aplikasi setelah TTL habis
+TIDAK menghapus media Cloudinary otomatis
+Aman untuk production, tidak merusak fitur lain
+🔧 ARSITEKTUR WAJIB
+Cloudinary → media storage only
+Redis → feed metadata + TTL
+Database → TIDAK digunakan untuk feed
+📌 IMPLEMENTASI YANG DIMINTA
+1️⃣ Saat user upload feed
+Upload file ke Cloudinary
+Ambil:
+secure_url
+public_id
+Simpan ke Redis dengan TTL
+Redis key pattern:
+Salin kode
+
+feed:<feedId>
+Redis value (JSON):
+Salin kode
+Json
+{
+  "id": "feedId",
+  "userId": "userId",
+  "username": "username",
+  "text": "caption text",
+  "mediaUrl": "cloudinary secure_url",
+  "mediaType": "image | video",
+  "cloudinaryPublicId": "public_id",
+  "createdAt": "ISO timestamp"
+}
+TTL:
+Salin kode
+
+3600 detik (1 jam)
+Gunakan:
+Salin kode
+Js
+SETEX feed:<feedId> 3600 <json>
+2️⃣ Endpoint ambil feed
+Buat endpoint:
+Salin kode
+
+GET /api/feed
+Logic:
+Ambil semua key feed:* dari Redis
+Parse JSON
+Sort by createdAt DESC
+Return ke client
+⚠️ Jangan baca database
+⚠️ Jangan simpan ke database
+3️⃣ Saat Redis key expired
+Feed hilang otomatis
+JANGAN auto delete Cloudinary
+Media cleanup dilakukan terpisah (manual / batch)
+4️⃣ (Opsional tapi disiapkan)
+Tambahkan fungsi admin cleanup Cloudinary:
+Hanya dipanggil manual
+Berdasarkan cloudinaryPublicId
+Tidak otomatis saat TTL habis
+❌ LARANGAN KERAS
+❌ Jangan simpan feed ke PostgreSQL
+❌ Jangan simpan pesan feed ke Redis hash tanpa TTL
+❌ Jangan delete Cloudinary otomatis saat TTL
+❌ Jangan ubah logic chat / socket
+❌ Jangan refactor file lain di luar feed
+✅ HASIL YANG DIHARAPKAN
+Feed ringan
+Tidak menumpuk
+App tidak berat setelah 1 jam
+Real-time tetap cepat
+Aman untuk Redis Cloud
+Cocok untuk traffic tinggi
+📦 CATATAN TAMBAHAN
+Jika Redis restart:
+Feed hilang (EXPECTED BEHAVIOR)
+Tidak error
+Media Cloudinary tetap aman

@@ -1,12 +1,11 @@
 
 const express = require('express');
 const router = express.Router();
-const pool = require('../db/db');
 const authMiddleware = require('../middleware/auth');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
-const fs = require('fs');
-const path = require('path');
+const { getRedisClient } = require('../redis');
+const crypto = require('crypto');
 
 // Configure Cloudinary
 cloudinary.config({
@@ -21,65 +20,73 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit for video
 });
 
-// Get feed posts with pagination
+// Get feed posts from Redis (real-time, with TTL)
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
-    const userId = req.user.id;
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-
-    const postsQuery = `
-      SELECT 
-        p.*,
-        u.username,
-        u.avatar as avatar_url,
-        COUNT(DISTINCT l.id) as likes_count,
-        COUNT(DISTINCT c.id) as comments_count,
-        EXISTS(SELECT 1 FROM feed_likes WHERE post_id = p.id AND user_id = $1) as is_liked
-      FROM feed_posts p
-      LEFT JOIN users u ON p.user_id = u.id
-      LEFT JOIN feed_likes l ON p.id = l.post_id
-      LEFT JOIN feed_comments c ON p.id = c.post_id
-      GROUP BY p.id, u.username, u.avatar
-      ORDER BY p.created_at DESC
-      LIMIT $2 OFFSET $3
-    `;
-
-    const result = await pool.query(postsQuery, [userId, limit, offset]);
+    const redis = getRedisClient();
     
-    const countQuery = 'SELECT COUNT(*) FROM feed_posts';
-    const countResult = await pool.query(countQuery);
-    const totalPosts = parseInt(countResult.rows[0].count);
-    const hasMore = offset + parseInt(limit) < totalPosts;
+    // Get all feed keys from Redis
+    const keys = await redis.keys('feed:*');
+    
+    if (keys.length === 0) {
+      return res.json({
+        success: true,
+        posts: [],
+        hasMore: false,
+        currentPage: 1,
+        totalPages: 0
+      });
+    }
 
-    // Convert relative image URLs to full URLs
-    const posts = result.rows.map(post => ({
-      ...post,
-      image_url: post.image_url && !post.image_url.startsWith('http') 
-        ? `${baseUrl}${post.image_url}` 
-        : post.image_url
-    }));
+    // Get all feed data from Redis
+    const feeds = [];
+    for (const key of keys) {
+      const feedData = await redis.get(key);
+      if (feedData) {
+        try {
+          feeds.push(JSON.parse(feedData));
+        } catch (e) {
+          console.error(`❌ Error parsing feed data for ${key}:`, e.message);
+        }
+      }
+    }
+
+    // Sort by createdAt DESC (most recent first)
+    feeds.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Apply pagination
+    const { page = 1, limit = 10 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
+    const totalPosts = feeds.length;
+    const hasMore = offset + limitNum < totalPosts;
+
+    const paginatedFeeds = feeds.slice(offset, offset + limitNum);
 
     res.json({
       success: true,
-      posts,
+      posts: paginatedFeeds,
       hasMore,
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(totalPosts / limit)
+      currentPage: pageNum,
+      totalPages: Math.ceil(totalPosts / limitNum)
     });
   } catch (error) {
-    console.error('Error fetching feed:', error);
+    console.error('❌ Error fetching feed:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch feed' });
   }
 });
 
 // Create new post (supports image or video)
+// Media saved to Cloudinary, metadata saved to Redis with 1 hour TTL
 router.post('/create', authMiddleware, upload.single('video'), async (req, res) => {
   try {
     const { content } = req.body;
     const userId = req.user.id;
+    const username = req.user.username || 'Anonymous';
     let mediaUrl = null;
+    let publicId = null;
+    let mediaType = null;
 
     // Upload to Cloudinary if file exists
     if (req.file) {
@@ -90,9 +97,11 @@ router.post('/create', authMiddleware, upload.single('video'), async (req, res) 
         let resourceType = 'auto';
         if (req.file.mimetype.startsWith('video/')) {
           resourceType = 'video';
+          mediaType = 'video';
           console.log('🎬 Video detected - uploading as video');
         } else if (req.file.mimetype.startsWith('image/')) {
           resourceType = 'image';
+          mediaType = 'image';
           console.log('🖼️  Image detected - uploading as image');
         }
 
@@ -125,6 +134,7 @@ router.post('/create', authMiddleware, upload.single('video'), async (req, res) 
         });
         
         mediaUrl = result.secure_url;
+        publicId = result.public_id;
         console.log(`✅ Media URL: ${mediaUrl}`);
       } catch (uploadError) {
         console.error('❌ Cloudinary upload error:', uploadError.message);
@@ -140,17 +150,35 @@ router.post('/create', authMiddleware, upload.single('video'), async (req, res) 
       return res.status(400).json({ success: false, error: 'Content or image/video required' });
     }
 
-    const query = `
-      INSERT INTO feed_posts (user_id, content, image_url)
-      VALUES ($1, $2, $3)
-      RETURNING *
-    `;
+    // Generate unique feed ID
+    const feedId = crypto.randomBytes(8).toString('hex');
+    const createdAt = new Date().toISOString();
 
-    const result = await pool.query(query, [userId, content || '', mediaUrl]);
+    // Create feed metadata object
+    const feedData = {
+      id: feedId,
+      userId,
+      username,
+      text: content || '',
+      mediaUrl: mediaUrl || null,
+      mediaType: mediaType || null,
+      cloudinaryPublicId: publicId || null,
+      createdAt
+    };
+
+    // Save to Redis with 1 hour TTL (3600 seconds)
+    const redis = getRedisClient();
+    await redis.setEx(
+      `feed:${feedId}`,
+      3600, // TTL in seconds (1 hour)
+      JSON.stringify(feedData)
+    );
+
+    console.log(`📌 Feed saved to Redis with 1 hour TTL: feed:${feedId}`);
 
     res.json({
       success: true,
-      post: result.rows[0]
+      post: feedData
     });
   } catch (error) {
     console.error('❌ Error creating post:', error);
@@ -158,118 +186,202 @@ router.post('/create', authMiddleware, upload.single('video'), async (req, res) 
   }
 });
 
-// Like/Unlike post
-router.post('/:postId/like', authMiddleware, async (req, res) => {
+// Like/Unlike post (stored in Redis, temporary)
+router.post('/:feedId/like', authMiddleware, async (req, res) => {
   try {
-    const { postId } = req.params;
+    const { feedId } = req.params;
     const userId = req.user.id;
+    const redis = getRedisClient();
 
+    // Check if feed exists
+    const feedKey = `feed:${feedId}`;
+    const feedData = await redis.get(feedKey);
+    
+    if (!feedData) {
+      return res.status(404).json({ success: false, error: 'Feed not found (may have expired)' });
+    }
+
+    const likeKey = `feed:${feedId}:likes`;
+    const userLikeKey = `feed:${feedId}:likes:${userId}`;
+    
     // Check if already liked
-    const checkQuery = 'SELECT * FROM feed_likes WHERE post_id = $1 AND user_id = $2';
-    const checkResult = await pool.query(checkQuery, [postId, userId]);
+    const isLiked = await redis.exists(userLikeKey);
 
-    if (checkResult.rows.length > 0) {
+    if (isLiked) {
       // Unlike
-      await pool.query('DELETE FROM feed_likes WHERE post_id = $1 AND user_id = $2', [postId, userId]);
+      await redis.del(userLikeKey);
+      await redis.decr(likeKey);
       res.json({ success: true, action: 'unliked' });
     } else {
       // Like
-      await pool.query('INSERT INTO feed_likes (post_id, user_id) VALUES ($1, $2)', [postId, userId]);
+      await redis.set(userLikeKey, '1', { EX: 3600 }); // Same TTL as feed
+      await redis.incr(likeKey);
       res.json({ success: true, action: 'liked' });
     }
   } catch (error) {
-    console.error('Error toggling like:', error);
+    console.error('❌ Error toggling like:', error);
     res.status(500).json({ success: false, error: 'Failed to toggle like' });
   }
 });
 
-// Get comments for a post
-router.get('/:postId/comments', authMiddleware, async (req, res) => {
+// Get comments for a post (from Redis)
+router.get('/:feedId/comments', authMiddleware, async (req, res) => {
   try {
-    const { postId } = req.params;
+    const { feedId } = req.params;
+    const redis = getRedisClient();
 
-    const query = `
-      SELECT 
-        c.*,
-        u.username,
-        u.avatar as avatar_url
-      FROM feed_comments c
-      LEFT JOIN users u ON c.user_id = u.id
-      WHERE c.post_id = $1
-      ORDER BY c.created_at DESC
-    `;
+    // Check if feed exists
+    const feedKey = `feed:${feedId}`;
+    const feedExists = await redis.exists(feedKey);
+    
+    if (!feedExists) {
+      return res.status(404).json({ success: false, error: 'Feed not found (may have expired)' });
+    }
 
-    const result = await pool.query(query, [postId]);
+    // Get comments from Redis
+    const commentsKey = `feed:${feedId}:comments`;
+    const commentsData = await redis.get(commentsKey);
+    
+    const comments = commentsData ? JSON.parse(commentsData) : [];
 
     res.json({
       success: true,
-      comments: result.rows
+      comments
     });
   } catch (error) {
-    console.error('Error fetching comments:', error);
+    console.error('❌ Error fetching comments:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch comments' });
   }
 });
 
-// Add comment to post
-router.post('/:postId/comment', authMiddleware, async (req, res) => {
+// Add comment to post (stored in Redis)
+router.post('/:feedId/comment', authMiddleware, async (req, res) => {
   try {
-    const { postId } = req.params;
+    const { feedId } = req.params;
     const { content } = req.body;
     const userId = req.user.id;
+    const username = req.user.username || 'Anonymous';
+    const redis = getRedisClient();
 
     if (!content || !content.trim()) {
       return res.status(400).json({ success: false, error: 'Comment content required' });
     }
 
-    const query = `
-      INSERT INTO feed_comments (post_id, user_id, content)
-      VALUES ($1, $2, $3)
-      RETURNING *
-    `;
+    // Check if feed exists
+    const feedKey = `feed:${feedId}`;
+    const feedExists = await redis.exists(feedKey);
+    
+    if (!feedExists) {
+      return res.status(404).json({ success: false, error: 'Feed not found (may have expired)' });
+    }
 
-    const result = await pool.query(query, [postId, userId, content]);
+    // Get existing comments
+    const commentsKey = `feed:${feedId}:comments`;
+    const commentsData = await redis.get(commentsKey);
+    const comments = commentsData ? JSON.parse(commentsData) : [];
+
+    // Create new comment
+    const commentId = crypto.randomBytes(6).toString('hex');
+    const newComment = {
+      id: commentId,
+      feedId,
+      userId,
+      username,
+      content: content.trim(),
+      createdAt: new Date().toISOString()
+    };
+
+    comments.push(newComment);
+
+    // Save comments back to Redis with same TTL as feed
+    const ttl = await redis.ttl(feedKey);
+    await redis.setEx(
+      commentsKey,
+      ttl > 0 ? ttl : 3600,
+      JSON.stringify(comments)
+    );
 
     res.json({
       success: true,
-      comment: result.rows[0]
+      comment: newComment
     });
   } catch (error) {
-    console.error('Error adding comment:', error);
+    console.error('❌ Error adding comment:', error);
     res.status(500).json({ success: false, error: 'Failed to add comment' });
   }
 });
 
-// Delete post
-router.delete('/:postId', authMiddleware, async (req, res) => {
+// Delete post (remove from Redis)
+router.delete('/:feedId', authMiddleware, async (req, res) => {
   try {
-    const { postId } = req.params;
+    const { feedId } = req.params;
     const userId = req.user.id;
+    const redis = getRedisClient();
 
-    // Check if user owns the post
-    const checkQuery = 'SELECT * FROM feed_posts WHERE id = $1 AND user_id = $2';
-    const checkResult = await pool.query(checkQuery, [postId, userId]);
+    // Check if feed exists and user owns it
+    const feedKey = `feed:${feedId}`;
+    const feedData = await redis.get(feedKey);
+    
+    if (!feedData) {
+      return res.status(404).json({ success: false, error: 'Feed not found (may have expired)' });
+    }
 
-    if (checkResult.rows.length === 0) {
+    const feed = JSON.parse(feedData);
+    if (feed.userId !== userId) {
       return res.status(403).json({ success: false, error: 'Not authorized to delete this post' });
     }
 
-    // Delete image if exists
-    const post = checkResult.rows[0];
-    if (post.image_url) {
-      const imagePath = path.join(__dirname, '../..', post.image_url);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
+    // Delete feed and related data from Redis
+    await redis.del(feedKey);
+    await redis.del(`feed:${feedId}:likes`);
+    await redis.del(`feed:${feedId}:comments`);
+    
+    // Delete all user likes for this feed
+    const likeKeys = await redis.keys(`feed:${feedId}:likes:*`);
+    if (likeKeys.length > 0) {
+      await redis.del(likeKeys);
+    }
+
+    // Note: Cloudinary media is NOT deleted here
+    // Media cleanup is done separately (manual/batch)
+    console.log(`🗑️  Feed deleted from Redis: feed:${feedId} (Cloudinary media preserved)`);
+
+    res.json({ success: true, message: 'Feed deleted successfully' });
+  } catch (error) {
+    console.error('❌ Error deleting post:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete post' });
+  }
+});
+
+// Optional: Admin endpoint to cleanup old Cloudinary media (manual only)
+router.post('/admin/cleanup-cloudinary', authMiddleware, async (req, res) => {
+  try {
+    const { publicIds } = req.body;
+    
+    if (!Array.isArray(publicIds) || publicIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'publicIds array required' });
+    }
+
+    const results = [];
+    for (const publicId of publicIds) {
+      try {
+        await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
+        results.push({ publicId, status: 'deleted' });
+        console.log(`🗑️  Cloudinary media deleted: ${publicId}`);
+      } catch (error) {
+        results.push({ publicId, status: 'failed', error: error.message });
+        console.error(`❌ Failed to delete ${publicId}:`, error.message);
       }
     }
 
-    // Delete post (cascade will delete likes and comments)
-    await pool.query('DELETE FROM feed_posts WHERE id = $1', [postId]);
-
-    res.json({ success: true });
+    res.json({
+      success: true,
+      message: 'Cloudinary cleanup completed',
+      results
+    });
   } catch (error) {
-    console.error('Error deleting post:', error);
-    res.status(500).json({ success: false, error: 'Failed to delete post' });
+    console.error('❌ Error in cleanup endpoint:', error);
+    res.status(500).json({ success: false, error: 'Failed to cleanup Cloudinary' });
   }
 });
 
