@@ -6,7 +6,7 @@ export function ChatHeader() {
   const { theme } = useThemeCustom();
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.surface }]}>
+    <View style={[styles.container, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
       <Text style={[styles.title, { color: theme.text }]}>Chats</Text>
     </View>
   );
@@ -14,10 +14,9 @@ export function ChatHeader() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 16,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
   },
   title: {
     fontSize: 24,
