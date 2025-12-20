@@ -41,8 +41,21 @@ The PostgreSQL database includes tables for `users`, `rooms`, `messages`, `priva
 
 The `rooms` table includes a `category` column with values: 'general' (default), 'official', and 'game'.
 
-### Redis Usage
+### Redis Usage & Presence Management
 Redis is utilized for managing online user presence in rooms, banned user lists, flood control, global rate limiting, caching merchant income, and mapping user IDs to socket connections.
+
+#### Redis TTL Presence System (Single Source of Truth)
+Implemented for clean and reliable participant/viewer count management. Key design:
+- **Key Format**: `room:{roomId}:user:{userId}` with **6-hour TTL (21600 seconds)**
+- **Value**: User presence JSON (socketId, username, timestamp)
+- **Client Heartbeat**: Frontend emits `room:heartbeat` every 28 seconds to refresh TTL
+- **Server Cleanup Job**: Runs every 60 seconds via `startPresenceCleanup()` to detect expired presences and emit `room:force-leave` events to clients
+- **Participant List**: Always fetched from Redis TTL keys using SCAN, never from DB/Set
+- **Guarantees**: 
+  - No ghost users after server restart (Redis keys cleared, participants recalculated from TTL keys)
+  - No stale participant data (6-hour TTL + heartbeat refresh)
+  - Graceful cleanup of timed-out connections (force-leave event to client)
+  - Accurate viewer count always (count = number of active TTL keys in room)
 
 ### Real-time Communication (Socket.IO)
 The `/chat` namespace handles a wide array of real-time events, including joining/leaving rooms, sending/receiving chat messages, private messages, credit transfers, and game interactions.

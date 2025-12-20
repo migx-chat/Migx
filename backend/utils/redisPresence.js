@@ -6,8 +6,10 @@ const ROOM_SYSTEM_KEY = (roomId) => `room:system:${roomId}`;
 
 const MAX_SYSTEM_MESSAGES = 50;
 
+const { getRoomUsersFromTTL, getActiveUserCountInRoom } = require('./roomPresenceTTL');
+
 /**
- * Add user to room presence
+ * Add user to room presence - legacy support (kept for compatibility)
  */
 const addUserToRoom = async (roomId, username) => {
   try {
@@ -21,7 +23,7 @@ const addUserToRoom = async (roomId, username) => {
 };
 
 /**
- * Remove user from room presence
+ * Remove user from room presence - legacy support (kept for compatibility)
  */
 const removeUserFromRoom = async (roomId, username) => {
   try {
@@ -35,13 +37,14 @@ const removeUserFromRoom = async (roomId, username) => {
 };
 
 /**
- * Get all users in room
+ * Get all users in room FROM REDIS TTL KEYS (SINGLE SOURCE OF TRUTH)
  */
 const getRoomUsers = async (roomId) => {
   try {
-    const client = getRedisClient();
-    const users = await client.sMembers(ROOM_USERS_KEY(roomId));
-    return users || [];
+    // Use Redis TTL keys as single source of truth for active users
+    const ttlUsers = await getRoomUsersFromTTL(roomId);
+    const usernames = ttlUsers.map(u => u.username);
+    return usernames || [];
   } catch (error) {
     console.error('Error getting room users:', error);
     return [];
@@ -49,12 +52,12 @@ const getRoomUsers = async (roomId) => {
 };
 
 /**
- * Get room user count
+ * Get room user count FROM REDIS TTL KEYS (SINGLE SOURCE OF TRUTH)
  */
 const getRoomUserCount = async (roomId) => {
   try {
-    const client = getRedisClient();
-    const count = await client.sCard(ROOM_USERS_KEY(roomId));
+    // Use Redis TTL keys as single source of truth for active user count
+    const count = await getActiveUserCountInRoom(roomId);
     return count || 0;
   } catch (error) {
     console.error('Error getting room user count:', error);

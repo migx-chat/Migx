@@ -126,12 +126,21 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
     const boundHandleUserJoined = handleUserJoined;
     const boundHandleUserLeft = handleUserLeft;
 
+    // Handle force-leave event (when presence TTL expires)
+    const handleForceLeave = (data: any) => {
+      if (data?.roomId !== roomIdRef.current) return;
+      console.error(`❌ Force leave from room: ${data.message}`);
+      // Could trigger alert or redirect here
+      markRoomLeft(roomIdRef.current);
+    };
+
     socket.on('system:message', boundHandleSystemMessage);
     socket.on('chat:message', boundHandleChatMessage);
     socket.on('room:joined', boundHandleRoomJoined);
     socket.on('room:users', boundHandleRoomUsers);
     socket.on('room:user:joined', boundHandleUserJoined);
     socket.on('room:user:left', boundHandleUserLeft);
+    socket.on('room:force-leave', handleForceLeave);
 
     if (!isRoomJoined(roomId)) {
       console.log(`📤 [Room ${roomId}] Joining room`);
@@ -147,17 +156,31 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
       }, 500);
     }
 
+    // Step 2️⃣: Heartbeat - refresh presence TTL every 28 seconds
+    const heartbeatInterval = setInterval(() => {
+      if (socket && roomId && currentUserId) {
+        socket.emit('room:heartbeat', {
+          roomId,
+          userId: currentUserId,
+          timestamp: Date.now()
+        });
+        console.log(`💓 [Room ${roomId}] Heartbeat sent`);
+      }
+    }, 28000); // 28 seconds
+
     return () => {
       console.log(`🔌 [Room ${roomId}] Cleaning up socket listeners`);
       
+      clearInterval(heartbeatInterval);
       socket.off('system:message', boundHandleSystemMessage);
       socket.off('chat:message', boundHandleChatMessage);
       socket.off('room:joined', boundHandleRoomJoined);
       socket.off('room:users', boundHandleRoomUsers);
       socket.off('room:user:joined', boundHandleUserJoined);
       socket.off('room:user:left', boundHandleUserLeft);
+      socket.off('room:force-leave', handleForceLeave);
     };
-  }, [socket, currentUsername, currentUserId, roomId, isRoomJoined, markRoomJoined, handleSystemMessage, handleChatMessage, handleRoomJoined, handleRoomUsers, handleUserJoined, handleUserLeft]);
+  }, [socket, currentUsername, currentUserId, roomId, isRoomJoined, markRoomJoined, markRoomLeft, handleSystemMessage, handleChatMessage, handleRoomJoined, handleRoomUsers, handleUserJoined, handleUserLeft]);
 
   const sendMessage = useCallback((message: string) => {
     if (!socket || !message.trim() || !currentUserId) return;
