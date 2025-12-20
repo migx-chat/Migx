@@ -121,14 +121,27 @@ router.post('/create', authMiddleware, handleUpload, async (req, res) => {
         }
 
         const result = await new Promise((resolve, reject) => {
+          // Build upload options with transformations
+          const uploadOptions = { 
+            folder: 'migx/posts',
+            resource_type: resourceType,
+            use_filename: true,
+            timeout: 120000, // 2 minute timeout for large videos
+          };
+
+          // Add image-specific transformations
+          if (mediaType === 'image') {
+            uploadOptions.width = 1080;
+            uploadOptions.crop = 'fit'; // Maintain aspect ratio
+            uploadOptions.quality = 'auto';
+            uploadOptions.fetch_format = 'auto';
+            console.log('🖼️  Image transformation: width=1080, crop=fit, quality=auto');
+          } else if (resourceType === 'video') {
+            uploadOptions.eager = [{ width: 300, height: 300, crop: 'fill', format: 'jpg' }];
+          }
+
           const stream = cloudinary.uploader.upload_stream(
-            { 
-              folder: 'migx/posts',
-              resource_type: resourceType,
-              use_filename: true,
-              timeout: 120000, // 2 minute timeout for large videos
-              eager: resourceType === 'video' ? [{ width: 300, height: 300, crop: 'fill', format: 'jpg' }] : [],
-            },
+            uploadOptions,
             (error, result) => {
               if (error) {
                 console.error('❌ Cloudinary upload failed:', error);

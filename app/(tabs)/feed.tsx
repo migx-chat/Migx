@@ -33,6 +33,7 @@ import {
 import Svg, { Path } from 'react-native-svg';
 import { SwipeableScreen } from '@/components/navigation/SwipeableScreen';
 import FeedMedia from '../components/feed/FeedMedia';
+import ImageModal from '../components/feed/ImageModal';
 
 const CloseIcon = ({ size = 24, color = '#000' }: { size?: number; color?: string }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -155,14 +156,14 @@ export default function FeedScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
+      allowsEditing: false,
+      quality: 0.75,
     });
 
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
       setSelectedVideo(null);
+      console.log('✅ Image selected (no crop):', result.assets[0].uri);
     }
   };
 

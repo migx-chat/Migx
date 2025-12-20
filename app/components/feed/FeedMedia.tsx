@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Image, View, StyleSheet, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
 import VideoModal from './VideoModal';
+import ImageModal from './ImageModal';
 
 interface FeedMediaProps {
   mediaType?: 'image' | 'video';
@@ -10,20 +11,31 @@ interface FeedMediaProps {
 export default function FeedMedia({ mediaType, mediaUrl }: FeedMediaProps) {
   const [loading, setLoading] = useState(true);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   if (!mediaUrl) return null;
 
   if (mediaType === 'image') {
     return (
-      <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: mediaUrl }}
-          style={styles.image}
-          resizeMode="cover"
-          onLoadEnd={() => setLoading(false)}
+      <>
+        <TouchableOpacity
+          style={styles.imageContainer}
+          onPress={() => setShowImageModal(true)}
+        >
+          <Image
+            source={{ uri: mediaUrl }}
+            style={styles.image}
+            resizeMode="contain"
+            onLoadEnd={() => setLoading(false)}
+          />
+          {loading && <ActivityIndicator size="small" style={styles.loader} />}
+        </TouchableOpacity>
+        <ImageModal
+          visible={showImageModal}
+          imageUrl={mediaUrl}
+          onClose={() => setShowImageModal(false)}
         />
-        {loading && <ActivityIndicator size="small" style={styles.loader} />}
-      </View>
+      </>
     );
   }
 
