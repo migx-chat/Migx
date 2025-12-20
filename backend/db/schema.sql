@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) UNIQUE,
   avatar VARCHAR(255),
   credits BIGINT DEFAULT 0,
-  role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'mentor', 'merchant', 'admin')),
+  role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'mentor', 'merchant', 'admin', 'super_admin')),
   status VARCHAR(20) DEFAULT 'online' CHECK (status IN ('online', 'away', 'offline')),
   status_message VARCHAR(100) DEFAULT '',
   country VARCHAR(4),
