@@ -84,24 +84,55 @@ router.post('/create', authMiddleware, upload.single('video'), async (req, res) 
     // Upload to Cloudinary if file exists
     if (req.file) {
       try {
+        console.log(`📤 Uploading file to Cloudinary: ${req.file.originalname} (${req.file.mimetype})`);
+        
+        // Determine resource type based on MIME type
+        let resourceType = 'auto';
+        if (req.file.mimetype.startsWith('video/')) {
+          resourceType = 'video';
+          console.log('🎬 Video detected - uploading as video');
+        } else if (req.file.mimetype.startsWith('image/')) {
+          resourceType = 'image';
+          console.log('🖼️  Image detected - uploading as image');
+        }
+
         const result = await new Promise((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
             { 
               folder: 'migx/posts',
-              resource_type: 'auto',
-              use_filename: true
+              resource_type: resourceType,
+              use_filename: true,
+              timeout: 120000, // 2 minute timeout for large videos
+              eager: resourceType === 'video' ? [{ width: 300, height: 300, crop: 'fill', format: 'jpg' }] : [],
             },
             (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
+              if (error) {
+                console.error('❌ Cloudinary upload failed:', error);
+                reject(error);
+              } else {
+                console.log('✅ Cloudinary upload successful:', result.public_id);
+                resolve(result);
+              }
             }
           );
+          
+          stream.on('error', (error) => {
+            console.error('❌ Stream error:', error);
+            reject(error);
+          });
+          
           stream.end(req.file.buffer);
         });
+        
         mediaUrl = result.secure_url;
+        console.log(`✅ Media URL: ${mediaUrl}`);
       } catch (uploadError) {
-        console.error('Cloudinary upload error:', uploadError);
-        return res.status(500).json({ success: false, error: 'Failed to upload media' });
+        console.error('❌ Cloudinary upload error:', uploadError.message);
+        return res.status(500).json({ 
+          success: false, 
+          error: 'Failed to upload media',
+          details: uploadError.message 
+        });
       }
     }
     
@@ -122,7 +153,7 @@ router.post('/create', authMiddleware, upload.single('video'), async (req, res) 
       post: result.rows[0]
     });
   } catch (error) {
-    console.error('Error creating post:', error);
+    console.error('❌ Error creating post:', error);
     res.status(500).json({ success: false, error: 'Failed to create post' });
   }
 });
