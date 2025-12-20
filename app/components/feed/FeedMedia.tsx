@@ -1,6 +1,6 @@
-import React from 'react';
-import { Image, View, StyleSheet, TouchableOpacity, Text, Linking, ActivityIndicator } from 'react-native';
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { Image, View, StyleSheet, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
+import VideoModal from './VideoModal';
 
 interface FeedMediaProps {
   mediaType?: 'image' | 'video';
@@ -9,6 +9,7 @@ interface FeedMediaProps {
 
 export default function FeedMedia({ mediaType, mediaUrl }: FeedMediaProps) {
   const [loading, setLoading] = useState(true);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   if (!mediaUrl) return null;
 
@@ -28,15 +29,22 @@ export default function FeedMedia({ mediaType, mediaUrl }: FeedMediaProps) {
 
   if (mediaType === 'video') {
     return (
-      <TouchableOpacity
-        style={styles.videoContainer}
-        onPress={() => Linking.openURL(mediaUrl)}
-      >
-        <View style={styles.videoPlaceholder}>
-          <Text style={styles.videoIcon}>▶</Text>
-          <Text style={styles.videoText}>Tap to play video</Text>
-        </View>
-      </TouchableOpacity>
+      <>
+        <TouchableOpacity
+          style={styles.videoContainer}
+          onPress={() => setShowVideoModal(true)}
+        >
+          <View style={styles.videoPlaceholder}>
+            <Text style={styles.videoIcon}>▶</Text>
+            <Text style={styles.videoText}>Tap to play video</Text>
+          </View>
+        </TouchableOpacity>
+        <VideoModal
+          visible={showVideoModal}
+          videoUrl={mediaUrl}
+          onClose={() => setShowVideoModal(false)}
+        />
+      </>
     );
   }
 
