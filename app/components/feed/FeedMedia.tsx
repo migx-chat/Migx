@@ -26,9 +26,9 @@ export default function FeedMedia({ mediaType, mediaUrl }: FeedMediaProps) {
         source={{ uri: mediaUrl }}
         style={styles.video}
         useNativeControls
-        resizeMode="contain"
         shouldPlay={false}
         isLooping={false}
+        progressUpdateIntervalMillis={500}
       />
     );
   }

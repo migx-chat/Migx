@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/SvgIcons';
 import Svg, { Path } from 'react-native-svg';
 import { SwipeableScreen } from '@/components/navigation/SwipeableScreen';
-import FeedMedia from '@/components/feed/FeedMedia';
+import FeedMedia from '../components/feed/FeedMedia';
 
 const CloseIcon = ({ size = 24, color = '#000' }: { size?: number; color?: string }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
