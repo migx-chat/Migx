@@ -75,7 +75,7 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 // Create new post (supports image or video)
-router.post('/create', authMiddleware, upload.single('media'), async (req, res) => {
+router.post('/create', authMiddleware, upload.single('video'), async (req, res) => {
   try {
     const { content } = req.body;
     const userId = req.user.id;
