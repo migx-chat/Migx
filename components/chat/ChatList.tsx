@@ -16,6 +16,7 @@ interface ChatData {
   tags?: string[];
   username?: string;
   roomId?: string;
+  avatar?: string;
 }
 
 export function ChatList() {
@@ -64,8 +65,17 @@ export function ChatList() {
   const loadRooms = async () => {
     try {
       setLoading(true);
+      console.log(`🔄 Loading rooms for user: ${username} from ${API_BASE_URL}/api/chat/list/${username}`);
+      
       const response = await fetch(`${API_BASE_URL}/api/chat/list/${username}`);
+      
+      if (!response.ok) {
+        console.error(`❌ API returned status ${response.status}`);
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('📨 Chat list response:', data);
       
       if (data.success) {
         const formattedData: ChatData[] = [];
@@ -99,10 +109,15 @@ export function ChatList() {
           });
         });
         
+        console.log(`✅ Loaded ${formattedData.length} chats`);
         setChatData(formattedData);
+      } else {
+        console.error('❌ Response success is false:', data);
+        setChatData([]);
       }
     } catch (error) {
-      console.error('Error loading rooms:', error);
+      console.error('❌ Error loading rooms:', error);
+      setChatData([]);
     } finally {
       setLoading(false);
     }

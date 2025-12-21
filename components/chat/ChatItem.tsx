@@ -13,6 +13,8 @@ interface ChatItemProps {
   isOnline?: boolean;
   avatar?: string;
   tags?: string[];
+  roomId?: string;
+  username?: string;
 }
 
 const UserAvatar = ({ avatar, isOnline, theme }: { avatar?: string; isOnline?: boolean; theme: any }) => {
@@ -37,15 +39,16 @@ const RoomIcon = ({ size = 50, theme }: { size?: number; theme: any }) => (
   </View>
 );
 
-export function ChatItem({ type, name, message, time, isOnline, avatar, tags }: ChatItemProps) {
+export function ChatItem({ type, name, message, time, isOnline, avatar, tags, roomId, username }: ChatItemProps) {
   const router = useRouter();
   const { theme } = useThemeCustom();
 
   const handlePress = () => {
+    // Use actual roomId from backend for rooms
     router.push({
       pathname: '/chatroom/[id]',
       params: { 
-        id: name.toLowerCase().replace(/\s+/g, '-'), 
+        id: roomId || name.toLowerCase().replace(/\s+/g, '-'), 
         name,
         type,
       },

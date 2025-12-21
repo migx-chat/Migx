@@ -6,6 +6,19 @@ This project is a cross-platform mobile chat application, built with React Nativ
 
 Preferred communication style: Simple, everyday language.
 
+# Recent Updates (Dec 21, 2025)
+
+## Feed System - Anonymous Posts Filtering & Avatars
+- **Backend**: Posts without username or with "Anonymous" are filtered out at API level (normalizeFeedItem)
+- **Frontend**: Double filter in normalizeFeedArray removes null/Anonymous usernames
+- **Avatar Display**: 40x40px rounded avatars now display in feed posts (from user database or placeholder)
+
+## Chat Tab - Room List Real-time Updates
+- **ChatList.tsx**: Now fetches joined rooms from `/api/chat/list/:username` with proper error logging
+- **ChatItem.tsx**: Accepts roomId parameter, uses SVG room icon, displays last message with timestamp
+- **Real-time**: Socket listeners for chatlist:update, chatlist:roomJoined, chatlist:roomLeft automatically reload room list
+- **Navigation**: Clicking room uses actual roomId from backend for proper navigation to chatroom
+
 # System Architecture
 
 ## Frontend Architecture
