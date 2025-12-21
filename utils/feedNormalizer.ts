@@ -51,21 +51,15 @@ export const normalizeFeedArray = (items: any[]): NormalizedPost[] => {
   }
   return items.map(item => {
     try {
-      return normalizeFeedItem(item);
+      const normalized = normalizeFeedItem(item);
+      // Filter out anonymous posts
+      if (normalized.username === 'Anonymous' || !normalized.username) {
+        return null;
+      }
+      return normalized;
     } catch (e) {
       console.error('Error normalizing feed item:', e);
-      return {
-        id: `error-${Date.now()}`,
-        username: 'Error',
-        content: 'Failed to load this post',
-        mediaType: null,
-        mediaUrl: null,
-        likes_count: 0,
-        comments_count: 0,
-        is_liked: false,
-        created_at: new Date().toISOString(),
-        avatar_url: 'https://via.placeholder.com/40',
-      } as NormalizedPost;
+      return null;
     }
-  });
+  }).filter((item): item is NormalizedPost => item !== null);
 };

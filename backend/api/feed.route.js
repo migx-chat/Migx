@@ -53,7 +53,7 @@ const normalizeFeedItem = async (feedData, feedId, redis) => {
     
     return {
       id: feed.id ?? feedId ?? '',
-      username: feed.username ?? 'Anonymous',
+      username: feed.username ?? null,
       content: feed.content ?? '',
       mediaType: feed.mediaType ?? null,
       mediaUrl: feed.image_url ?? null,
@@ -62,7 +62,7 @@ const normalizeFeedItem = async (feedData, feedId, redis) => {
       comments_count: commentsArray.length ?? 0,
       is_liked: false,
       created_at: feed.created_at ?? feed.createdAt ?? new Date().toISOString(),
-      avatar_url: 'https://via.placeholder.com/40',
+      avatar_url: feed.avatar_url || 'https://via.placeholder.com/40',
       userId: feed.userId ?? feed.user_id,
       user_id: feed.userId ?? feed.user_id,
     };
@@ -98,7 +98,7 @@ router.get('/', authMiddleware, async (req, res) => {
       if (feedData) {
         try {
           const normalized = await normalizeFeedItem(feedData, feedId, redis);
-          if (normalized) {
+          if (normalized && normalized.username) { // Filter out posts without username
             feeds.push(normalized);
           }
         } catch (e) {
@@ -227,7 +227,7 @@ router.post('/create', authMiddleware, handleUpload, async (req, res) => {
     const feedData = {
       id: feedId,
       userId,
-      username: username || 'Anonymous',
+      username: username,
       content: content || '',
       image_url: mediaUrl || null,
       mediaUrl: mediaUrl || null,
@@ -252,7 +252,7 @@ router.post('/create', authMiddleware, handleUpload, async (req, res) => {
     // Return normalized response with proper counts
     const response = {
       id: feedId,
-      username: username || 'Anonymous',
+      username: username,
       content: content || '',
       mediaType: mediaType || null,
       mediaUrl: mediaUrl || null,
