@@ -249,6 +249,58 @@ export default function PeoplePage() {
     );
   };
 
+  const renderUserItemFixed = ({ item }: { item: User }) => {
+    const config = ROLE_CONFIGS[item.role];
+
+    return (
+      <TouchableOpacity 
+        style={styles.userItem}
+        activeOpacity={0.7}
+        onPress={() => router.push(`/view-profile?userId=${item.id}`)}
+      >
+        {item.avatar ? (
+          <Image 
+            source={{ uri: item.avatar }} 
+            style={styles.userAvatarImage}
+          />
+        ) : (
+          <View style={[styles.userAvatar, { backgroundColor: theme.primary }]}>
+            <Text style={[styles.userAvatarText, { color: '#fff' }]}>
+              {item.username.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <View style={styles.userInfo}>
+          <View style={styles.userNameRow}>
+            <Text style={styles.userNameBlack} numberOfLines={1}>
+              {item.username}
+            </Text>
+            {item.gender && (
+              <View style={styles.genderIcon}>
+                {item.gender === 'male' ? (
+                  <MaleIcon size={14} color="#2196F3" />
+                ) : (
+                  <FemaleIcon size={14} color="#E91E63" />
+                )}
+              </View>
+            )}
+          </View>
+          {item.level && (
+            <View style={styles.levelBadge}>
+              <Image 
+                source={getLevelEggIcon(item.level)}
+                style={styles.eggIcon}
+              />
+              <Text style={[styles.levelText, { color: getLevelColor(item.level) }]}>
+                {item.level}
+              </Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const renderRoleCategory = (role: UserRole) => {
     const config = ROLE_CONFIGS[role];
     const users = usersData[role];
@@ -295,7 +347,7 @@ export default function PeoplePage() {
             {users.length > 0 ? (
               <FlatList
                 data={users}
-                renderItem={renderUserItem}
+                renderItem={renderUserItemFixed}
                 keyExtractor={(item) => item.id}
                 scrollEnabled={false}
               />
@@ -502,7 +554,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 12,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#D3D3D3',
     borderRadius: 10,
     marginBottom: 6,
   },
@@ -544,6 +596,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     flex: 1,
+  },
+  userNameBlack: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+    color: '#000',
   },
   genderIcon: {
     marginLeft: 4,
