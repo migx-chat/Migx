@@ -53,8 +53,21 @@ export function ChatList() {
 
   const loadUsername = async () => {
     try {
+      // Try to get username from user_data JSON first
+      const userDataStr = await AsyncStorage.getItem('user_data');
+      if (userDataStr) {
+        const userData = JSON.parse(userDataStr);
+        if (userData.username) {
+          console.log(`📝 Loaded username from user_data: ${userData.username}`);
+          setUsername(userData.username);
+          return;
+        }
+      }
+      
+      // Fallback: try direct username key
       const storedUsername = await AsyncStorage.getItem('username');
       if (storedUsername) {
+        console.log(`📝 Loaded username from storage: ${storedUsername}`);
         setUsername(storedUsername);
       }
     } catch (error) {
