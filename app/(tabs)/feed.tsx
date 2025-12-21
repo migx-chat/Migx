@@ -603,7 +603,9 @@ export default function FeedScreen() {
                   )}
                   keyExtractor={item => item.id.toString()}
                   contentContainerStyle={styles.commentsList}
+                  scrollEnabled={true}
                   keyboardShouldPersistTaps="handled"
+                  style={{ flex: 1 }}
                 />
 
                 <View style={[styles.commentInputContainer, { borderTopColor: theme.border }]}>
@@ -814,7 +816,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   commentsList: {
-    paddingVertical: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 0,
   },
   commentItem: {
     flexDirection: 'row',
@@ -844,7 +847,8 @@ const styles = StyleSheet.create({
   commentInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderTopWidth: 1,
   },
   commentInput: {
