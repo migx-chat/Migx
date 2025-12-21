@@ -14,52 +14,74 @@ router.get('/list/:username', async (req, res) => {
       });
     }
 
+    // Get user by username
+    const userService = require('../services/userService');
+    const user = await userService.getUserByUsername(username);
+    
+    if (!user) {
+      return res.json({
+        success: true,
+        rooms: [],
+        dms: []
+      });
+    }
+
+    // Fetch room history from DATABASE (primary source)
+    const rooms = await roomService.getUserRoomHistory(user.id, 50);
+
+    // Enrich with Redis data (viewer count, last message)
     const redis = getRedisClient();
+    const enrichedRooms = await Promise.all(
+      rooms.map(async (room) => {
+        try {
+          // Get viewer count from Redis (defaults to 0 if Redis is empty)
+          let viewerCount = 0;
+          try {
+            const count = await redis.sCard(`room:participants:${room.id}`);
+            viewerCount = count || 0;
+          } catch (err) {
+            viewerCount = 0;
+          }
 
-    // Clear and check key type first
-    try {
-      const keyType = await redis.type(`user:rooms:${username}`);
-      if (keyType !== 'set' && keyType !== 'none') {
-        console.log(`⚠️ Wrong key type for user:rooms:${username}: ${keyType}, clearing...`);
-        await redis.del(`user:rooms:${username}`);
-      }
-    } catch (err) {
-      console.log('Redis key type check error:', err.message);
-    }
+          // Get last message from Redis
+          let lastMessage = 'No messages yet';
+          let lastUsername = room.name;
+          let timestamp = room.last_joined_at;
+          
+          try {
+            const msgData = await redis.hGetAll(`room:lastmsg:${room.id}`);
+            if (msgData && msgData.message) {
+              lastMessage = msgData.message;
+              lastUsername = msgData.username || room.name;
+              timestamp = msgData.timestamp || room.last_joined_at;
+            }
+          } catch (err) {
+            // Keep defaults if Redis fails
+          }
 
-    const roomIds = await redis.sMembers(`user:rooms:${username}`);
-
-    console.log(`📋 User ${username} rooms from Redis:`, roomIds);
-
-    const rooms = [];
-    for (const roomId of roomIds) {
-      try {
-        const room = await roomService.getRoomById(roomId);
-        if (!room) {
-          // Remove invalid room from set
-          await redis.sRem(`user:rooms:${username}`, roomId);
-          continue;
+          return {
+            id: room.id,
+            name: room.name,
+            lastMessage,
+            lastUsername,
+            timestamp,
+            viewerCount,
+            lastJoinedAt: room.last_joined_at
+          };
+        } catch (err) {
+          console.error(`Error enriching room ${room.id}:`, err.message);
+          return null;
         }
+      })
+    );
 
-        const lastMsgData = await redis.hGetAll(`room:lastmsg:${roomId}`);
+    const validRooms = enrichedRooms.filter(r => r !== null);
 
-        rooms.push({
-          id: roomId,
-          name: room.name,
-          lastMessage: lastMsgData.message || 'No messages yet',
-          lastUsername: lastMsgData.username || room.name,
-          timestamp: lastMsgData.timestamp || Date.now().toString()
-        });
-      } catch (err) {
-        console.error(`Error getting room ${roomId}:`, err.message);
-      }
-    }
-
-    console.log(`✅ Returning ${rooms.length} rooms for ${username}`);
+    console.log(`✅ Returning ${validRooms.length} rooms for ${username} from DATABASE`);
 
     res.json({
       success: true,
-      rooms,
+      rooms: validRooms,
       dms: []
     });
 

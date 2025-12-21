@@ -349,6 +349,42 @@ const isUserBanned = async (roomId, userId, username) => {
   return await presence.isBanned(roomId, userId, username);
 };
 
+const saveRoomHistory = async (userId, roomId) => {
+  try {
+    await query(
+      `INSERT INTO user_room_history (user_id, room_id, last_joined_at, created_at)
+       VALUES ($1, $2, NOW(), NOW())
+       ON CONFLICT (user_id, room_id) DO UPDATE SET
+         last_joined_at = NOW()`,
+      [userId, roomId]
+    );
+    return true;
+  } catch (error) {
+    console.error('Error saving room history:', error);
+    return false;
+  }
+};
+
+const getUserRoomHistory = async (userId, limit = 50) => {
+  try {
+    const result = await query(
+      `SELECT r.id, r.name, r.description, r.owner_id, 
+              urh.last_joined_at, u.username as owner_name
+       FROM user_room_history urh
+       JOIN rooms r ON urh.room_id = r.id
+       LEFT JOIN users u ON r.owner_id = u.id
+       WHERE urh.user_id = $1
+       ORDER BY urh.last_joined_at DESC
+       LIMIT $2`,
+      [userId, limit]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error('Error getting user room history:', error);
+    return [];
+  }
+};
+
 module.exports = {
   createRoom,
   getRoomById,
@@ -370,5 +406,7 @@ module.exports = {
   banUser,
   unbanUser,
   getBannedUsers,
-  isUserBanned
+  isUserBanned,
+  saveRoomHistory,
+  getUserRoomHistory
 };

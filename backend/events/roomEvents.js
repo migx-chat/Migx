@@ -128,6 +128,9 @@ module.exports = (io, socket) => {
       // Add user to Redis presence
       await addUserToRoom(roomId, username);
       
+      // Save room history to DATABASE (for Chat menu)
+      await roomService.saveRoomHistory(userId, roomId);
+      
       // Add to participants (MIG33 style - Redis only)
       const { addRoomParticipant, getRoomParticipants } = require('../utils/redisUtils');
       await addRoomParticipant(roomId, username);

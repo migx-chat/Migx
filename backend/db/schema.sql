@@ -44,6 +44,16 @@ CREATE TABLE IF NOT EXISTS room_admins (
   UNIQUE(room_id, user_id)
 );
 
+-- User room history table (for Chat menu)
+CREATE TABLE IF NOT EXISTS user_room_history (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+  room_id BIGINT REFERENCES rooms(id) ON DELETE CASCADE,
+  last_joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, room_id)
+);
+
 -- User posts table
 CREATE TABLE IF NOT EXISTS user_posts (
   id BIGSERIAL PRIMARY KEY,
@@ -253,6 +263,9 @@ CREATE INDEX IF NOT EXISTS idx_feed_posts_user_id ON feed_posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_feed_posts_created_at ON feed_posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_feed_likes_post_id ON feed_likes(post_id);
 CREATE INDEX IF NOT EXISTS idx_feed_comments_post_id ON feed_comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_user_room_history_user_id ON user_room_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_room_history_room_id ON user_room_history(room_id);
+CREATE INDEX IF NOT EXISTS idx_user_room_history_last_joined ON user_room_history(last_joined_at DESC);
 
 
 -- Insert default rooms (only if they don't exist)

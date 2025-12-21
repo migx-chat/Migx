@@ -21,6 +21,7 @@ interface Room {
   lastMessage?: string;
   lastMessageTime?: string;
   unreadCount?: number;
+  viewerCount?: number;
 }
 
 export function ChatList() {
@@ -40,7 +41,10 @@ export function ChatList() {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/rooms`);
+      const userData = JSON.parse(userDataStr);
+      const username = userData.username;
+
+      const response = await fetch(`${API_BASE_URL}/api/chat/list/${username}`);
       const data = await response.json();
 
       if (data.success && Array.isArray(data.rooms)) {
@@ -48,9 +52,10 @@ export function ChatList() {
           id: `${room.id}`,
           roomId: `${room.id}`,
           name: room.name,
-          lastMessage: room.lastMessage || '',
-          lastMessageTime: room.lastMessageTime || new Date().toISOString(),
+          lastMessage: room.lastMessage || 'No messages yet',
+          lastMessageTime: room.timestamp || new Date().toISOString(),
           unreadCount: 0,
+          viewerCount: room.viewerCount || 0,
         }));
         setRooms(formattedRooms);
       } else {
@@ -128,7 +133,7 @@ export function ChatList() {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading chats...</Text>
+        <Text style={[styles.loadingText, { color: theme.secondary }]}>Loading chats...</Text>
       </View>
     );
   }
@@ -136,7 +141,7 @@ export function ChatList() {
   if (rooms.length === 0) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
-        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+        <Text style={[styles.emptyText, { color: theme.secondary }]}>
           No chats yet. Join a room to get started!
         </Text>
       </View>
