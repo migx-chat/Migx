@@ -3,6 +3,13 @@ const presence = require('../utils/presence');
 
 const createRoom = async (name, ownerId, creatorName, description = '') => {
   try {
+    // ✅ ANTI-DUPLICATION: Check if room already exists (case-insensitive)
+    const existingRoom = await getRoomByName(name);
+    if (existingRoom) {
+      console.warn(`⚠️ Room "${name}" already exists (ID: ${existingRoom.id}), returning existing room`);
+      return existingRoom;
+    }
+    
     // Generate MIGX-xxxxx format room_code
     const randomDigits = Math.floor(10000 + Math.random() * 90000);
     const roomCode = `MIGX-${randomDigits}`;
@@ -24,6 +31,7 @@ const createRoom = async (name, ownerId, creatorName, description = '') => {
       [roomId, ownerId]
     );
     
+    console.log(`✅ New room created: "${name}" (ID: ${roomId})`);
     return result.rows[0];
   } catch (error) {
     console.error('Error creating room:', error);
@@ -53,7 +61,7 @@ const getRoomByName = async (name) => {
       `SELECT r.*, u.username as owner_name
        FROM rooms r
        LEFT JOIN users u ON r.owner_id = u.id
-       WHERE r.name = $1`,
+       WHERE LOWER(r.name) = LOWER($1)`,
       [name]
     );
     return result.rows[0] || null;
