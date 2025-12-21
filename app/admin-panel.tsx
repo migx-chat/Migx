@@ -44,9 +44,25 @@ export default function AdminPanelScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
 
+  // Room Management States
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [roomsLoading, setRoomsLoading] = useState(false);
+  const [createRoomModalVisible, setCreateRoomModalVisible] = useState(false);
+  const [editRoomModalVisible, setEditRoomModalVisible] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<any>(null);
+  
+  const [roomName, setRoomName] = useState('');
+  const [roomDescription, setRoomDescription] = useState('');
+  const [roomCategory, setRoomCategory] = useState<'global' | 'managed' | 'games'>('global');
+  const [roomCapacity, setRoomCapacity] = useState('');
+  const [roomModalLoading, setRoomModalLoading] = useState(false);
+
   useEffect(() => {
     fetchUsers();
-  }, []);
+    if (selectedTab === 'rooms') {
+      fetchRooms();
+    }
+  }, [selectedTab]);
 
   const fetchUsers = async () => {
     try {
@@ -166,6 +182,195 @@ export default function AdminPanelScreen() {
         },
       ]
     );
+  };
+
+  const fetchRooms = async () => {
+    try {
+      setRoomsLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/rooms`);
+      const data = await response.json();
+      if (data.rooms) {
+        setRooms(data.rooms);
+      }
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+    } finally {
+      setRoomsLoading(false);
+    }
+  };
+
+  const handleCreateRoom = async () => {
+    if (!roomName.trim()) {
+      Alert.alert('Error', 'Please enter room name');
+      return;
+    }
+    if (!roomCapacity.trim() || isNaN(Number(roomCapacity)) || Number(roomCapacity) <= 0) {
+      Alert.alert('Error', 'Please enter valid capacity');
+      return;
+    }
+
+    setRoomModalLoading(true);
+    try {
+      const userData = await AsyncStorage.getItem('user_data');
+      if (!userData) {
+        Alert.alert('Error', 'Session expired. Please log in again.');
+        return;
+      }
+
+      const parsedData = JSON.parse(userData);
+      const token = parsedData?.token;
+
+      if (!token) {
+        Alert.alert('Error', 'Session expired. Please log in again.');
+        return;
+      }
+
+      const payload: any = {
+        name: roomName.trim(),
+        description: roomDescription.trim(),
+        max_users: Number(roomCapacity),
+        category: roomCategory,
+      };
+
+      if (roomCategory === 'managed') {
+        payload.owner_id = parsedData.id;
+        payload.owner_name = parsedData.username;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/admin/rooms/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', 'Room created successfully');
+        setRoomName('');
+        setRoomDescription('');
+        setRoomCapacity('');
+        setRoomCategory('global');
+        setCreateRoomModalVisible(false);
+        fetchRooms();
+      } else {
+        const error = await response.json();
+        Alert.alert('Error', error.error || 'Failed to create room');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create room');
+    } finally {
+      setRoomModalLoading(false);
+    }
+  };
+
+  const handleEditRoom = async () => {
+    if (!roomName.trim()) {
+      Alert.alert('Error', 'Please enter room name');
+      return;
+    }
+    if (!roomCapacity.trim() || isNaN(Number(roomCapacity)) || Number(roomCapacity) <= 0) {
+      Alert.alert('Error', 'Please enter valid capacity');
+      return;
+    }
+
+    setRoomModalLoading(true);
+    try {
+      const userData = await AsyncStorage.getItem('user_data');
+      if (!userData) {
+        Alert.alert('Error', 'Session expired. Please log in again.');
+        return;
+      }
+
+      const parsedData = JSON.parse(userData);
+      const token = parsedData?.token;
+
+      if (!token) {
+        Alert.alert('Error', 'Session expired. Please log in again.');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/admin/rooms/${selectedRoom.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: roomName.trim(),
+          description: roomDescription.trim(),
+          max_users: Number(roomCapacity),
+        }),
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', 'Room updated successfully');
+        setEditRoomModalVisible(false);
+        setSelectedRoom(null);
+        fetchRooms();
+      } else {
+        const error = await response.json();
+        Alert.alert('Error', error.error || 'Failed to update room');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update room');
+    } finally {
+      setRoomModalLoading(false);
+    }
+  };
+
+  const handleDeleteRoom = (room: any) => {
+    Alert.alert(
+      'Delete Room',
+      `Are you sure you want to delete "${room.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const userData = await AsyncStorage.getItem('user_data');
+              if (!userData) {
+                Alert.alert('Error', 'Session expired. Please log in again.');
+                return;
+              }
+
+              const parsedData = JSON.parse(userData);
+              const token = parsedData?.token;
+
+              if (!token) {
+                Alert.alert('Error', 'Session expired. Please log in again.');
+                return;
+              }
+
+              const response = await fetch(`${API_BASE_URL}/api/admin/rooms/${room.id}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+
+              if (response.ok) {
+                Alert.alert('Success', 'Room deleted successfully');
+                fetchRooms();
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete room');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const openEditModal = (room: any) => {
+    setSelectedRoom(room);
+    setRoomName(room.name || '');
+    setRoomDescription(room.description || '');
+    setRoomCapacity(String(room.max_users || room.maxUsers || ''));
+    setEditRoomModalVisible(true);
   };
 
   const filteredUsers = users.filter(user =>
@@ -564,12 +769,213 @@ export default function AdminPanelScreen() {
       )}
 
       {selectedTab === 'rooms' && (
-        <View style={styles.comingSoon}>
-          <Text style={[styles.comingSoonText, { color: theme.textSecondary }]}>
-            Room Management Coming Soon
-          </Text>
-        </View>
+        <>
+          <View style={[styles.roomHeader, { backgroundColor: theme.card }]}>
+            <TouchableOpacity
+              style={[styles.createButton, { backgroundColor: HEADER_COLOR }]}
+              onPress={() => {
+                setRoomName('');
+                setRoomDescription('');
+                setRoomCapacity('');
+                setRoomCategory('global');
+                setCreateRoomModalVisible(true);
+              }}
+            >
+              <Text style={styles.createButtonText}>+ Create Room</Text>
+            </TouchableOpacity>
+          </View>
+
+          {roomsLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={HEADER_COLOR} />
+            </View>
+          ) : (
+            <ScrollView style={styles.content}>
+              {rooms.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={[styles.emptyText, { color: theme.secondary }]}>No rooms yet</Text>
+                </View>
+              ) : (
+                rooms.map(room => (
+                  <View key={room.id} style={[styles.roomCard, { backgroundColor: theme.card }]}>
+                    <View style={styles.roomInfo}>
+                      <Text style={[styles.roomName, { color: theme.text }]}>{room.name}</Text>
+                      <Text style={[styles.roomMeta, { color: theme.secondary }]}>
+                        Category: {room.category || 'global'}
+                      </Text>
+                      <Text style={[styles.roomMeta, { color: theme.secondary }]}>
+                        Capacity: {room.max_users || room.maxUsers || 0}
+                      </Text>
+                      {room.owner_name && (
+                        <Text style={[styles.roomMeta, { color: theme.secondary }]}>
+                          Owner: {room.owner_name}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.roomActions}>
+                      <TouchableOpacity
+                        style={[styles.editButton, { backgroundColor: '#3498DB' }]}
+                        onPress={() => openEditModal(room)}
+                      >
+                        <Text style={styles.actionText}>Edit</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.deleteButton, { backgroundColor: '#E74C3C' }]}
+                        onPress={() => handleDeleteRoom(room)}
+                      >
+                        <Text style={styles.actionText}>Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          )}
+        </>
       )}
+
+      {/* Create Room Modal */}
+      <Modal
+        visible={createRoomModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCreateRoomModalVisible(false)}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Create Room</Text>
+              <TouchableOpacity onPress={() => setCreateRoomModalVisible(false)}>
+                <Text style={[styles.closeButton, { color: theme.text }]}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Room Name</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.card, color: theme.text }]}
+                placeholder="Enter room name"
+                placeholderTextColor={theme.secondary}
+                value={roomName}
+                onChangeText={setRoomName}
+              />
+
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Description</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.card, color: theme.text, minHeight: 80 }]}
+                placeholder="Enter description"
+                placeholderTextColor={theme.secondary}
+                value={roomDescription}
+                onChangeText={setRoomDescription}
+                multiline
+              />
+
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Category</Text>
+              <View style={styles.categoryButtons}>
+                {(['global', 'managed', 'games'] as const).map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.categoryButton,
+                      roomCategory === cat && styles.categoryButtonActive,
+                      { backgroundColor: roomCategory === cat ? HEADER_COLOR : theme.card }
+                    ]}
+                    onPress={() => setRoomCategory(cat)}
+                  >
+                    <Text style={[styles.categoryButtonText, { color: roomCategory === cat ? '#fff' : theme.text }]}>
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Capacity</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.card, color: theme.text }]}
+                placeholder="Enter capacity"
+                placeholderTextColor={theme.secondary}
+                value={roomCapacity}
+                onChangeText={setRoomCapacity}
+                keyboardType="number-pad"
+              />
+
+              <TouchableOpacity
+                style={[styles.submitButton, { backgroundColor: HEADER_COLOR }]}
+                onPress={handleCreateRoom}
+                disabled={roomModalLoading}
+              >
+                {roomModalLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Create Room</Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Edit Room Modal */}
+      <Modal
+        visible={editRoomModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditRoomModalVisible(false)}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Edit Room</Text>
+              <TouchableOpacity onPress={() => setEditRoomModalVisible(false)}>
+                <Text style={[styles.closeButton, { color: theme.text }]}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Room Name</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.card, color: theme.text }]}
+                placeholder="Enter room name"
+                placeholderTextColor={theme.secondary}
+                value={roomName}
+                onChangeText={setRoomName}
+              />
+
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Description</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.card, color: theme.text, minHeight: 80 }]}
+                placeholder="Enter description"
+                placeholderTextColor={theme.secondary}
+                value={roomDescription}
+                onChangeText={setRoomDescription}
+                multiline
+              />
+
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Capacity</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.card, color: theme.text }]}
+                placeholder="Enter capacity"
+                placeholderTextColor={theme.secondary}
+                value={roomCapacity}
+                onChangeText={setRoomCapacity}
+                keyboardType="number-pad"
+              />
+
+              <TouchableOpacity
+                style={[styles.submitButton, { backgroundColor: HEADER_COLOR }]}
+                onPress={handleEditRoom}
+                disabled={roomModalLoading}
+              >
+                {roomModalLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Update Room</Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {selectedTab === 'announcements' && (
         <View style={styles.comingSoon}>
@@ -791,6 +1197,107 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  roomHeader: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  createButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  createButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  roomCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  roomInfo: {
+    flex: 1,
+  },
+  roomName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  roomMeta: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  roomActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  editButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  deleteButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+  },
+  categoryButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  categoryButton: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  categoryButtonActive: {
+    backgroundColor: HEADER_COLOR,
+  },
+  categoryButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    fontSize: 24,
+  },
+  modalBody: {
+    padding: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
   },
   comingSoonText: {
     fontSize: 16,

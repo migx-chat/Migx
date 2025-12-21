@@ -180,4 +180,74 @@ router.post('/create-account', authMiddleware, superAdminMiddleware, async (req,
   }
 });
 
+// Room Management Endpoints
+router.post('/rooms/create', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try {
+    const { name, description, max_users, category, owner_id, owner_name } = req.body;
+    
+    if (!name || !max_users || max_users <= 0) {
+      return res.status(400).json({ error: 'Invalid room data' });
+    }
+    
+    const pool = getPool();
+    
+    const result = await pool.query(
+      `INSERT INTO rooms (name, description, max_users, category, owner_id, owner_name, created_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id, name, description, max_users, category, owner_name`,
+      [name, description || '', max_users, category || 'global', owner_id || null, owner_name || null]
+    );
+    
+    console.log(`✅ Room created: ${name} (${category})`);
+    res.json({ success: true, room: result.rows[0] });
+  } catch (error) {
+    console.error('Error creating room:', error);
+    res.status(500).json({ error: 'Failed to create room' });
+  }
+});
+
+router.put('/rooms/:roomId', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { name, description, max_users } = req.body;
+    
+    if (!name || !max_users || max_users <= 0) {
+      return res.status(400).json({ error: 'Invalid room data' });
+    }
+    
+    const pool = getPool();
+    
+    const result = await pool.query(
+      `UPDATE rooms SET name = $1, description = $2, max_users = $3 WHERE id = $4 
+       RETURNING id, name, description, max_users, category, owner_name`,
+      [name, description || '', max_users, roomId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+    
+    console.log(`✅ Room updated: ${name}`);
+    res.json({ success: true, room: result.rows[0] });
+  } catch (error) {
+    console.error('Error updating room:', error);
+    res.status(500).json({ error: 'Failed to update room' });
+  }
+});
+
+router.delete('/rooms/:roomId', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    
+    const pool = getPool();
+    
+    await pool.query('DELETE FROM rooms WHERE id = $1', [roomId]);
+    
+    console.log(`✅ Room deleted: ${roomId}`);
+    res.json({ success: true, message: 'Room deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting room:', error);
+    res.status(500).json({ error: 'Failed to delete room' });
+  }
+});
+
 module.exports = router;
