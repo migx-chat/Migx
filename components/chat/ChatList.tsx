@@ -150,7 +150,11 @@ export function ChatList() {
 
   const handleRoomLeft = (data: any) => {
     console.log('➖ Room left event:', data);
-    // Immediately reload to remove the room
+    // Immediately remove the room from chat list (don't wait for reload)
+    setChatData((prevData) => 
+      prevData.filter((chat) => chat.roomId !== `${data.roomId}`)
+    );
+    // Also reload from backend to stay in sync
     loadRooms();
   };
 

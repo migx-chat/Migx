@@ -385,6 +385,21 @@ const getUserRoomHistory = async (userId, limit = 50) => {
   }
 };
 
+const deleteUserRoomHistory = async (userId, roomId) => {
+  try {
+    const result = await query(
+      `DELETE FROM user_room_history 
+       WHERE user_id = $1 AND room_id = $2`,
+      [userId, roomId]
+    );
+    console.log(`🗑️ Deleted room ${roomId} from user ${userId} history`);
+    return true;
+  } catch (error) {
+    console.error('Error deleting room history:', error);
+    return false;
+  }
+};
+
 module.exports = {
   createRoom,
   getRoomById,
@@ -408,5 +423,6 @@ module.exports = {
   getBannedUsers,
   isUserBanned,
   saveRoomHistory,
-  getUserRoomHistory
+  getUserRoomHistory,
+  deleteUserRoomHistory
 };

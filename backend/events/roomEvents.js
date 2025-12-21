@@ -338,6 +338,9 @@ module.exports = (io, socket) => {
       socket.leave(`room:${roomId}`);
       await removeUserRoom(username, roomId);
 
+      // Remove room from user_room_history (DATABASE)
+      await roomService.deleteUserRoomHistory(userId, roomId);
+
       // Remove user from Redis presence
       await removeUserFromRoom(roomId, username);
       
