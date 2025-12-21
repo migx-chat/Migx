@@ -18,6 +18,22 @@ import Svg, { Path } from 'react-native-svg';
 import { useThemeCustom } from '@/theme/provider';
 import { API_ENDPOINTS } from '@/utils/api';
 
+const getLevelColor = (level: number): string => {
+  if (level >= 1 && level <= 2) return '#2196F3'; // Blue
+  if (level >= 3 && level <= 4) return '#4CAF50'; // Green
+  if (level >= 5 && level <= 6) return '#F44336'; // Red
+  if (level >= 7 && level <= 8) return '#FFC107'; // Yellow
+  return '#FFFFFF'; // White for 9+
+};
+
+const getLevelEggIcon = (level: number): any => {
+  if (level >= 1 && level <= 2) return require('@/assets/ic_level/ic_eggblue.png');
+  if (level >= 3 && level <= 4) return require('@/assets/ic_level/ic_egggreen.png');
+  if (level >= 5 && level <= 6) return require('@/assets/ic_level/ic_eggred.png');
+  if (level >= 7 && level <= 8) return require('@/assets/ic_level/ic_eggyellow.png');
+  return require('@/assets/ic_level/ic_eggwhite.png');
+};
+
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const CloseIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
@@ -114,29 +130,29 @@ const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
   admin: {
     label: 'ADMIN',
     color: '#FF8C42',
-    bgColor: '#ADD8E6',
-    textColor: '#2E5C8A',
+    bgColor: '#1B5E20',
+    textColor: '#FFFFFF',
     abbreviation: 'A'
   },
   care_service: {
     label: 'CS',
     color: '#4A90E2',
-    bgColor: '#ADD8E6',
-    textColor: '#2E5C8A',
+    bgColor: '#1B5E20',
+    textColor: '#FFFFFF',
     abbreviation: 'CS'
   },
   mentor: {
     label: 'MENTOR',
     color: '#E74C3C',
-    bgColor: '#ADD8E6',
-    textColor: '#2E5C8A',
+    bgColor: '#1B5E20',
+    textColor: '#FFFFFF',
     abbreviation: 'MT'
   },
   merchant: {
     label: 'MERCHANT',
     color: '#9B59B6',
-    bgColor: '#ADD8E6',
-    textColor: '#2E5C8A',
+    bgColor: '#1B5E20',
+    textColor: '#FFFFFF',
     abbreviation: 'M'
   }
 };
@@ -219,7 +235,13 @@ export default function PeoplePage() {
           </View>
           {item.level && (
             <View style={styles.levelBadge}>
-              <Text style={styles.levelText}>Level {item.level}</Text>
+              <Image 
+                source={getLevelEggIcon(item.level)}
+                style={styles.eggIcon}
+              />
+              <Text style={[styles.levelText, { color: getLevelColor(item.level) }]}>
+                {item.level}
+              </Text>
             </View>
           )}
         </View>
@@ -527,16 +549,22 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   levelBadge: {
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+    paddingVertical: 4,
+    borderRadius: 0,
     marginTop: 4,
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  eggIcon: {
+    width: 16,
+    height: 16,
   },
   levelText: {
-    fontSize: 11,
-    color: '#1976D2',
+    fontSize: 12,
     fontWeight: '600',
   },
   emptyContainer: {
