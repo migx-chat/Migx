@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingVertical: 10, // Increased padding
     gap: 6,
   },
   iconButton: {

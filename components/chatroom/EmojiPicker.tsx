@@ -40,7 +40,7 @@ export function EmojiPicker({ visible, onClose, onEmojiSelect, bottomOffset = 0 
         { 
           backgroundColor: theme.card,
           transform: [{ translateY }],
-          bottom: INPUT_HEIGHT + bottomOffset,
+          bottom: INPUT_HEIGHT + bottomOffset + 5, // Added extra small offset to prevent overlap
         }
       ]}
     >
@@ -116,19 +116,20 @@ const styles = StyleSheet.create({
   emojiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
     paddingVertical: 12,
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
   emojiButton: {
-    width: 36,
-    height: 36,
-    margin: 2,
-    borderRadius: 6,
+    width: '18%', // Approx 5 items per row for better spacing
+    aspectRatio: 1,
+    marginVertical: 4,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   emojiImage: {
-    width: 22,
-    height: 22,
+    width: '70%',
+    height: '70%',
   },
 });
