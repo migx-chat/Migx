@@ -79,6 +79,7 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
     
     const targetRoute = VISIBLE_TABS[targetIdx];
     if (targetRoute) {
+      // Use navigation.navigate with exact route name to ensure no skipping
       navigation.navigate(targetRoute);
     }
   }, [navigation]);
@@ -87,7 +88,7 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
     .activeOffsetX([-20, 20])
     .failOffsetY([-20, 20])
     .maxPointers(1)
-    .minDistance(5)
+    .minDistance(10) // Slightly increased to avoid accidental jumps
     .onStart(() => {
       'worklet';
       const currentVisualIdx = VISIBLE_TABS.indexOf(currentRouteName);
@@ -100,7 +101,8 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
       const currentVisualIdx = VISIBLE_TABS.indexOf(currentRouteName);
       if (currentVisualIdx < 0) return;
       
-      const progress = -event.translationX / (SCREEN_WIDTH * 0.5);
+      // Calculate progress relative to current tab
+      const progress = -event.translationX / SCREEN_WIDTH;
       const newIdx = Math.max(0, Math.min(TOTAL_TABS - 1, currentVisualIdx + progress));
       animatedIndex.value = newIdx;
     })
@@ -117,13 +119,14 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
 
       let targetIdx = currentVisualIdx;
 
+      // STRICT ONE-TAB NAVIGATION
       // Swipe ke kiri (jari geser ke kiri -> mau ke tab kanan/next)
-      if ((tx < -SCREEN_WIDTH * 0.15 || vx < -VELOCITY_THRESHOLD) && currentVisualIdx < MAX_TAB_INDEX) {
+      if ((tx < -SCREEN_WIDTH * 0.1 || vx < -VELOCITY_THRESHOLD) && currentVisualIdx < MAX_TAB_INDEX) {
         targetIdx = currentVisualIdx + 1;
         runOnJS(navigateToTab)(targetIdx);
       } 
       // Swipe ke kanan (jari geser ke kanan -> mau ke tab kiri/prev)
-      else if ((tx > SCREEN_WIDTH * 0.15 || vx > VELOCITY_THRESHOLD) && currentVisualIdx > 0) {
+      else if ((tx > SCREEN_WIDTH * 0.1 || vx > VELOCITY_THRESHOLD) && currentVisualIdx > 0) {
         targetIdx = currentVisualIdx - 1;
         runOnJS(navigateToTab)(targetIdx);
       }
