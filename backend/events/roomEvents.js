@@ -388,7 +388,9 @@ module.exports = (io, socket) => {
       }
 
       // Delete room history from DATABASE immediately on leave
-      await roomService.deleteUserRoomHistory(presenceUserId, roomId);
+      if (presenceUserId) {
+        await roomService.deleteUserRoomHistory(presenceUserId, roomId);
+      }
 
       // Remove from participants (MIG33 style)
       const { removeRoomParticipant, getRoomParticipants } = require('../utils/redisUtils');
