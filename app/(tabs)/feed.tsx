@@ -185,7 +185,13 @@ export default function FeedScreen() {
     });
 
     if (!result.canceled) {
-      setSelectedVideo(result.assets[0].uri);
+      const video = result.assets[0];
+      // Check duration if available (duration is in milliseconds)
+      if (video.duration && video.duration > 16000) {
+        Alert.alert('Video Too Long', 'Video duration must be 16 seconds or less.');
+        return;
+      }
+      setSelectedVideo(video.uri);
       setSelectedImage(null);
     }
   };
@@ -548,9 +554,12 @@ export default function FeedScreen() {
                     <CameraIcon color={theme.primary} size={28} />
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.iconButton} onPress={pickVideo}>
-                    <VideoIcon color={theme.primary} size={28} />
-                  </TouchableOpacity>
+                  <View style={{ alignItems: 'center' }}>
+                    <TouchableOpacity style={styles.iconButton} onPress={pickVideo}>
+                      <VideoIcon color={theme.primary} size={28} />
+                    </TouchableOpacity>
+                    <Text style={{ fontSize: 10, color: theme.secondary, marginTop: -5 }}>Max 16s</Text>
+                  </View>
 
                   <TouchableOpacity onPress={handleCreatePost} disabled={posting}>
                     <LinearGradient
