@@ -143,16 +143,55 @@ router.get('/recent/:username', async (req, res) => {
       return res.status(400).json({ error: 'Username is required' });
     }
     
-    const recentRooms = await getRecentRooms(username);
+    // Get user by username to get ID for history
+    const userService = require('../services/userService');
+    const user = await userService.getUserByUsername(username);
+    
+    // 1. Get recent rooms from Redis (active sessions)
+    const redisRecent = await getRecentRooms(username);
+    
+    // 2. Get history rooms from Database
+    let dbHistory = [];
+    if (user) {
+      dbHistory = await roomService.getUserRoomHistory(user.id, 20);
+    }
+    
+    // Merge and unique by roomId
+    const combinedMap = new Map();
+    
+    // Add Redis recent first
+    redisRecent.forEach(r => {
+      combinedMap.set(r.roomId.toString(), {
+        id: r.roomId.toString(),
+        name: r.roomName,
+        timestamp: r.timestamp || Date.now()
+      });
+    });
+    
+    // Add DB history
+    dbHistory.forEach(r => {
+      if (!combinedMap.has(r.id.toString())) {
+        combinedMap.set(r.id.toString(), {
+          id: r.id.toString(),
+          name: r.name,
+          timestamp: r.last_joined_at
+        });
+      }
+    });
+    
+    const combinedRooms = Array.from(combinedMap.values())
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 15);
+
     const roomsWithDetails = await Promise.all(
-      recentRooms.map(async (r) => {
-        const room = await roomService.getRoomById(r.roomId);
+      combinedRooms.map(async (r) => {
+        const room = await roomService.getRoomById(r.id);
         if (!room) return null;
-        const userCount = await presence.getRoomUserCount(r.roomId);
+        const userCount = await presence.getRoomUserCount(r.id);
         return {
           id: room.id,
-          roomId: r.roomId,
-          name: room.name || r.roomName,
+          roomId: r.id,
+          name: room.name,
           description: room.description || '',
           maxUsers: room.max_users || 50,
           userCount,

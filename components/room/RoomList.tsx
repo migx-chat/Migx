@@ -261,7 +261,7 @@ export function RoomList() {
         <RoomCategory
           title="Recent Rooms"
           rooms={recentRooms.map(formatRoomForDisplay)}
-          backgroundColor={theme.card}
+          backgroundColor="#0a5229"
           onRoomPress={handleRoomPress}
         />
         
