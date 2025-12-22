@@ -173,19 +173,9 @@ export function EditProfileStats({
     }
   };
 
-  const handleFollowPress = async () => {
+  const handleFollowPress = () => {
     if (onFollowPress) {
       onFollowPress();
-      // Implement notification logic here
-      try {
-        await fetch(API_ENDPOINTS.NOTIFICATION.SEND(userId), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: 'started following you' }),
-        });
-      } catch (error) {
-        console.error('Error sending follow notification:', error);
-      }
     }
   };
 

@@ -128,19 +128,33 @@ export default function ViewProfileScreen() {
 
 
   const handlePostPress = () => {
-    console.log('View posts');
+    // Navigate to user's posts
+    Alert.alert('Posts', `Viewing ${profileData?.user?.username}'s posts`);
   };
 
   const handleGiftPress = () => {
-    console.log('View gifts');
+    // Navigate to gift store with target user
+    Alert.alert('Gift', `Send gift to ${profileData?.user?.username}`);
   };
 
   const handleFollowersPress = () => {
-    console.log('View followers');
+    // Navigate to followers list
+    Alert.alert('Followers', `${profileData?.user?.username}'s followers`);
   };
 
   const handleFollowingPress = () => {
-    console.log('View following');
+    // Navigate to following list
+    Alert.alert('Following', `${profileData?.user?.username}'s following`);
+  };
+
+  const handleChatPress = () => {
+    // Navigate to DM with this user
+    Alert.alert('Chat', `Start chat with ${profileData?.user?.username}`);
+  };
+
+  const handleFootprintPress = () => {
+    // Navigate to footprint (visitors/views)
+    Alert.alert('Footprint', `${profileData?.user?.username}'s footprint`);
   };
 
   if (loading) {
@@ -185,6 +199,9 @@ export default function ViewProfileScreen() {
                 onGiftPress={handleGiftPress}
                 onFollowersPress={handleFollowersPress}
                 onFollowingPress={handleFollowingPress}
+                onFollowPress={handleFollowPress}
+                onChatPress={handleChatPress}
+                onFootprintPress={handleFootprintPress}
               />
             </>
           )}

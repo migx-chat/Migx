@@ -171,24 +171,7 @@ export function ViewProfileHeader({
         </TouchableOpacity>
       </View>
 
-      {/* Menu Items */}
-      <View style={styles.menuContainer}>
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="people" size={24} color="#4A90E2" />
-          <Text style={styles.menuLabel}>Follow</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="footsteps" size={24} color="#4A90E2" />
-          <Text style={styles.menuLabel}>Footprint</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="gift" size={24} color="#4A90E2" />
-          <Text style={styles.menuLabel}>Gift</Text>
-        </TouchableOpacity>
       </View>
-    </View>
   );
 }
 
@@ -270,7 +253,7 @@ const styles = StyleSheet.create({
   },
   username: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: 'normal',
     color: '#000',
   },
   subtitle: {
@@ -335,23 +318,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginLeft: 4,
-  },
-  menuContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    justifyContent: 'space-around',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingTop: 12,
-  },
-  menuItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  menuLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
   },
 });
