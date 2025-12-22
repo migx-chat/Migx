@@ -4,35 +4,43 @@ import {
   Image,
   StyleSheet,
   TouchableOpacity,
-  Modal,
   ActivityIndicator,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Video, ResizeMode } from 'expo-av';
 
 interface FeedMediaProps {
-  url?: string;
-  type?: 'image' | 'video';
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video' | string | null;
   onPress?: () => void;
+  // Support legacy props if any
+  url?: string;
+  type?: string;
 }
 
-const FeedMedia: React.FC<FeedMediaProps> = ({ url, type = 'image', onPress }) => {
+const FeedMedia: React.FC<FeedMediaProps> = ({ mediaUrl, mediaType, url, type, onPress }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
-  if (!url) {
+  const finalUrl = mediaUrl || url;
+  const finalType = mediaType || type || 'image';
+
+  if (!finalUrl) {
     return null;
   }
+
+  const isVideo = finalType === 'video' || (typeof finalUrl === 'string' && finalUrl.match(/\.(mp4|mov|avi|wmv)$|video/i));
 
   return (
     <TouchableOpacity
       onPress={onPress}
       style={styles.container}
       activeOpacity={0.7}
+      disabled={!onPress}
     >
-      {type === 'image' ? (
+      {!isVideo ? (
         <Image
-          source={{ uri: url }}
+          source={{ uri: finalUrl }}
           style={styles.media}
           onLoadStart={() => setLoading(true)}
           onLoadEnd={() => setLoading(false)}
@@ -43,15 +51,25 @@ const FeedMedia: React.FC<FeedMediaProps> = ({ url, type = 'image', onPress }) =
         />
       ) : (
         <View style={styles.videoContainer}>
-          <Image
-            source={{ uri: url }}
+          <Video
+            source={{ uri: finalUrl }}
             style={styles.media}
+            useNativeControls
+            resizeMode={ResizeMode.COVER}
+            isLooping
+            shouldPlay={false}
             onLoadStart={() => setLoading(true)}
-            onLoadEnd={() => setLoading(false)}
+            onLoad={() => setLoading(false)}
+            onError={() => {
+              setError(true);
+              setLoading(false);
+            }}
           />
-          <View style={styles.playButton}>
-            <Ionicons name="play" size={40} color="white" />
-          </View>
+          {!loading && !onPress && (
+             <View style={styles.playButton} pointerEvents="none">
+               <Ionicons name="play" size={40} color="white" />
+             </View>
+          )}
         </View>
       )}
       {loading && (

@@ -239,15 +239,15 @@ router.post('/create', authMiddleware, handleUpload, async (req, res) => {
       is_liked: false,
     };
 
-    // Save to Redis with 1 hour TTL (3600 seconds)
+    // Save to Redis with 24 hours TTL (86400 seconds)
     const redis = getRedisClient();
     await redis.setEx(
       `feed:${feedId}`,
-      3600, // TTL in seconds (1 hour)
+      86400, // TTL in seconds (24 hours)
       JSON.stringify(feedData)
     );
 
-    console.log(`📌 Feed saved to Redis with 1 hour TTL: feed:${feedId}`);
+    console.log(`📌 Feed saved to Redis with 24 hours TTL: feed:${feedId}`);
 
     // Return normalized response with proper counts
     const response = {
@@ -302,7 +302,7 @@ router.post('/:feedId/like', authMiddleware, async (req, res) => {
       res.json({ success: true, action: 'unliked' });
     } else {
       // Like
-      await redis.set(userLikeKey, '1', { EX: 3600 }); // Same TTL as feed
+      await redis.set(userLikeKey, '1', { EX: 86400 }); // Same TTL as feed (24h)
       await redis.incr(likeKey);
       res.json({ success: true, action: 'liked' });
     }
@@ -385,7 +385,7 @@ router.post('/:feedId/comment', authMiddleware, async (req, res) => {
     const ttl = await redis.ttl(feedKey);
     await redis.setEx(
       commentsKey,
-      ttl > 0 ? ttl : 3600,
+      ttl > 0 ? ttl : 86400,
       JSON.stringify(comments)
     );
 
