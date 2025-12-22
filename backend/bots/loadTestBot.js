@@ -54,13 +54,15 @@ async function runLoadTest() {
     socket.on('connect', () => {
       console.log(`[Bot ${i+1}] ${username} TERHUBUNG (ID: ${socket.id})`);
       
-      // Emit join room dengan parameter lengkap
-      console.log(`[Bot ${i+1}] ${username} mencoba JOIN ke room ${ROOM_ID}...`);
-      socket.emit('room:join', { 
-        roomId: ROOM_ID, 
-        userId: (1000 + i).toString(),
-        username: username 
-      });
+      // Tunggu sebentar setelah connect sebelum join
+      setTimeout(() => {
+        console.log(`[Bot ${i+1}] ${username} mencoba JOIN ke room ${ROOM_ID}...`);
+        socket.emit('room:join', { 
+          roomId: parseInt(ROOM_ID), 
+          userId: (1000 + i).toString(),
+          username: username 
+        });
+      }, 1000);
     });
 
     socket.on('room:joined', (data) => {
