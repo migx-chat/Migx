@@ -206,6 +206,12 @@ export default function ChatRoomScreen() {
   const handleSendMessage = useCallback((message: string) => {
     if (!socket || !message.trim() || !currentUserId) return;
     
+    // Check if user is still in the room
+    if (!roomUsers.includes(currentUsername)) {
+      Alert.alert('Not in Room', `You are not in the room ${roomName}`);
+      return;
+    }
+    
     console.log("MESSAGE SEND", currentActiveRoomId, message.trim());
     socket.emit('chat:message', {
       roomId: currentActiveRoomId,
@@ -213,7 +219,7 @@ export default function ChatRoomScreen() {
       username: currentUsername,
       message: message.trim(),
     });
-  }, [socket, currentUserId, currentUsername, currentActiveRoomId]);
+  }, [socket, currentUserId, currentUsername, currentActiveRoomId, roomUsers, roomName]);
 
   const handleSelectUserToKick = (target: string) => {
     Alert.alert('Start Vote Kick', `Kick ${target} for 500 IDR?`, [

@@ -8,6 +8,12 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Updates (Dec 22, 2025)
 
+## Message Send Validation - Left Room Warning
+- **Frontend Check**: Before sending message, checks if `currentUsername` exists in `roomUsers` array
+- **User Experience**: If user left the room but tab is still open, shows alert: "You are not in the room {roomName}"
+- **Implementation**: Added check in `handleSendMessage()` function to validate room membership
+- **Prevents**: Messages being sent after user leaves, avoiding "not in room" backend errors
+
 ## Room Participant Sync - Redis Set as Single Source of Truth
 - **Backend Redis Storage**: `room:{roomId}:participants` = Redis Set of usernames (classic MIG33 style)
 - **Functions Updated**:
