@@ -130,9 +130,6 @@ export function ContactItem({
       </View>
 
       <View style={styles.rightSection}>
-        <Text style={[styles.presenceText, { color: getPresenceColor(effectivePresence) }]}>
-          {getPresenceLabel(effectivePresence)}
-        </Text>
         {lastSeen && (
           <Text style={[styles.lastSeen, { color: theme.secondary }]} numberOfLines={1}>
             {lastSeen}

@@ -28,6 +28,12 @@ export const API_ENDPOINTS = {
   USER: {
     PROFILE: `${API_BASE_URL}/api/user/profile`,
     UPDATE: `${API_BASE_URL}/api/user/update`,
+    BY_ID: (id: string) => `${API_BASE_URL}/api/users/${id}`,
+    BY_USERNAME: (username: string) => `${API_BASE_URL}/api/users/username/${username}`,
+    SEARCH: (query: string, limit: number = 20) => `${API_BASE_URL}/api/users/search?q=${query}&limit=${limit}`,
+    ONLINE: (limit: number = 50) => `${API_BASE_URL}/api/users/online?limit=${limit}`,
+    UPDATE_ROLE: (id: string) => `${API_BASE_URL}/api/users/${id}/role`,
+    UPDATE_STATUS_MESSAGE: (id: string) => `${API_BASE_URL}/api/users/${id}/status-message`,
   },
   PROFILE: {
     AVATAR_UPLOAD: `${API_BASE_URL}/api/profile/avatar/upload`,
@@ -46,7 +52,7 @@ export const API_ENDPOINTS = {
     STATS: (userId: string) => `${API_BASE_URL}/api/profile/stats/${userId}`,
   },
   VIEW_PROFILE: {
-    GET: (userId: string, viewerId?: string) => 
+    GET: (userId: string, viewerId?: string) =>
       `${API_BASE_URL}/api/viewprofile/${userId}${viewerId ? `?viewerId=${viewerId}` : ''}`,
   },
   ANNOUNCEMENT: {

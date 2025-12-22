@@ -1,7 +1,9 @@
 
-import React from 'react';
-import { View, Text, StyleSheet, TextInput, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, Image, TouchableOpacity, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeCustom } from '@/theme/provider';
+import { API_ENDPOINTS } from '@/utils/api';
 import Svg, { Path, Circle } from 'react-native-svg';
 
 const BellIcon = ({ size = 20, color = '#fff' }: { size?: number; color?: string }) => (
@@ -26,6 +28,66 @@ const EggIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string 
 
 export function StatusSection() {
   const { theme } = useThemeCustom();
+  const [statusMessage, setStatusMessage] = useState('');
+  const [userData, setUserData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const userDataStr = await AsyncStorage.getItem('user_data');
+      if (userDataStr) {
+        const data = JSON.parse(userDataStr);
+        setUserData(data);
+        setStatusMessage(data.status_message || '');
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  const saveStatusMessage = async () => {
+    if (!userData?.id) {
+      Alert.alert('Error', 'User not logged in');
+      return;
+    }
+
+    if (statusMessage.length > 100) {
+      Alert.alert('Error', 'Status message too long (max 100 characters)');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_ENDPOINTS.USER.UPDATE_STATUS_MESSAGE(userData.id)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ statusMessage }),
+      });
+
+      if (response.ok) {
+        const updatedUserData = { 
+          ...userData, 
+          status_message: statusMessage,
+        };
+        await AsyncStorage.setItem('user_data', JSON.stringify(updatedUserData));
+        setUserData(updatedUserData);
+        Alert.alert('Success', 'Status message updated!');
+      } else {
+        Alert.alert('Error', 'Failed to update status message');
+      }
+    } catch (error) {
+      console.error('Error updating status message:', error);
+      Alert.alert('Error', 'Failed to update status message');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   return (
     <View style={[styles.container, { backgroundColor: '#e68e22' }]}>
@@ -34,19 +96,36 @@ export function StatusSection() {
         <View style={styles.leftSection}>
           <View style={styles.avatarContainer}>
             <Image 
-              source={{ uri: 'https://via.placeholder.com/50' }}
+              source={{ uri: userData?.avatar ? `${API_ENDPOINTS.BASE_URL}${userData.avatar}` : 'https://via.placeholder.com/50' }}
               style={styles.avatar}
             />
             <View style={[styles.statusDot, { backgroundColor: '#4CAF50' }]} />
           </View>
           
           <View style={styles.inputContainer}>
-            <Text style={[styles.username, { color: theme.text }]}>h________</Text>
-            <TextInput
-              style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.border }]}
-              placeholder="<Enter your status message>"
-              placeholderTextColor={theme.text + '80'}
-            />
+            <Text style={[styles.username, { color: theme.text }]}>
+              {userData?.username || 'Loading...'}
+            </Text>
+            <View style={styles.inputRow}>
+              <TextInput
+                style={[styles.input, { color: theme.text, backgroundColor: theme.background, borderColor: theme.border }]}
+                placeholder="<Enter your status message>"
+                placeholderTextColor={theme.text + '80'}
+                value={statusMessage}
+                onChangeText={setStatusMessage}
+                maxLength={100}
+                editable={!isLoading}
+              />
+              <TouchableOpacity 
+                style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
+                onPress={saveStatusMessage}
+                disabled={isLoading}
+              >
+                <Text style={styles.saveButtonText}>
+                  {isLoading ? '...' : 'Save'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
@@ -100,12 +179,32 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 4,
   },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   input: {
+    flex: 1,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 14,
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#999',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   rightSection: {
     flexDirection: 'row',
