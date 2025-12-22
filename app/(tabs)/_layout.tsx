@@ -24,12 +24,12 @@ const VELOCITY_THRESHOLD = 300;
 
 const TAB_CONFIG: Record<string, { title: string; icon: (props: { color: string; size: number }) => React.ReactNode }> = {
   'index': { title: 'Home', icon: HomeIcon },
-  'chat': { title: 'Chat', icon: ChatIcon },
   'feed': { title: 'Feed', icon: FeedIcon },
+  'chat': { title: 'Chat', icon: ChatIcon },
   'room': { title: 'Room', icon: RoomIcon },
 };
 
-const VISIBLE_TABS = ['index', 'chat', 'feed', 'room'];
+const VISIBLE_TABS = ['index', 'feed', 'chat', 'room'];
 const TOTAL_TABS = VISIBLE_TABS.length;
 const MAX_TAB_INDEX = TOTAL_TABS - 1;
 
@@ -55,9 +55,9 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
 
   useEffect(() => {
     animatedIndex.value = withSpring(currentIdx, {
-      damping: 18,
-      stiffness: 180,
-      mass: 0.3,
+      damping: 24,
+      stiffness: 250,
+      mass: 0.2,
     });
   }, [currentIdx]);
 
@@ -84,13 +84,12 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
   }, [navigation]);
 
   const panGesture = Gesture.Pan()
-    .activeOffsetX([-30, 30])
-    .failOffsetY([-30, 30])
+    .activeOffsetX([-20, 20])
+    .failOffsetY([-20, 20])
     .maxPointers(1)
-    .minDistance(10)
+    .minDistance(5)
     .onStart(() => {
       'worklet';
-      // Lock current index saat mulai swipe
       const currentVisualIdx = VISIBLE_TABS.indexOf(currentRouteName);
       if (currentVisualIdx >= 0) {
         animatedIndex.value = currentVisualIdx;
@@ -101,8 +100,7 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
       const currentVisualIdx = VISIBLE_TABS.indexOf(currentRouteName);
       if (currentVisualIdx < 0) return;
       
-      // Hitung pergerakan indicator
-      const progress = -event.translationX / (SCREEN_WIDTH * 0.7);
+      const progress = -event.translationX / (SCREEN_WIDTH * 0.5);
       const newIdx = Math.max(0, Math.min(TOTAL_TABS - 1, currentVisualIdx + progress));
       animatedIndex.value = newIdx;
     })
@@ -119,22 +117,19 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
 
       let targetIdx = currentVisualIdx;
 
-      // Swipe ke kiri (next tab)
-      if ((tx < -SWIPE_THRESHOLD || vx < -VELOCITY_THRESHOLD) && currentVisualIdx < MAX_TAB_INDEX) {
+      if ((tx < -30 || vx < -200) && currentVisualIdx < MAX_TAB_INDEX) {
         targetIdx = currentVisualIdx + 1;
         runOnJS(navigateToTab)(targetIdx);
       } 
-      // Swipe ke kanan (prev tab)
-      else if ((tx > SWIPE_THRESHOLD || vx > VELOCITY_THRESHOLD) && currentVisualIdx > 0) {
+      else if ((tx > 30 || vx > 200) && currentVisualIdx > 0) {
         targetIdx = currentVisualIdx - 1;
         runOnJS(navigateToTab)(targetIdx);
       }
       
-      // Animate ke target
       animatedIndex.value = withSpring(targetIdx, {
-        damping: 20,
-        stiffness: 200,
-        mass: 0.5,
+        damping: 25,
+        stiffness: 300,
+        mass: 0.4,
       });
     });
 
@@ -203,8 +198,8 @@ export default function TabLayout() {
       tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tabs.Screen name="index" options={{ title: 'Home' }} />
-      <Tabs.Screen name="chat" options={{ title: 'Chat' }} />
       <Tabs.Screen name="feed" options={{ title: 'Feed' }} />
+      <Tabs.Screen name="chat" options={{ title: 'Chat' }} />
       <Tabs.Screen name="room" options={{ title: 'Room' }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="explore" options={{ href: null }} />
