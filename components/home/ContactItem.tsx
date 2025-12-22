@@ -12,6 +12,8 @@ interface ContactItemProps {
   isOnline?: boolean;
   lastSeen?: string;
   avatar?: string;
+  onPress?: () => void;
+  onStatusUpdate?: (newStatus: string) => void;
 }
 
 const getPresenceColor = (presence: PresenceStatus): string => {
@@ -76,7 +78,9 @@ export function ContactItem({
   presence,
   isOnline = false, 
   lastSeen, 
-  avatar 
+  avatar,
+  onPress,
+  onStatusUpdate
 }: ContactItemProps) {
   const { theme } = useThemeCustom();
 
@@ -85,7 +89,10 @@ export function ContactItem({
   const parsedStatus = status ? parseEmojiMessage(status) : [];
 
   return (
-    <TouchableOpacity style={[styles.container, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
+    <TouchableOpacity 
+      style={[styles.container, { backgroundColor: theme.background, borderBottomColor: theme.border }]}
+      onPress={onPress}
+    >
       <View style={styles.leftSection}>
         <View style={styles.avatarContainer}>
           <View style={[styles.avatar, { backgroundColor: theme.card }]}>
@@ -109,7 +116,7 @@ export function ContactItem({
               </View>
             )}
           </View>
-          {status && (
+          {status && status.trim() !== '' ? (
             <View style={styles.statusContainer}>
               {parsedStatus.map((part, index) => (
                 part.type === 'emoji' ? (
@@ -119,16 +126,15 @@ export function ContactItem({
                 )
               ))}
             </View>
+          ) : (
+            <Text style={[styles.status, { color: theme.secondary, fontStyle: 'italic' }]}>
+              No status message
+            </Text>
           )}
         </View>
       </View>
 
       <View style={styles.rightSection}>
-        {lastSeen && (
-          <Text style={[styles.lastSeen, { color: theme.secondary }]} numberOfLines={1}>
-            {lastSeen}
-          </Text>
-        )}
         <Text style={[styles.presenceText, { color: getPresenceColor(effectivePresence) }]}>
           {getPresenceLabel(effectivePresence)}
         </Text>

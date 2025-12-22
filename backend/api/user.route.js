@@ -171,4 +171,48 @@ router.put('/:id/status-message', async (req, res) => {
   }
 });
 
+// Update user status message
+router.put('/:userId/status-message', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { statusMessage } = req.body;
+
+    const result = await pool.query(
+      'UPDATE users SET status_message = $1 WHERE id = $2 RETURNING *',
+      [statusMessage, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ success: true, user: result.rows[0] });
+  } catch (error) {
+    console.error('Error updating status message:', error);
+    res.status(500).json({ error: 'Failed to update status message' });
+  }
+});
+
+// Update user status (alternative endpoint)
+router.put('/:userId/status', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { status_message } = req.body;
+
+    const result = await pool.query(
+      'UPDATE users SET status_message = $1 WHERE id = $2 RETURNING *',
+      [status_message, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ success: true, user: result.rows[0] });
+  } catch (error) {
+    console.error('Error updating status:', error);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
 module.exports = router;

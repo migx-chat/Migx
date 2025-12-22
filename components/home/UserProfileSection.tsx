@@ -86,18 +86,19 @@ export function UserProfileSection({
     if (!userData?.id) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/${userData.id}/status-message`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/${userData.id}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ statusMessage: message }),
+        body: JSON.stringify({ status_message: message }),
       });
 
       if (response.ok) {
         const updatedUserData = { 
           ...userData, 
           statusMessage: message,
+          status_message: message,
           token: userData.token
         };
         await AsyncStorage.setItem('user_data', JSON.stringify(updatedUserData));

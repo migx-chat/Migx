@@ -37,8 +37,8 @@ export function ContactList() {
       if (data.following) {
         const contacts: Contact[] = data.following.map((user: any) => ({
           name: user.username,
-          status: user.status_message || user.status || '👑',
-          presence: user.status === 'online' ? 'online' : user.status === 'away' ? 'away' : user.status === 'busy' ? 'busy' : 'offline',
+          status: user.status_message || '',
+          presence: user.presence_status || (user.status === 'online' ? 'online' : user.status === 'away' ? 'away' : user.status === 'busy' ? 'busy' : 'offline'),
           lastSeen: `Last seen ${new Date(user.followed_at).toLocaleString()}`,
           avatar: user.avatar || '👤',
         }));
@@ -55,8 +55,8 @@ export function ContactList() {
           .slice(0, 10)
           .map((user: any) => ({
             name: user.username,
-            status: user.status_message || user.status || '???',
-            presence: user.status === 'online' ? 'online' : user.status === 'away' ? 'away' : user.status === 'busy' ? 'busy' : 'offline',
+            status: user.status_message || '',
+            presence: user.presence_status || (user.status === 'online' ? 'online' : user.status === 'away' ? 'away' : user.status === 'busy' ? 'busy' : 'offline'),
             lastSeen: `Last seen ${new Date().toLocaleString()}`,
             avatar: user.avatar || '👤',
           }));
