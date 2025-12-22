@@ -406,7 +406,8 @@ router.post('/create', async (req, res) => {
       name.trim(), 
       ownerId,
       creatorName.trim(),
-      description ? description.trim() : ''
+      description ? description.trim() : '',
+      req.body.category || 'general'
     );
     
     if (!room) {

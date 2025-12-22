@@ -1,7 +1,7 @@
 const { query } = require('../db/db');
 const presence = require('../utils/presence');
 
-const createRoom = async (name, ownerId, creatorName, description = '') => {
+const createRoom = async (name, ownerId, creatorName, description = '', category = 'general') => {
   try {
     // ✅ ANTI-DUPLICATION: Check if room already exists (case-insensitive)
     const existingRoom = await getRoomByName(name);
@@ -18,10 +18,10 @@ const createRoom = async (name, ownerId, creatorName, description = '') => {
     const maxUsers = 25;
     
     const result = await query(
-      `INSERT INTO rooms (name, owner_id, creator_name, description, max_users, room_code, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `INSERT INTO rooms (name, owner_id, creator_name, description, max_users, room_code, category, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
        RETURNING *`,
-      [name, ownerId, creatorName, description, maxUsers, roomCode]
+      [name, ownerId, creatorName, description, maxUsers, roomCode, category]
     );
     
     const roomId = result.rows[0].id;

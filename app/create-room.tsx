@@ -30,6 +30,7 @@ export default function CreateRoomScreen() {
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('general');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -47,8 +48,6 @@ export default function CreateRoomScreen() {
 
     try {
       const userDataStr = await AsyncStorage.getItem('user_data');
-      console.log('UserDataStr:', userDataStr);
-      
       if (!userDataStr) {
         Alert.alert('Error', 'User data not found. Please login again.');
         setLoading(false);
@@ -56,9 +55,6 @@ export default function CreateRoomScreen() {
       }
 
       const userData = JSON.parse(userDataStr);
-      console.log('Parsed userData:', userData);
-
-      console.log('Creating room with ownerId:', userData.id);
       
       const response = await fetch(API_ENDPOINTS.ROOM.CREATE, {
         method: 'POST',
@@ -68,7 +64,9 @@ export default function CreateRoomScreen() {
         body: JSON.stringify({
           name: name.trim(),
           ownerId: userData.id,
+          creatorName: userData.username,
           description: description.trim(),
+          category: category,
         }),
       });
 
@@ -153,6 +151,28 @@ export default function CreateRoomScreen() {
             <Text style={{ color: theme.secondary }}>{MAX_USERS}</Text>
           </View>
 
+          <Text style={[styles.label, { color: theme.text }]}>Category</Text>
+          <View style={styles.categoryContainer}>
+            <TouchableOpacity 
+              style={[styles.categoryButton, category === 'general' && { backgroundColor: theme.primary }]} 
+              onPress={() => setCategory('general')}
+            >
+              <Text style={[styles.categoryButtonText, category === 'general' && { color: '#fff' }]}>General</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.categoryButton, category === 'official' && { backgroundColor: '#4A90D9' }]} 
+              onPress={() => setCategory('official')}
+            >
+              <Text style={[styles.categoryButtonText, category === 'official' && { color: '#fff' }]}>Official</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.categoryButton, category === 'game' && { backgroundColor: '#A78BFA' }]} 
+              onPress={() => setCategory('game')}
+            >
+              <Text style={[styles.categoryButtonText, category === 'game' && { color: '#fff' }]}>Game</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Create Button */}
           <TouchableOpacity
             style={[styles.button, { backgroundColor: theme.primary }]}
@@ -227,6 +247,26 @@ const styles = StyleSheet.create({
   },
 
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+
+  categoryContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  categoryButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  categoryButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+  },
 
   errorBox: {
     backgroundColor: '#FFE1E1',
