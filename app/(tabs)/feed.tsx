@@ -405,25 +405,68 @@ export default function FeedScreen() {
     const mediaUrl = item.image_url || item.mediaUrl;
     const mediaType = item.mediaType;
     
-    console.log('🎬 FEED ITEM DEBUG:', {
-      id: item.id,
-      username: item.username,
-      content: item.content,
-      mediaType,
-      mediaUrl,
-      hasImage: !!item.image_url,
-      hasMediaType: !!item.mediaType,
-    });
+    // Get avatar URI
+    const getAvatarUri = (avatar?: string) => {
+      if (!avatar) return null;
+      if (avatar.startsWith('http')) return avatar;
+      if (avatar.startsWith('/uploads')) return `${API_ENDPOINTS.BASE}${avatar}`;
+      return avatar;
+    };
+
+    const avatarUri = getAvatarUri(item.avatar_url);
+    
+    // Get level config
+    const getLevelConfig = (level: number) => {
+      const LEVEL_MAPPING = [
+        { minLevel: 1, maxLevel: 10, icon: require('@/assets/ic_level/ic_eggwhite.png') },
+        { minLevel: 11, maxLevel: 25, icon: require('@/assets/ic_level/ic_eggblue.png') },
+        { minLevel: 26, maxLevel: 35, icon: require('@/assets/ic_level/ic_egggreen.png') },
+        { minLevel: 36, maxLevel: 69, icon: require('@/assets/ic_level/ic_eggyellow.png') },
+        { minLevel: 70, maxLevel: 100, icon: require('@/assets/ic_level/ic_eggred.png') },
+      ];
+      const config = LEVEL_MAPPING.find(m => level >= m.minLevel && level <= m.maxLevel);
+      return config || LEVEL_MAPPING[0];
+    };
+
+    // Get role badge
+    const getRoleBadge = (role?: string) => {
+      if (role === 'admin') return require('@/assets/badge role/ic_admin.png');
+      if (role === 'mentor') return require('@/assets/badge role/ic_mentor.png');
+      if (role === 'merchant') return require('@/assets/badge role/ic_merchant.png');
+      return null;
+    };
+
+    const userLevel = (item as any).level || 1;
+    const userRole = (item as any).role;
+    const levelConfig = getLevelConfig(userLevel);
+    const roleBadge = getRoleBadge(userRole);
 
     return (
     <View style={[styles.postCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
       <View style={styles.postHeader}>
-        <Image
-          source={{ uri: item.avatar_url || 'https://via.placeholder.com/40' }}
-          style={styles.avatar}
-        />
+        {avatarUri ? (
+          <Image
+            source={{ uri: avatarUri }}
+            style={styles.avatar}
+          />
+        ) : (
+          <View style={[styles.avatar, { backgroundColor: '#4A90E2', justifyContent: 'center', alignItems: 'center' }]}>
+            <Text style={{ fontSize: 20 }}>👤</Text>
+          </View>
+        )}
         <View style={styles.postHeaderText}>
-          <Text style={[styles.username, { color: theme.text }]}>{item.username}</Text>
+          <View style={styles.usernameRow}>
+            <Text style={[styles.username, { color: theme.text }]}>{item.username}</Text>
+            {/* Level Badge */}
+            <View style={styles.levelBadgeContainer}>
+              <Image source={levelConfig.icon} style={styles.levelBadgeIcon} />
+              <Text style={styles.levelBadgeText}>{userLevel}</Text>
+            </View>
+            {/* Role Badge */}
+            {roleBadge && (
+              <Image source={roleBadge} style={styles.roleBadgeIcon} />
+            )}
+          </View>
           <Text style={[styles.timestamp, { color: theme.secondary }]}>{formatTime(item.created_at)}</Text>
         </View>
       </View>
@@ -685,9 +728,37 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     flex: 1,
   },
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   username: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  levelBadgeContainer: {
+    position: 'relative',
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  levelBadgeIcon: {
+    width: 20,
+    height: 20,
+  },
+  levelBadgeText: {
+    position: 'absolute',
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#000000',
+    textAlign: 'center',
+  },
+  roleBadgeIcon: {
+    width: 18,
+    height: 18,
+    resizeMode: 'contain',
   },
   timestamp: {
     fontSize: 12,

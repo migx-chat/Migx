@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
@@ -15,7 +14,7 @@ cloudinary.config({
 });
 
 // Setup multer with memory storage (temporary)
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit for video
 });
@@ -38,19 +37,19 @@ const handleUpload = (req, res, next) => {
 // Normalize feed item with proper defaults
 const normalizeFeedItem = async (feedData, feedId, redis) => {
   if (!feedData) return null;
-  
+
   try {
     const feed = typeof feedData === 'string' ? JSON.parse(feedData) : feedData;
-    
+
     // Get like count from Redis
     const likeKey = `feed:${feedId}:likes`;
     const likesCount = await redis.get(likeKey);
-    
+
     // Get comments count from Redis
     const commentsKey = `feed:${feedId}:comments`;
     const commentsData = await redis.get(commentsKey);
     const commentsArray = commentsData ? JSON.parse(commentsData) : [];
-    
+
     return {
       id: feed.id ?? feedId ?? '',
       username: feed.username ?? null,
@@ -65,6 +64,8 @@ const normalizeFeedItem = async (feedData, feedId, redis) => {
       avatar_url: feed.avatar_url || 'https://via.placeholder.com/40',
       userId: feed.userId ?? feed.user_id,
       user_id: feed.userId ?? feed.user_id,
+      level: feed.level || 1, // Default level to 1 if not provided
+      role: feed.role || 'user', // Default role to 'user' if not provided
     };
   } catch (e) {
     console.error(`❌ Error normalizing feed item:`, e.message);
@@ -76,10 +77,10 @@ const normalizeFeedItem = async (feedData, feedId, redis) => {
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const redis = getRedisClient();
-    
+
     // Get all feed keys from Redis
     const keys = await redis.keys('feed:*');
-    
+
     if (keys.length === 0) {
       return res.json({
         success: true,
@@ -148,7 +149,7 @@ router.post('/create', authMiddleware, handleUpload, async (req, res) => {
     if (req.file) {
       try {
         console.log(`📤 Uploading file to Cloudinary: ${req.file.originalname} (${req.file.mimetype})`);
-        
+
         // Determine resource type based on MIME type
         let resourceType = 'auto';
         if (req.file.mimetype.startsWith('video/')) {
@@ -163,7 +164,7 @@ router.post('/create', authMiddleware, handleUpload, async (req, res) => {
 
         const result = await new Promise((resolve, reject) => {
           // Build upload options with transformations
-          const uploadOptions = { 
+          const uploadOptions = {
             folder: 'migx/posts',
             resource_type: resourceType,
             use_filename: true,
@@ -193,28 +194,28 @@ router.post('/create', authMiddleware, handleUpload, async (req, res) => {
               }
             }
           );
-          
+
           stream.on('error', (error) => {
             console.error('❌ Stream error:', error);
             reject(error);
           });
-          
+
           stream.end(req.file.buffer);
         });
-        
+
         mediaUrl = result.secure_url;
         publicId = result.public_id;
         console.log(`✅ Media URL: ${mediaUrl}`);
       } catch (uploadError) {
         console.error('❌ Cloudinary upload error:', uploadError.message);
-        return res.status(500).json({ 
-          success: false, 
+        return res.status(500).json({
+          success: false,
           error: 'Failed to upload media',
-          details: uploadError.message 
+          details: uploadError.message
         });
       }
     }
-    
+
     if (!content && !mediaUrl) {
       return res.status(400).json({ success: false, error: 'Content or image/video required' });
     }
@@ -237,6 +238,8 @@ router.post('/create', authMiddleware, handleUpload, async (req, res) => {
       likes_count: 0,
       comments_count: 0,
       is_liked: false,
+      level: req.user.level || 1, // Get level from authenticated user
+      role: req.user.role || 'user', // Get role from authenticated user
     };
 
     // Save to Redis with 24 hours TTL (86400 seconds)
@@ -261,7 +264,9 @@ router.post('/create', authMiddleware, handleUpload, async (req, res) => {
       comments_count: 0,
       is_liked: false,
       created_at: createdAt,
-      avatar_url: 'https://via.placeholder.com/40',
+      avatar_url: req.user.avatar_url || 'https://via.placeholder.com/40', // Use authenticated user's avatar
+      level: req.user.level || 1, // Include user level
+      role: req.user.role || 'user', // Include user role
     };
 
     res.json({
@@ -284,14 +289,14 @@ router.post('/:feedId/like', authMiddleware, async (req, res) => {
     // Check if feed exists
     const feedKey = `feed:${feedId}`;
     const feedData = await redis.get(feedKey);
-    
+
     if (!feedData) {
       return res.status(404).json({ success: false, error: 'Feed not found (may have expired)' });
     }
 
     const likeKey = `feed:${feedId}:likes`;
     const userLikeKey = `feed:${feedId}:likes:${userId}`;
-    
+
     // Check if already liked
     const isLiked = await redis.exists(userLikeKey);
 
@@ -321,7 +326,7 @@ router.get('/:feedId/comments', authMiddleware, async (req, res) => {
     // Check if feed exists
     const feedKey = `feed:${feedId}`;
     const feedExists = await redis.exists(feedKey);
-    
+
     if (!feedExists) {
       return res.status(404).json({ success: false, error: 'Feed not found (may have expired)' });
     }
@@ -329,7 +334,7 @@ router.get('/:feedId/comments', authMiddleware, async (req, res) => {
     // Get comments from Redis
     const commentsKey = `feed:${feedId}:comments`;
     const commentsData = await redis.get(commentsKey);
-    
+
     const comments = commentsData ? JSON.parse(commentsData) : [];
 
     res.json({
@@ -358,7 +363,7 @@ router.post('/:feedId/comment', authMiddleware, async (req, res) => {
     // Check if feed exists
     const feedKey = `feed:${feedId}`;
     const feedExists = await redis.exists(feedKey);
-    
+
     if (!feedExists) {
       return res.status(404).json({ success: false, error: 'Feed not found (may have expired)' });
     }
@@ -409,7 +414,7 @@ router.delete('/:feedId', authMiddleware, async (req, res) => {
     // Check if feed exists and user owns it
     const feedKey = `feed:${feedId}`;
     const feedData = await redis.get(feedKey);
-    
+
     if (!feedData) {
       return res.status(404).json({ success: false, error: 'Feed not found (may have expired)' });
     }
@@ -423,7 +428,7 @@ router.delete('/:feedId', authMiddleware, async (req, res) => {
     await redis.del(feedKey);
     await redis.del(`feed:${feedId}:likes`);
     await redis.del(`feed:${feedId}:comments`);
-    
+
     // Delete all user likes for this feed
     const likeKeys = await redis.keys(`feed:${feedId}:likes:*`);
     if (likeKeys.length > 0) {
@@ -445,7 +450,7 @@ router.delete('/:feedId', authMiddleware, async (req, res) => {
 router.post('/admin/cleanup-cloudinary', authMiddleware, async (req, res) => {
   try {
     const { publicIds } = req.body;
-    
+
     if (!Array.isArray(publicIds) || publicIds.length === 0) {
       return res.status(400).json({ success: false, error: 'publicIds array required' });
     }
