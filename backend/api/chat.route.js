@@ -26,22 +26,33 @@ router.get('/list/:username', async (req, res) => {
       });
     }
 
-    // Fetch room history from DATABASE (primary source)
+    // Fetch room history from DATABASE (secondary source)
     const dbRooms = await roomService.getUserRoomHistory(user.id, 50);
 
-    // Fetch active joined rooms from Redis
+    // Fetch active joined rooms from Redis (primary source for active tabs)
     const redis = getRedisClient();
     const redisRoomsRaw = await redis.sMembers(`user:rooms:${username}`);
+    const activeRoomIds = new Set();
+    
     const redisRooms = redisRoomsRaw.map(r => {
-      try { return JSON.parse(r); } catch(e) { return null; }
+      try { 
+        const parsed = JSON.parse(r); 
+        if (parsed && (parsed.id || parsed.roomId)) {
+          activeRoomIds.add((parsed.id || parsed.roomId).toString());
+        }
+        return parsed; 
+      } catch(e) { 
+        // If not JSON, it might be just the ID string
+        if (r) activeRoomIds.add(r.toString());
+        return null; 
+      }
     }).filter(r => r !== null);
 
-    // Merge rooms, prioritize Redis (active) then DB (history)
-    // For this specific request, let's focus on showing active rooms at the top
+    // Merge rooms, ONLY INCLUDE ACTIVE ROOMS
     const combinedRooms = [];
     const seenIds = new Set();
 
-    // Add active rooms first
+    // Add active rooms from Redis
     redisRooms.forEach(room => {
       const id = room.id || room.roomId;
       if (id && !seenIds.has(id.toString())) {
@@ -55,21 +66,19 @@ router.get('/list/:username', async (req, res) => {
       }
     });
 
-    // Add DB history rooms (Only if they are not already in combinedRooms and user wants to keep history)
-    // Based on user request "hanya room yang sedang kita masukin", we should skip historical rooms
-    /* 
+    // Also check dbRooms but ONLY if they are active in Redis
     dbRooms.forEach(room => {
-      if (!seenIds.has(room.id.toString())) {
+      const idStr = room.id.toString();
+      if (activeRoomIds.has(idStr) && !seenIds.has(idStr)) {
         combinedRooms.push({
-          id: room.id.toString(),
+          id: idStr,
           name: room.name,
           lastJoinedAt: room.last_joined_at,
-          isActive: false
+          isActive: true
         });
-        seenIds.add(room.id.toString());
+        seenIds.add(idStr);
       }
     });
-    */
 
     // Enrich with Redis data (viewer count, last message)
     const enrichedRooms = await Promise.all(

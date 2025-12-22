@@ -95,17 +95,20 @@ export function ChatList() {
         
         // Add rooms from Redis
         data.rooms?.forEach((room: any) => {
-          formattedData.push({
-            type: 'room',
-            name: room.name,
-            roomId: room.id,
-            message: room.lastMessage 
-              ? `${room.lastUsername}: ${room.lastMessage}` 
-              : 'No messages yet',
-            time: room.timestamp 
-              ? formatTime(room.timestamp) 
-              : undefined,
-          });
+          // Only show room if it's explicitly active
+          if (room.isActive) {
+            formattedData.push({
+              type: 'room',
+              name: room.name,
+              roomId: room.id,
+              message: room.lastMessage 
+                ? `${room.lastUsername}: ${room.lastMessage}` 
+                : 'Active now',
+              time: room.timestamp 
+                ? formatTime(room.timestamp) 
+                : undefined,
+            });
+          }
         });
         
         // Add DMs (if any)
