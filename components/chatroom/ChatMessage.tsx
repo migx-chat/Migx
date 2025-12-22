@@ -133,9 +133,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   emojiImage: {
-    width: 16,
-    height: 16,
-    marginBottom: -3,
+    width: 20,
+    height: 20,
+    marginBottom: -5,
   },
   noticeContainer: {
     paddingVertical: 8,

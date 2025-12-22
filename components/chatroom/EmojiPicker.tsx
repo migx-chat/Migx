@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   emojiButton: {
-    width: '18%', // Approx 5 items per row for better spacing
+    width: '12%', // Increased density to show more smaller emojis
     aspectRatio: 1,
     marginVertical: 4,
     borderRadius: 8,
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emojiImage: {
-    width: '70%',
-    height: '70%',
+    width: 20,
+    height: 20,
   },
 });
