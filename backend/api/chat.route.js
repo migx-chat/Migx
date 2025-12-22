@@ -27,37 +27,71 @@ router.get('/list/:username', async (req, res) => {
     }
 
     // Fetch room history from DATABASE (primary source)
-    const rooms = await roomService.getUserRoomHistory(user.id, 50);
+    const dbRooms = await roomService.getUserRoomHistory(user.id, 50);
+
+    // Fetch active joined rooms from Redis
+    const redis = getRedisClient();
+    const redisRoomsRaw = await redis.sMembers(`user:rooms:${username}`);
+    const redisRooms = redisRoomsRaw.map(r => {
+      try { return JSON.parse(r); } catch(e) { return null; }
+    }).filter(r => r !== null);
+
+    // Merge rooms, prioritize Redis (active) then DB (history)
+    // For this specific request, let's focus on showing active rooms at the top
+    const combinedRooms = [];
+    const seenIds = new Set();
+
+    // Add active rooms first
+    redisRooms.forEach(room => {
+      const id = room.id || room.roomId;
+      if (id && !seenIds.has(id.toString())) {
+        combinedRooms.push({
+          id: id.toString(),
+          name: room.name || room.roomName,
+          lastJoinedAt: room.joinedAt || new Date().toISOString(),
+          isActive: true
+        });
+        seenIds.add(id.toString());
+      }
+    });
+
+    // Add DB history rooms
+    dbRooms.forEach(room => {
+      if (!seenIds.has(room.id.toString())) {
+        combinedRooms.push({
+          id: room.id.toString(),
+          name: room.name,
+          lastJoinedAt: room.last_joined_at,
+          isActive: false
+        });
+        seenIds.add(room.id.toString());
+      }
+    });
 
     // Enrich with Redis data (viewer count, last message)
-    const redis = getRedisClient();
     const enrichedRooms = await Promise.all(
-      rooms.map(async (room) => {
+      combinedRooms.map(async (room) => {
         try {
-          // Get viewer count from Redis (defaults to 0 if Redis is empty)
+          // Get viewer count from Redis
           let viewerCount = 0;
           try {
             const count = await redis.sCard(`room:participants:${room.id}`);
             viewerCount = count || 0;
-          } catch (err) {
-            viewerCount = 0;
-          }
+          } catch (err) {}
 
           // Get last message from Redis
-          let lastMessage = 'No messages yet';
+          let lastMessage = room.isActive ? 'Active now' : 'No messages yet';
           let lastUsername = room.name;
-          let timestamp = room.last_joined_at;
+          let timestamp = room.lastJoinedAt;
           
           try {
             const msgData = await redis.hGetAll(`room:lastmsg:${room.id}`);
             if (msgData && msgData.message) {
               lastMessage = msgData.message;
               lastUsername = msgData.username || room.name;
-              timestamp = msgData.timestamp || room.last_joined_at;
+              timestamp = msgData.timestamp || room.lastJoinedAt;
             }
-          } catch (err) {
-            // Keep defaults if Redis fails
-          }
+          } catch (err) {}
 
           return {
             id: room.id,
@@ -66,10 +100,10 @@ router.get('/list/:username', async (req, res) => {
             lastUsername,
             timestamp,
             viewerCount,
-            lastJoinedAt: room.last_joined_at
+            lastJoinedAt: room.lastJoinedAt,
+            isActive: room.isActive
           };
         } catch (err) {
-          console.error(`Error enriching room ${room.id}:`, err.message);
           return null;
         }
       })

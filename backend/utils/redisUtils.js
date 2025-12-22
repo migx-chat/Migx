@@ -367,7 +367,7 @@ const clearTempKick = async (username) => {
 const addUserRoom = async (username, roomId, roomName) => {
   try {
     const redis = getRedisClient();
-    const roomData = JSON.stringify({ roomId, roomName, joinedAt: Date.now() });
+    const roomData = JSON.stringify({ id: roomId.toString(), roomId: roomId.toString(), name: roomName, roomName, joinedAt: Date.now() });
     await redis.sAdd(`user:rooms:${username}`, roomData);
     return true;
   } catch (error) {
@@ -379,23 +379,16 @@ const addUserRoom = async (username, roomId, roomName) => {
 const removeUserRoom = async (username, roomId) => {
   try {
     const redis = getRedisClient();
-    if (!redis || !redis.sMembers) {
-      return true;
-    }
-
-    const userRoomsKey = `user:${username}:rooms`;
+    const userRoomsKey = `user:rooms:${username}`;
     const rooms = await redis.sMembers(userRoomsKey);
 
     for (const room of rooms) {
       try {
         const roomData = JSON.parse(room);
-        if (roomData.roomId === roomId) {
+        if (roomData.id === roomId.toString() || roomData.roomId === roomId.toString()) {
           await redis.sRem(userRoomsKey, room);
-          break;
         }
-      } catch (e) {
-        // Skip invalid JSON
-      }
+      } catch (e) {}
     }
 
     return true;
