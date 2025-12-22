@@ -503,6 +503,112 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /ip command - Admin only
+        if (cmdKey === 'ip') {
+          const userService = require('../services/userService');
+          const { getRedisClient } = require('../redis');
+          
+          // Check if sender is admin or super admin
+          const userObj = await userService.getUserById(userId);
+          if (!userObj || (userObj.role !== 'admin' && userObj.role !== 'super_admin')) {
+            socket.emit('system:message', {
+              roomId,
+              message: '❌ Only admins can use /ip command.',
+              timestamp: new Date().toISOString(),
+              type: 'error'
+            });
+            return;
+          }
+
+          const targetUsername = parts[1];
+          if (!targetUsername) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /ip <username>`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          // Rate limit check
+          const redis = getRedisClient();
+          const rateLimitKey = `rl:ipcmd:${userId}`;
+          const isRateLimited = await redis.exists(rateLimitKey);
+          
+          if (isRateLimited) {
+            socket.emit('chat:message', {
+              id: `ip-rl-${Date.now()}`,
+              roomId,
+              username: 'System',
+              message: 'Rate limit exceeded. Please wait 5s.',
+              timestamp: new Date().toISOString(),
+              type: 'system',
+              messageType: 'system',
+              isPrivate: true
+            });
+            return;
+          }
+          await redis.setEx(rateLimitKey, 5, '1');
+
+          const targetUser = await userService.getUserByUsername(targetUsername);
+          if (!targetUser) {
+            socket.emit('system:message', {
+              roomId,
+              message: `❌ User ${targetUsername} not found.`,
+              timestamp: new Date().toISOString(),
+              type: 'error'
+            });
+            return;
+          }
+
+          const ip = await redis.get(`user:${targetUser.id}:ip`);
+          if (!ip) {
+            socket.emit('chat:message', {
+              id: `ip-err-${Date.now()}`,
+              roomId,
+              username: 'System',
+              message: `IP not found for ${targetUsername}`,
+              timestamp: new Date().toISOString(),
+              type: 'system',
+              messageType: 'system',
+              isPrivate: true
+            });
+            return;
+          }
+
+          const sharedUserIds = await redis.sMembers(`ip:${ip}:users`);
+          let responseMessage = '';
+          const roomService = require('../services/roomService');
+          const room = await roomService.getRoomById(roomId);
+          const roomTag = room?.name || 'Indonesia';
+
+          if (sharedUserIds.length <= 1) {
+            responseMessage = `[${roomTag}] ${targetUsername} → ${ip}`;
+          } else {
+            const sharedUsernames = await Promise.all(
+              sharedUserIds.map(async (id) => {
+                const u = await userService.getUserById(id);
+                return u ? u.username : null;
+              })
+            );
+            const filteredUsernames = sharedUsernames.filter(n => n !== null).join(', ');
+            responseMessage = `[${roomTag}] Digunakan Oleh ${filteredUsernames} (${ip})`;
+          }
+
+          socket.emit('chat:message', {
+            id: `ip-res-${Date.now()}`,
+            roomId,
+            username: 'System',
+            message: responseMessage,
+            timestamp: new Date().toISOString(),
+            type: 'system',
+            messageType: 'system',
+            isPrivate: true
+          });
+          return;
+        }
+
         // Handle /clear command - Admin only - Clear kick count for user to prevent global ban
         if (cmdKey === 'clear') {
           const userService = require('../services/userService');

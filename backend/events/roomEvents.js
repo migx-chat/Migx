@@ -73,9 +73,9 @@ module.exports = (io, socket) => {
       }
 
       // Check if user is temporarily bumped from this room
-      const redis = getRedisClient();
+      const redisClient = getRedisClient();
       const bumpKey = `room:bump:${roomId}:${userId}`;
-      const isBumped = await redis.exists(bumpKey);
+      const isBumped = await redisClient.exists(bumpKey);
 
       if (isBumped) {
         socket.emit('room:join:error', {
@@ -131,6 +131,18 @@ module.exports = (io, socket) => {
 
       // Store presence in Redis with 6-hour TTL
       await storeUserPresence(roomId, userId, socket.id, username);
+
+      // Store IP mapping in Redis
+      try {
+        const userIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+        const redisForIp = getRedisClient();
+        await redisForIp.set(`user:${userId}:ip`, userIp);
+        await redisForIp.sAdd(`ip:${userIp}:users`, userId.toString());
+        await redisForIp.expire(`user:${userId}:ip`, 21600); // 6 hours
+        await redisForIp.expire(`ip:${userIp}:users`, 21600); // 6 hours
+      } catch (ipErr) {
+        console.warn('⚠️ Could not store user IP:', ipErr.message);
+      }
 
       // Check if user is already in room (prevents duplicate join messages)
       const alreadyInRoom = await isUserInRoom(roomId, username);
@@ -266,22 +278,22 @@ module.exports = (io, socket) => {
       });
 
       // Save user room to Redis for chat list
-      const redis = getRedisClient();
+      const redisInstance = getRedisClient();
 
       // Clear any existing key with wrong type first
       try {
-        const keyType = await redis.type(`user:rooms:${username}`);
+        const keyType = await redisInstance.type(`user:rooms:${username}`);
         if (keyType !== 'set' && keyType !== 'none') {
-          await redis.del(`user:rooms:${username}`);
+          await redisInstance.del(`user:rooms:${username}`);
         }
       } catch (err) {
         console.log('Redis key type check error:', err.message);
       }
 
-      await redis.sAdd(`user:rooms:${username}`, roomId);
+      await redisInstance.sAdd(`user:rooms:${username}`, roomId);
 
       // Set initial last message
-      await redis.hSet(`room:lastmsg:${roomId}`, {
+      await redisInstance.hSet(`room:lastmsg:${roomId}`, {
         message: `${username} joined`,
         username: room.name,
         timestamp: Date.now().toString()
@@ -359,8 +371,18 @@ module.exports = (io, socket) => {
       // Remove user from Redis presence
       await removeUserFromRoom(roomId, username);
 
+      // Remove IP mapping if no longer in any room
+      try {
+        const redisForIpCleanup = require('../redis').getRedisClient();
+        const userIp = await redisForIpCleanup.get(`user:${presenceUserId}:ip`);
+        if (userIp) {
+          await redisForIpCleanup.sRem(`ip:${userIp}:users`, presenceUserId.toString());
+        }
+      } catch (cleanupErr) {
+        console.warn('⚠️ Could not cleanup user IP:', cleanupErr.message);
+      }
+
       // Step 4️⃣: Remove TTL-based presence (cleanup)
-      const presenceUserId = userId || socket.userId;
       if (presenceUserId) {
         await removeUserPresence(roomId, presenceUserId);
       }
