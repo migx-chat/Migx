@@ -55,7 +55,9 @@ router.get('/list/:username', async (req, res) => {
       }
     });
 
-    // Add DB history rooms
+    // Add DB history rooms (Only if they are not already in combinedRooms and user wants to keep history)
+    // Based on user request "hanya room yang sedang kita masukin", we should skip historical rooms
+    /* 
     dbRooms.forEach(room => {
       if (!seenIds.has(room.id.toString())) {
         combinedRooms.push({
@@ -67,6 +69,7 @@ router.get('/list/:username', async (req, res) => {
         seenIds.add(room.id.toString());
       }
     });
+    */
 
     // Enrich with Redis data (viewer count, last message)
     const enrichedRooms = await Promise.all(

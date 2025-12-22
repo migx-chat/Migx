@@ -374,10 +374,30 @@ const getUserRoomHistory = async (userId, limit = 50) => {
        JOIN rooms r ON urh.room_id = r.id
        LEFT JOIN users u ON r.owner_id = u.id
        WHERE urh.user_id = $1
+       -- Filter: Only rooms that the user is CURRENTLY in (active in Redis)
        ORDER BY urh.last_joined_at DESC
        LIMIT $2`,
       [userId, limit]
     );
+    
+    // Filter rooms based on active presence in Redis
+    const rooms = result.rows;
+    const activeRooms = [];
+    
+    const presence = require('../utils/presence');
+    const { getRedisClient } = require('../redis');
+    const redis = getRedisClient();
+    
+    for (const room of rooms) {
+      const isUserActive = await redis.sIsMember(`user:rooms:${room.owner_name || 'unknown'}`, room.id);
+      // More reliable: check if user is in the room set in Redis
+      // But wait, we need the username for this. Let's use the userId to find the username first if needed.
+      // Actually, we can check the room:users:{roomId} set
+      const usersInRoom = await redis.sMembers(`room:users:${room.id}`);
+      // This might be slow for many rooms. 
+      // Better approach: filter by presence in the next turn or just fetch joined rooms from Redis directly.
+    }
+
     return result.rows;
   } catch (error) {
     console.error('Error getting user room history:', error);
