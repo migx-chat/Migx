@@ -869,8 +869,8 @@ module.exports = (io, socket) => {
 
       await addUserToRoom(roomId, username);
 
-      const { addRoomParticipant, getRoomParticipants } = require('../utils/redisUtils');
-      await addRoomParticipant(roomId, username);
+      const { addRoomParticipant } = require('../utils/redisUtils');
+      await addRoomParticipant(roomId, userId, username);
 
       const updatedUsers = await roomService.getRoomUsers(roomId);
       const usersWithPresence = await Promise.all(
@@ -940,7 +940,7 @@ module.exports = (io, socket) => {
 
         // Remove from participants
         const { removeRoomParticipant } = require('../utils/redisUtils');
-        await removeRoomParticipant(currentRoomId, username);
+        await removeRoomParticipant(currentRoomId, userId);
 
         // Remove from legacy set
         await removeUserFromRoom(currentRoomId, username);
@@ -1119,7 +1119,7 @@ module.exports = (io, socket) => {
                 await removeUserPresence(currentRoomId, userId);
               }
 
-              await removeRoomParticipant(currentRoomId, username);
+              await removeRoomParticipant(currentRoomId, userId);
               await removeUserFromRoom(currentRoomId, username);
               await removeUserRoom(username, currentRoomId);
 

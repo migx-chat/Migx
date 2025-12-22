@@ -6,7 +6,18 @@ This project is a cross-platform mobile chat application, built with React Nativ
 
 Preferred communication style: Simple, everyday language.
 
-# Recent Updates (Dec 21, 2025)
+# Recent Updates (Dec 22, 2025)
+
+## Kick Modal - User List Display Fix
+- **Backend**: Fixed Redis participant storage using HASH type (`room:{roomId}:participants` with userId → username mapping)
+- **Events**: 
+  - `room:get-participants` handler requests fresh participant list from backend
+  - `room:participants:update` broadcasts when users join/leave
+  - `room:participants:list` responds to on-demand requests
+- **Frontend**: MenuKickModal now receives live participant list, excludes current user automatically
+- **Fixes**: Removed SET-based Redis conflicts, fixed function parameters (addRoomParticipant now requires userId), removed legacy participant key TTL operations
+
+# Earlier Updates (Dec 21, 2025)
 
 ## Feed System - Anonymous Posts Filtering & Avatars
 - **Backend**: Posts without username or with "Anonymous" are filtered out at API level (normalizeFeedItem)

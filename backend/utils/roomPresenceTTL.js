@@ -40,10 +40,6 @@ const updatePresenceActivity = async (roomId, userId) => {
   try {
     const client = getRedisClient();
     const key = `room:${roomId}:user:${userId}`;
-    const setKey = `room:${roomId}:participants`;
-    
-    // Refresh SET TTL
-    await client.expire(setKey, TTL_SECONDS);
     
     // Get existing data
     const existingData = await client.get(key);
