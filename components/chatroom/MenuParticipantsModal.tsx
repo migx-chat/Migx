@@ -67,14 +67,21 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
     if (!visible || !roomId) return;
 
     const handleParticipantsUpdate = (data: { roomId: string; participants: Array<{ userId: number; username: string }> }) => {
+      console.log('🔄 [Modal] Participants update received:', data);
       if (data.roomId === roomId) {
-        setParticipants(data.participants.map(p => ({ username: p.username, role: 'user' })));
+        const formattedParticipants = data.participants.map(p => ({ 
+          username: p.username, 
+          role: 'user' 
+        }));
+        console.log('✅ [Modal] Updating participants:', formattedParticipants);
+        setParticipants(formattedParticipants);
       }
     };
 
     // Access global socket (assuming it's available via window or import)
     const socket = (window as any).__GLOBAL_SOCKET__;
     if (socket) {
+      console.log('🔌 [Modal] Registering participant update listener for room:', roomId);
       socket.on('room:participants:update', handleParticipantsUpdate);
       return () => {
         socket.off('room:participants:update', handleParticipantsUpdate);
@@ -87,8 +94,12 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
     
     try {
       setLoading(true);
+      console.log('🔍 Fetching participants for room:', roomId);
+      
       const response = await fetch(`${API_BASE_URL}/api/chatroom/${roomId}/participants`);
       const data = await response.json();
+      
+      console.log('📥 Participants response:', data);
       
       if (data.success && Array.isArray(data.participants)) {
         setParticipants(data.participants);

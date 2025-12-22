@@ -207,7 +207,22 @@ const getRoomUsersList = async (roomId) => {
 const getRoomParticipants = async (roomId) => {
   try {
     const redis = getRedisClient();
-    const participants = await redis.sMembers(`room:${roomId}:participants`);
+    const key = `room:${roomId}:participants`;
+    
+    // Check key type first and delete if wrong type
+    const keyType = await redis.type(key);
+    if (keyType === 'set' || keyType === 'string') {
+      await redis.del(key);
+      console.log(`🧹 Cleaned legacy key type (${keyType}): ${key}`);
+    }
+    
+    // Get all participants from HASH
+    const participantsHash = await redis.hGetAll(key);
+    const participants = Object.keys(participantsHash).map(userId => ({
+      userId: parseInt(userId),
+      username: participantsHash[userId]
+    }));
+    
     return participants || [];
   } catch (error) {
     console.error('Error getting room participants:', error);
@@ -219,12 +234,45 @@ const addRoomParticipant = async (roomId, userId, username) => {
   try {
     const redis = getRedisClient();
     const key = `room:${roomId}:participants`;
+    
+    // Check and clean if wrong type
+    const keyType = await redis.type(key);
+    if (keyType === 'set' || keyType === 'string') {
+      await redis.del(key);
+      console.log(`🧹 Cleaned legacy key type (${keyType}): ${key}`);
+    }
+    
     await redis.hSet(key, userId.toString(), username || 'Unknown');
     await redis.expire(key, 21600); // 6 hours
     return true;
   } catch (error) {
     console.error('Error adding room participant:', error);
     return false;
+  }
+};
+
+const getRoomParticipantsWithNames = async (roomId) => {
+  try {
+    const redis = getRedisClient();
+    const key = `room:${roomId}:participants`;
+    
+    // Check key type first and delete if wrong type
+    const keyType = await redis.type(key);
+    if (keyType === 'set' || keyType === 'string') {
+      await redis.del(key);
+      console.log(`🧹 Cleaned legacy key type (${keyType}): ${key}`);
+    }
+    
+    const participantsHash = await redis.hGetAll(key);
+    const participants = Object.keys(participantsHash).map(userId => ({
+      userId: parseInt(userId),
+      username: participantsHash[userId]
+    }));
+    
+    return participants;
+  } catch (error) {
+    console.error('Error getting room participants with names:', error);
+    return [];
   }
 };
 

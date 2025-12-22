@@ -1061,7 +1061,10 @@ module.exports = (io, socket) => {
     try {
       const { roomId } = data;
       const { getRoomParticipantsWithNames } = require('../utils/redisUtils');
-      const participants = await getRoomParticipantsWithNames(roomId, socket.userId);
+      const participants = await getRoomParticipantsWithNames(roomId);
+      
+      console.log('📋 Sending participants list:', { roomId, count: participants.length, participants });
+      
       socket.emit('room:participants:list', {
         roomId,
         participants

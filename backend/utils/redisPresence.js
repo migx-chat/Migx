@@ -69,7 +69,17 @@ const getRoomUserCount = async (roomId) => {
   try {
     const { getRedisClient } = require('../redis');
     const redis = getRedisClient();
-    const count = await redis.sCard(`room:${roomId}:participants`);
+    const key = `room:${roomId}:participants`;
+    
+    // Check key type and clean if wrong
+    const keyType = await redis.type(key);
+    if (keyType === 'set' || keyType === 'string') {
+      await redis.del(key);
+      console.log(`🧹 Cleaned legacy key type (${keyType}): ${key}`);
+      return 0;
+    }
+    
+    const count = await redis.hLen(key);
     return count || 0;
   } catch (error) {
     console.error('Error getting room user count:', error);
