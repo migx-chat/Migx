@@ -69,7 +69,7 @@ export default function UserManagementScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        const user = data.users?.find((u: any) => u.username.toLowerCase() === username.toLowerCase());
+        const user = data.users?.find((u: any) => u.username.toLowerCase().includes(username.toLowerCase()));
 
         if (user) {
           setSelectedUser(user);
