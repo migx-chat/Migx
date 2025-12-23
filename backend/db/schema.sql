@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
   is_invisible BOOLEAN DEFAULT false,
   suspended_at TIMESTAMP,
   suspended_by VARCHAR(100),
+  last_ip VARCHAR(45),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

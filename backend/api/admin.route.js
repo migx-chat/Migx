@@ -27,7 +27,22 @@ router.get('/users', authMiddleware, superAdminMiddleware, async (req, res) => {
   try {
     const pool = getPool();
     const result = await pool.query(
-      'SELECT id, username, email, role, status, is_active, created_at FROM users ORDER BY created_at DESC LIMIT 100'
+      `SELECT 
+        u.id, 
+        u.username, 
+        u.email, 
+        u.role, 
+        u.status, 
+        u.is_active, 
+        u.credits,
+        u.created_at,
+        u.last_ip,
+        COALESCE(ul.level, 1) as level,
+        COALESCE(ul.xp, 0) as xp
+       FROM users u
+       LEFT JOIN user_levels ul ON u.id = ul.user_id
+       ORDER BY u.created_at DESC 
+       LIMIT 100`
     );
     
     res.json({ users: result.rows });

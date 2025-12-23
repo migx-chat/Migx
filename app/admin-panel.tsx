@@ -564,6 +564,16 @@ export default function AdminPanelScreen() {
               <Ionicons name="person-add-outline" size={20} color="#3498DB" />
               <Text style={styles.menuItemText}>Create Account</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                setSelectedTab('users');
+              }}
+            >
+              <Ionicons name="people-outline" size={20} color="#9B59B6" />
+              <Text style={styles.menuItemText}>User Management</Text>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -731,44 +741,68 @@ export default function AdminPanelScreen() {
             </View>
           ) : (
             <ScrollView style={styles.content}>
-              {filteredUsers.map(user => (
-                <View key={user.id} style={[styles.userCard, { backgroundColor: theme.card }]}>
-                  <View style={styles.userInfo}>
-                    <Text style={[styles.username, { color: theme.text }]}>{user.username}</Text>
-                    <Text style={[styles.email, { color: '#ffffff' }]}>{user.email}</Text>
-                    <View style={[styles.roleBadge, { backgroundColor: getRoleBadgeColor(user.role) }]}>
-                      <Text style={styles.roleText}>{user.role || 'user'}</Text>
+              <ScrollView horizontal>
+                <View>
+                  {/* Header */}
+                  <View style={[styles.tableHeader, { backgroundColor: theme.card }]}>
+                    <Text style={[styles.tableHeaderText, { color: theme.text }]}>Username</Text>
+                    <Text style={[styles.tableHeaderText, { color: theme.text }]}>Email</Text>
+                    <Text style={[styles.tableHeaderText, { color: theme.text }]}>Credits</Text>
+                    <Text style={[styles.tableHeaderText, { color: theme.text }]}>Level</Text>
+                    <Text style={[styles.tableHeaderText, { color: theme.text }]}>Created</Text>
+                    <Text style={[styles.tableHeaderText, { color: theme.text }]}>IP Address</Text>
+                    <Text style={[styles.tableHeaderText, { color: theme.text }]}>Actions</Text>
+                  </View>
+                  
+                  {/* Rows */}
+                  {filteredUsers.map(user => (
+                    <View key={user.id} style={[styles.tableRow, { backgroundColor: theme.background }]}>
+                      <View style={styles.tableCell}>
+                        <Text style={[styles.tableCellText, { color: theme.text }]}>{user.username}</Text>
+                        <View style={[styles.roleBadgeSmall, { backgroundColor: getRoleBadgeColor(user.role) }]}>
+                          <Text style={styles.roleTextSmall}>{user.role || 'user'}</Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.tableCell, styles.tableCellText, { color: theme.textSecondary }]}>{user.email}</Text>
+                      <Text style={[styles.tableCell, styles.tableCellText, { color: '#2ECC71' }]}>{user.credits || 0}</Text>
+                      <Text style={[styles.tableCell, styles.tableCellText, { color: theme.text }]}>Lv {user.level || 1}</Text>
+                      <Text style={[styles.tableCell, styles.tableCellText, { color: theme.textSecondary }]}>
+                        {user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'}
+                      </Text>
+                      <Text style={[styles.tableCell, styles.tableCellText, { color: theme.textSecondary }]}>
+                        {user.last_ip || 'N/A'}
+                      </Text>
+                      <View style={[styles.tableCell, styles.tableActions]}>
+                        <TouchableOpacity
+                          style={styles.actionButtonSmall}
+                          onPress={() => {
+                            Alert.alert(
+                              'Change Role',
+                              `Select new role for ${user.username}`,
+                              [
+                                { text: 'Cancel', style: 'cancel' },
+                                { text: 'User', onPress: () => handleChangeRole(user.id, 'user') },
+                                { text: 'Mentor', onPress: () => handleChangeRole(user.id, 'mentor') },
+                                { text: 'Merchant', onPress: () => handleChangeRole(user.id, 'merchant') },
+                                { text: 'Admin', onPress: () => handleChangeRole(user.id, 'admin') },
+                                { text: 'CS', onPress: () => handleChangeRole(user.id, 'customer_service') },
+                              ]
+                            );
+                          }}
+                        >
+                          <Text style={styles.actionTextSmall}>Role</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.actionButtonSmall, styles.banButtonSmall]}
+                          onPress={() => handleBanUser(user.id)}
+                        >
+                          <Text style={styles.actionTextSmall}>Ban</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                  <View style={styles.actions}>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => {
-                        Alert.alert(
-                          'Change Role',
-                          `Select new role for ${user.username}`,
-                          [
-                            { text: 'Cancel', style: 'cancel' },
-                            { text: 'User', onPress: () => handleChangeRole(user.id, 'user') },
-                            { text: 'Mentor', onPress: () => handleChangeRole(user.id, 'mentor') },
-                            { text: 'Merchant', onPress: () => handleChangeRole(user.id, 'merchant') },
-                            { text: 'Admin', onPress: () => handleChangeRole(user.id, 'admin') },
-                            { text: 'Customer Service', onPress: () => handleChangeRole(user.id, 'customer_service') },
-                          ]
-                        );
-                      }}
-                    >
-                      <Text style={styles.actionText}>Role</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.actionButton, styles.banButton]}
-                      onPress={() => handleBanUser(user.id)}
-                    >
-                      <Text style={styles.banText}>Ban</Text>
-                    </TouchableOpacity>
-                  </View>
+                  ))}
                 </View>
-              ))}
+              </ScrollView>
             </ScrollView>
           )}
         </>
@@ -1301,5 +1335,63 @@ const styles = StyleSheet.create({
   },
   comingSoonText: {
     fontSize: 16,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: HEADER_COLOR,
+  },
+  tableHeaderText: {
+    width: 120,
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'left',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  tableCell: {
+    width: 120,
+    justifyContent: 'center',
+  },
+  tableCellText: {
+    fontSize: 12,
+  },
+  roleBadgeSmall: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  roleTextSmall: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  tableActions: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  actionButtonSmall: {
+    backgroundColor: '#3498DB',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  banButtonSmall: {
+    backgroundColor: '#E74C3C',
+  },
+  actionTextSmall: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
   },
 });
