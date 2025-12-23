@@ -63,6 +63,12 @@ router.post('/login', async (req, res, next) => {
       });
     }
 
+    // Capture client IP
+    const clientIp = req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : req.headers['x-real-ip'] || req.ip || 'N/A';
+    if (clientIp !== 'N/A') {
+      await userService.updateUserLastIp(user.id, clientIp);
+    }
+
     // Update invisible status if requested
     if (invisible !== undefined) {
       await userService.updateUserInvisible(user.id, invisible);

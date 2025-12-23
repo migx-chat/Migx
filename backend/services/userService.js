@@ -525,6 +525,21 @@ const isSuspended = async (userId) => {
   }
 };
 
+const updateUserLastIp = async (userId, ipAddress) => {
+  try {
+    const result = await query(
+      `UPDATE users SET last_ip = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING id, last_ip`,
+      [ipAddress, userId]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error updating user last IP:', error);
+    return null;
+  }
+};
+
 module.exports = {
   createUser,
   createUserWithRegistration,
@@ -559,5 +574,6 @@ module.exports = {
   updateStatusMessage,
   suspendUser,
   unsuspendUser,
-  isSuspended
+  isSuspended,
+  updateUserLastIp
 };
