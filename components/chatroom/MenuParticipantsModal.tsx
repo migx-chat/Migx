@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useThemeCustom } from '@/theme/provider';
 import { router } from 'expo-router';
 import Svg, { Circle } from 'react-native-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE_URL from '@/utils/api';
 
 interface Participant {
@@ -141,6 +142,67 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
         }
       } catch (error) {
         console.error('Error fetching user ID:', error);
+      }
+    } else if (action === 'follow') {
+      // Handle follow user action
+      try {
+        const userDataStr = await AsyncStorage.getItem('user_data');
+        if (!userDataStr) {
+          Alert.alert('Error', 'User data not found. Please login again.');
+          return;
+        }
+
+        const currentUser = JSON.parse(userDataStr);
+        const socket = (window as any).__GLOBAL_SOCKET__;
+
+        // Send system message to chat room
+        if (socket && roomId) {
+          socket.emit('chat:message', {
+            roomId: roomId,
+            userId: currentUser.id,
+            username: 'System',
+            message: `You Are Now Following ${selectedUser}`,
+            isSystemMessage: true,
+          });
+        }
+
+        // Send follow notification to the followed user
+        if (socket) {
+          socket.emit('notif:send', {
+            username: selectedUser,
+            notification: {
+              type: 'follow',
+              message: `${currentUser.username} has follow you`,
+              from: currentUser.username,
+              fromUserId: currentUser.id,
+              timestamp: Date.now(),
+            },
+          });
+        }
+
+        // Make API call to follow the user
+        const response = await fetch(`${API_BASE_URL}/api/profile/follow`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            followerId: currentUser.id,
+            followingUsername: selectedUser,
+          }),
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success) {
+          Alert.alert('Success', `You are now following ${selectedUser}`);
+        } else {
+          Alert.alert('Error', data.error || 'Failed to follow user');
+        }
+
+        // Close modals
+        setShowUserMenu(false);
+        setSelectedUser(null);
+      } catch (error) {
+        console.error('Error following user:', error);
+        Alert.alert('Error', 'Failed to follow user');
       }
     } else if (onUserMenuPress) {
       onUserMenuPress(selectedUser, action);

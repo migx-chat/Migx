@@ -8,9 +8,11 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useThemeCustom } from '@/theme/provider';
 import Svg, { Path } from 'react-native-svg';
+import API_BASE_URL from '@/utils/api';
 import { API_ENDPOINTS } from '@/utils/api';
 
 const CloseIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
@@ -42,10 +44,12 @@ const FollowIcon = ({ size = 20, color = '#4CAF50' }: { size?: number; color?: s
 interface Notification {
   type: 'credit' | 'gift' | 'follow';
   from: string;
+  fromUserId?: string;
   amount?: number;
   giftName?: string;
   message: string;
   timestamp: number;
+  id?: string;
 }
 
 interface NotificationModalProps {
@@ -132,6 +136,56 @@ export function NotificationModal({ visible, onClose, username, socket }: Notifi
     return `${days}d ago`;
   };
 
+  const handleFollowAccept = async (notification: Notification) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/profile/follow/accept`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          followerId: notification.fromUserId,
+          followingUsername: username,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        // Remove notification after accepting
+        const newNotifications = notifications.filter(n => n.id !== notification.id);
+        setNotifications(newNotifications);
+      } else {
+        Alert.alert('Error', data.error || 'Failed to accept follow');
+      }
+    } catch (error) {
+      console.error('Error accepting follow:', error);
+      Alert.alert('Error', 'Failed to accept follow');
+    }
+  };
+
+  const handleFollowReject = async (notification: Notification) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/profile/follow/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          followerId: notification.fromUserId,
+          followingUsername: username,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        // Remove notification after rejecting
+        const newNotifications = notifications.filter(n => n.id !== notification.id);
+        setNotifications(newNotifications);
+      } else {
+        Alert.alert('Error', data.error || 'Failed to reject follow');
+      }
+    } catch (error) {
+      console.error('Error rejecting follow:', error);
+      Alert.alert('Error', 'Failed to reject follow');
+    }
+  };
+
   const renderNotification = ({ item }: { item: Notification }) => (
     <View style={[styles.notificationItem, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
       <View style={styles.notificationIcon}>
@@ -141,9 +195,25 @@ export function NotificationModal({ visible, onClose, username, socket }: Notifi
         <Text style={[styles.notificationMessage, { color: theme.text }]}>
           {item.message}
         </Text>
-        <Text style={[styles.notificationTime, { color: theme.textSecondary }]}>
+        <Text style={[styles.notificationTime, { color: theme.secondary }]}>
           {formatTime(item.timestamp)}
         </Text>
+        {item.type === 'follow' && (
+          <View style={styles.notificationActions}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.rejectButton]}
+              onPress={() => handleFollowReject(item)}
+            >
+              <Text style={styles.actionButtonText}>Reject</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.acceptButton]}
+              onPress={() => handleFollowAccept(item)}
+            >
+              <Text style={styles.actionButtonText}>Accept</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -170,7 +240,7 @@ export function NotificationModal({ visible, onClose, username, socket }: Notifi
             </View>
           ) : notifications.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+              <Text style={[styles.emptyText, { color: theme.secondary }]}>
                 No notifications
               </Text>
             </View>
@@ -243,6 +313,29 @@ const styles = StyleSheet.create({
   },
   notificationTime: {
     fontSize: 12,
+  },
+  notificationActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  rejectButton: {
+    backgroundColor: '#999',
+  },
+  acceptButton: {
+    backgroundColor: '#4CAF50',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   loadingContainer: {
     padding: 40,
