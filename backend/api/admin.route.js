@@ -12,8 +12,8 @@ const superAdminMiddleware = async (req, res, next) => {
       [userId]
     );
     
-    if (result.rows.length === 0 || result.rows[0].role !== 'super_admin') {
-      return res.status(403).json({ error: 'Access denied. Super admin only.' });
+    if (result.rows.length === 0 || !['super_admin', 'admin'].includes(result.rows[0].role)) {
+      return res.status(403).json({ error: 'Access denied. Admin or Super admin only.' });
     }
     
     next();
