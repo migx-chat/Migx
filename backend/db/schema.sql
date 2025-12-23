@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
   suspended_at TIMESTAMP,
   suspended_by VARCHAR(100),
   last_ip VARCHAR(45),
+  pin VARCHAR(4),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

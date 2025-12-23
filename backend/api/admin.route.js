@@ -331,6 +331,40 @@ router.put('/users/:userId/email', authMiddleware, superAdminMiddleware, async (
   }
 });
 
+router.put('/users/:userId/pin', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { newPin } = req.body;
+    
+    if (!newPin) {
+      return res.status(400).json({ error: 'New PIN is required' });
+    }
+
+    if (!/^\d{4}$/.test(newPin)) {
+      return res.status(400).json({ error: 'PIN must be exactly 4 digits' });
+    }
+    
+    const pool = getPool();
+    
+    // Check if user exists
+    const userResult = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    await pool.query(
+      'UPDATE users SET pin = $1 WHERE id = $2',
+      [newPin, userId]
+    );
+    
+    console.log(`✅ PIN reset for user: ${userId}`);
+    res.json({ success: true, message: 'PIN reset successfully' });
+  } catch (error) {
+    console.error('Error resetting PIN:', error);
+    res.status(500).json({ error: 'Failed to reset PIN' });
+  }
+});
+
 router.delete('/rooms/:roomId', authMiddleware, superAdminMiddleware, async (req, res) => {
   try {
     const { roomId } = req.params;

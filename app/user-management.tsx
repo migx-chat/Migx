@@ -46,6 +46,11 @@ export default function UserManagementScreen() {
   const [emailUsername, setEmailUsername] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
+  
+  // Reset PIN
+  const [pinUsername, setPinUsername] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [pinLoading, setPinLoading] = useState(false);
 
   const handleSearchUser = async () => {
     if (!username.trim()) {
@@ -299,6 +304,81 @@ export default function UserManagementScreen() {
     }
   };
 
+  const handleResetPin = async () => {
+    if (!pinUsername.trim() || !newPin.trim()) {
+      Alert.alert('Error', 'Please enter username and new PIN');
+      return;
+    }
+
+    if (!/^\d{4}$/.test(newPin)) {
+      Alert.alert('Error', 'PIN must be exactly 4 digits');
+      return;
+    }
+
+    setPinLoading(true);
+    try {
+      const userData = await AsyncStorage.getItem('user_data');
+      if (!userData) {
+        Alert.alert('Error', 'Session expired. Please log in again.');
+        setPinLoading(false);
+        return;
+      }
+
+      const parsedData = JSON.parse(userData);
+      const token = parsedData?.token;
+
+      if (!token) {
+        Alert.alert('Error', 'Session expired. Please log in again.');
+        setPinLoading(false);
+        return;
+      }
+
+      // First, fetch user to get their ID
+      const getUserResponse = await fetch(`${API_BASE_URL}/api/admin/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!getUserResponse.ok) {
+        Alert.alert('Error', 'Failed to fetch user');
+        setPinLoading(false);
+        return;
+      }
+
+      const userData_res = await getUserResponse.json();
+      const user = userData_res.users?.find((u: any) => u.username.toLowerCase().includes(pinUsername.toLowerCase()));
+
+      if (!user) {
+        Alert.alert('Error', 'User not found');
+        setPinLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/admin/users/${user.id}/pin`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ newPin }),
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', `PIN reset for ${user.username}`);
+        setPinUsername('');
+        setNewPin('');
+      } else {
+        const data = await response.json();
+        Alert.alert('Error', data.error || 'Failed to reset PIN');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to reset PIN');
+    } finally {
+      setPinLoading(false);
+    }
+  };
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin': return '#3498DB';
@@ -523,6 +603,45 @@ export default function UserManagementScreen() {
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <Text style={styles.applyButtonText}>Change Email</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Reset PIN Section */}
+          <View style={[styles.section, { backgroundColor: theme.card }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Reset PIN</Text>
+
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.background, color: theme.text, marginBottom: 12 }]}
+              placeholder="Enter username"
+              placeholderTextColor={theme.text}
+              value={pinUsername}
+              onChangeText={setPinUsername}
+              autoCapitalize="none"
+              editable={!pinLoading}
+            />
+
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.background, color: theme.text, marginBottom: 12 }]}
+              placeholder="Enter new PIN (4 digits)"
+              placeholderTextColor={theme.text}
+              value={newPin}
+              onChangeText={setNewPin}
+              keyboardType="numeric"
+              maxLength={4}
+              secureTextEntry
+              editable={!pinLoading}
+            />
+
+            <TouchableOpacity
+              style={[styles.applyButton, { backgroundColor: HEADER_COLOR }]}
+              onPress={handleResetPin}
+              disabled={pinLoading}
+            >
+              {pinLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.applyButtonText}>Reset PIN</Text>
               )}
             </TouchableOpacity>
           </View>

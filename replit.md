@@ -8,8 +8,8 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Updates (Dec 23, 2025)
 
-## User Management - Change Password & Email (NEW)
-- **Added Sections**: Two new sections in `app/user-management.tsx` for admin operations
+## User Management - Change Password, Email & Reset PIN (NEW)
+- **Added Sections**: Three new sections in `app/user-management.tsx` for admin operations
 - **Change Password Section**:
   - Username input field
   - New password input field (hidden/masked)
@@ -20,10 +20,17 @@ Preferred communication style: Simple, everyday language.
   - New email input field with email validation
   - Submit button that calls `PUT /api/admin/users/{userId}/email`
   - Validates email format and checks for duplicate emails
+- **Reset PIN Section**:
+  - Username input field
+  - New PIN input field (4 digits, masked)
+  - Submit button that calls `PUT /api/admin/users/{userId}/pin`
+  - Validates PIN format (exactly 4 digits)
 - **Backend Endpoints Created**:
   - `PUT /api/admin/users/:userId/password` - Changes user password (admin only)
   - `PUT /api/admin/users/:userId/email` - Changes user email (admin only)
-  - Both endpoints require admin or super_admin role
+  - `PUT /api/admin/users/:userId/pin` - Resets user PIN (admin only)
+  - All endpoints require admin or super_admin role
+- **Database Schema**: Added `pin VARCHAR(4)` column to users table for storing user PINs
 - **UI Pattern**: Consistent with existing sections, uses theme colors, shows loading states
 
 ## Dedicated User Management Page - Username Input & Role Selection
