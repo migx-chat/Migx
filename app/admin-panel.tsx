@@ -763,13 +763,13 @@ export default function AdminPanelScreen() {
                           <Text style={styles.roleTextSmall}>{user.role || 'user'}</Text>
                         </View>
                       </View>
-                      <Text style={[styles.tableCell, styles.tableCellText, { color: theme.textSecondary }]}>{user.email}</Text>
+                      <Text style={[styles.tableCell, styles.tableCellText, { color: '#fff' }]}>{user.email}</Text>
                       <Text style={[styles.tableCell, styles.tableCellText, { color: '#2ECC71' }]}>{user.credits || 0}</Text>
                       <Text style={[styles.tableCell, styles.tableCellText, { color: theme.text }]}>Lv {user.level || 1}</Text>
-                      <Text style={[styles.tableCell, styles.tableCellText, { color: theme.textSecondary }]}>
+                      <Text style={[styles.tableCell, styles.tableCellText, { color: '#fff' }]}>
                         {user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'}
                       </Text>
-                      <Text style={[styles.tableCell, styles.tableCellText, { color: theme.textSecondary }]}>
+                      <Text style={[styles.tableCell, styles.tableCellText, { color: '#fff' }]}>
                         {user.last_ip || 'N/A'}
                       </Text>
                       <View style={[styles.tableCell, styles.tableActions]}>
