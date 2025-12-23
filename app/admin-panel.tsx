@@ -1348,13 +1348,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     textAlign: 'left',
+    color: '#fff',
   },
   tableRow: {
     flexDirection: 'row',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
   tableCell: {
     width: 120,
@@ -1362,6 +1363,7 @@ const styles = StyleSheet.create({
   },
   tableCellText: {
     fontSize: 12,
+    color: '#fff',
   },
   roleBadgeSmall: {
     alignSelf: 'flex-start',
