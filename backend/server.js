@@ -399,7 +399,9 @@ app.use((err, req, res, next) => {
 const chatNamespace = io.of('/chat');
 
 chatNamespace.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.id}`);
+  const username = socket.handshake.auth?.username || 'Anonymous';
+  const userId = socket.handshake.auth?.userId || 'Unknown';
+  console.log(`Client connected: ${socket.id} | User: ${username} (ID: ${userId})`);
 
   roomEvents(io.of('/chat'), socket);
   chatEvents(io.of('/chat'), socket);
@@ -421,7 +423,9 @@ chatNamespace.on('connection', (socket) => {
 });
 
 io.on('connection', (socket) => {
-  console.log(`Main namespace client connected: ${socket.id}`);
+  const username = socket.handshake.auth?.username || 'Anonymous';
+  const userId = socket.handshake.auth?.userId || 'Unknown';
+  console.log(`Main namespace client connected: ${socket.id} | User: ${username} (ID: ${userId})`);
 
   roomEvents(io, socket);
   chatEvents(io, socket);
