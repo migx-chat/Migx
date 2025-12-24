@@ -245,6 +245,88 @@ const isFollowing = async (followerId, followingId) => {
   }
 };
 
+// ==================== BLOCKS ====================
+
+const blockUser = async (blockerId, blockedUsername) => {
+  try {
+    // Get blocked user's ID
+    const userResult = await query(
+      'SELECT id FROM users WHERE username = $1',
+      [blockedUsername]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return { success: false, message: 'User not found' };
+    }
+    
+    const blockedId = userResult.rows[0].id;
+    
+    // Insert block record
+    await query(
+      'INSERT INTO user_blocks (blocker_id, blocked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [blockerId, blockedId]
+    );
+    
+    return { success: true, message: 'User blocked successfully' };
+  } catch (error) {
+    console.error('Error blocking user:', error);
+    return { success: false, message: 'Error blocking user' };
+  }
+};
+
+const unblockUser = async (blockerId, blockedUsername) => {
+  try {
+    const userResult = await query(
+      'SELECT id FROM users WHERE username = $1',
+      [blockedUsername]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return { success: false, message: 'User not found' };
+    }
+    
+    const blockedId = userResult.rows[0].id;
+    
+    await query(
+      'DELETE FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2',
+      [blockerId, blockedId]
+    );
+    
+    return { success: true, message: 'User unblocked successfully' };
+  } catch (error) {
+    console.error('Error unblocking user:', error);
+    return { success: false, message: 'Error unblocking user' };
+  }
+};
+
+const isBlockedBy = async (blockerId, potentiallyBlockedId) => {
+  try {
+    const result = await query(
+      'SELECT * FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2',
+      [blockerId, potentiallyBlockedId]
+    );
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Error checking block status:', error);
+    return false;
+  }
+};
+
+const getBlockedUsers = async (userId) => {
+  try {
+    const result = await query(
+      `SELECT u.id, u.username FROM user_blocks ub
+       JOIN users u ON ub.blocked_id = u.id
+       WHERE ub.blocker_id = $1`,
+      [userId]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error('Error getting blocked users:', error);
+    return [];
+  }
+};
+
 // ==================== AVATAR ====================
 
 const updateAvatar = async (userId, avatarUrl) => {
@@ -298,6 +380,12 @@ module.exports = {
   getFollowersCount,
   getFollowingCount,
   isFollowing,
+  
+  // Blocks
+  blockUser,
+  unblockUser,
+  isBlockedBy,
+  getBlockedUsers,
   
   // Avatar
   updateAvatar,

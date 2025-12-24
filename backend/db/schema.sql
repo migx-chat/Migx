@@ -91,6 +91,16 @@ CREATE TABLE IF NOT EXISTS user_follows (
   CHECK (follower_id != following_id)
 );
 
+-- User blocks table
+CREATE TABLE IF NOT EXISTS user_blocks (
+  id BIGSERIAL PRIMARY KEY,
+  blocker_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+  blocked_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(blocker_id, blocked_id),
+  CHECK (blocker_id != blocked_id)
+);
+
 -- Messages table
 CREATE TABLE IF NOT EXISTS messages (
   id BIGSERIAL PRIMARY KEY,

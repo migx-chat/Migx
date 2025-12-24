@@ -264,6 +264,34 @@ router.get('/gifts/sent/:userId', async (req, res) => {
   }
 });
 
+// ==================== BLOCKS ====================
+
+router.post('/block', authMiddleware, async (req, res) => {
+  try {
+    const { blockedUsername } = req.body;
+    const userId = req.user.id;
+    if (!blockedUsername) return res.status(400).json({ success: false, message: 'Username required' });
+    const result = await profileService.blockUser(userId, blockedUsername);
+    return res.json(result);
+  } catch (error) {
+    console.error('Error blocking user:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+router.post('/unblock', authMiddleware, async (req, res) => {
+  try {
+    const { blockedUsername } = req.body;
+    const userId = req.user.id;
+    if (!blockedUsername) return res.status(400).json({ success: false, message: 'Username required' });
+    const result = await profileService.unblockUser(userId, blockedUsername);
+    return res.json(result);
+  } catch (error) {
+    console.error('Error unblocking user:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // ==================== FOLLOWS ====================
 
 router.post('/follow', async (req, res) => {

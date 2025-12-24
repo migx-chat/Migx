@@ -162,6 +162,39 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
       } catch (error) {
         console.error('Error opening private chat:', error);
       }
+    } else if (action === 'block') {
+      // Handle block user action
+      try {
+        const userDataStr = await AsyncStorage.getItem('user_data');
+        if (!userDataStr) {
+          Alert.alert('Error', 'User data not found. Please login again.');
+          return;
+        }
+
+        const currentUser = JSON.parse(userDataStr);
+        const response = await fetch(`${API_BASE_URL}/api/profile/block`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            blockedUsername: selectedUser,
+          }),
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          Alert.alert('Success', `You have blocked ${selectedUser}`, [
+            { text: 'OK', onPress: () => {
+              setShowUserMenu(false);
+              setSelectedUser(null);
+            }}
+          ]);
+        } else {
+          Alert.alert('Error', data.message || 'Failed to block user');
+        }
+      } catch (error) {
+        console.error('Error blocking user:', error);
+        Alert.alert('Error', 'Failed to block user');
+      }
     } else if (action === 'follow') {
       // Handle follow user action
       try {
