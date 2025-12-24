@@ -4,13 +4,13 @@ This project is a cross-platform mobile chat application built with React Native
 
 ## Latest Changes (December 24, 2025)
 
-- **Private Chat Feature**: Full multi-tab integration
-  - PrivateChatHeader: Back button, user avatar, username, level badge (from assets/ic_level), follow icon, 3-dot menu
-  - Header background matches chatroom (#0a5229) with proper dark green styling
-  - PrivateChatInput: Clean message input with only emoji picker and send button (no menu lines or coin icon)
-  - PrivateChatInstance: Renders private chats as tabs in chatroom multi-tab system
+- **Private Chat Feature**: Complete multi-tab integration with clean UI
+  - PrivateChatHeader: Back button, user avatar, username, level badge (from assets/ic_level), follow icon, 3-dot menu (#0a5229 dark green)
+  - PrivateChatInput: Clean message input with ONLY emoji picker and send button (NO menu lines icon, NO coin icon)
+  - PrivateChatInstance: Renders private chats as tabs in chatroom multi-tab system with standalone header and input
   - ChatRoomTabs: Intelligently detects private chats (roomId: `pm_${username}`) and renders appropriate component
   - MenuParticipantsModal: "Private Chat" option opens as new tab in chatroom tabs (same as regular rooms)
+  - Layout optimization: Hides chatroom header and input when private chat is active, shows only PrivateChatHeader + PrivateChatInput
   - Displays ChatRoomContent for messages and supports emoji picker integration
 
 - **Kick Command Response Message**: Added response display for non-admin users

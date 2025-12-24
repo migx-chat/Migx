@@ -72,6 +72,7 @@ export default function ChatRoomScreen() {
   const roomInitialized = useRef(false);
 
   const currentActiveRoomId = activeRoomId || roomId;
+  const isPrivateChat = currentActiveRoomId?.startsWith('pm_') || false;
 
   useEffect(() => {
     if (socket?.connected && !isConnected) {
@@ -367,37 +368,46 @@ export default function ChatRoomScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar backgroundColor={HEADER_COLOR} barStyle="light-content" />
       
-      <ChatRoomHeader
-        onBack={handleHeaderBack}
-        onMenuPress={() => setMenuVisible(true)}
-      />
+      {/* Header - Hanya untuk regular rooms, bukan private chat */}
+      {!isPrivateChat && (
+        <ChatRoomHeader
+          onBack={handleHeaderBack}
+          onMenuPress={() => setMenuVisible(true)}
+        />
+      )}
 
       <ChatRoomTabs
-        bottomPadding={70 + insets.bottom}
+        bottomPadding={isPrivateChat ? 0 : (70 + insets.bottom)}
         renderVoteButton={renderVoteButton}
       />
 
-      <EmojiPicker
-        visible={emojiVisible}
-        onClose={() => setEmojiVisible(false)}
-        onEmojiSelect={(code) => {
-          if (inputRef.current?.insertEmoji) {
-            inputRef.current.insertEmoji(code);
-          }
-        }}
-        bottomOffset={0} // No offset needed as it sits at bottom
-      />
+      {/* Emoji Picker - Hanya untuk regular rooms */}
+      {!isPrivateChat && (
+        <EmojiPicker
+          visible={emojiVisible}
+          onClose={() => setEmojiVisible(false)}
+          onEmojiSelect={(code) => {
+            if (inputRef.current?.insertEmoji) {
+              inputRef.current.insertEmoji(code);
+            }
+          }}
+          bottomOffset={0}
+        />
+      )}
 
-      <ChatRoomInput 
-        ref={inputRef}
-        onSend={handleSendMessage} 
-        onMenuItemPress={handleMenuAction}
-        onMenuPress={() => setMenuVisible(true)}
-        onOpenParticipants={handleOpenParticipants}
-        onEmojiPress={() => setEmojiVisible(!emojiVisible)}
-        emojiPickerVisible={emojiVisible}
-        emojiPickerHeight={EMOJI_PICKER_HEIGHT}
-      />
+      {/* Input - Hanya untuk regular rooms */}
+      {!isPrivateChat && (
+        <ChatRoomInput 
+          ref={inputRef}
+          onSend={handleSendMessage} 
+          onMenuItemPress={handleMenuAction}
+          onMenuPress={() => setMenuVisible(true)}
+          onOpenParticipants={handleOpenParticipants}
+          onEmojiPress={() => setEmojiVisible(!emojiVisible)}
+          emojiPickerVisible={emojiVisible}
+          emojiPickerHeight={EMOJI_PICKER_HEIGHT}
+        />
+      )}
 
       <MenuKickModal
         visible={kickModalVisible}
