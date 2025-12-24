@@ -1,6 +1,6 @@
 
 export const MIG33_CMD = {
-  d: { requiresTarget: true, message: (u: string, t?: string) => `${u} followed ${t}.` },
+  f: { requiresTarget: true, message: (u: string, t?: string) => `${u} followed ${t}.` },
   thank: { requiresTarget: false, message: (u: string) => `${u} thanks everyone.` },
   agree: { requiresTarget: false, message: (u: string) => `${u} agrees.` },
   apologizes: { requiresTarget: false, message: (u: string) => `${u} apologizes sincerely.` },

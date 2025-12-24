@@ -118,8 +118,8 @@ module.exports = (io, socket) => {
           return;
         }
 
-        // Handle /d <username> command for Follow User (Private Response)
-        if (cmdKey === 'd') {
+        // Handle /f <username> command for Follow User (Private Response)
+        if (cmdKey === 'f') {
           const targetUsername = parts[1] || null;
 
           if (!targetUsername) {

@@ -4,9 +4,9 @@ This project is a cross-platform mobile chat application built with React Native
 
 ## Latest Changes (December 23, 2025)
 
-- **Follow User Feature**: Implemented both UI-based follow (from participants menu) and command-based follow via `/d [username]` command
+- **Follow User Feature**: Implemented both UI-based follow (from participants menu) and command-based follow via `/f [username]` command
   - Follow via participants menu: Shows system message in chat + sends follow notification with Accept/Reject buttons
-  - Follow via `/d [username]` command: Private response message visible only to sender + follow notification with Accept/Reject buttons
+  - Follow via `/f [username]` command: Private response message visible only to sender + follow notification with Accept/Reject buttons
   - Both methods use same backend follow system and notification workflow
 
 # User Preferences
@@ -42,7 +42,7 @@ Key REST API endpoints include authentication (`/api/auth/login`), user data (`/
 ### Commands
 
 Chat commands available to users:
-- `/d [username]` - Follow a user (private response, sends notification with Accept/Reject)
+- `/f [username]` - Follow a user (private response, sends notification with Accept/Reject)
 - `/me <action>` - Perform an action
 - `/roll` - Roll a random number (1-100)
 - `/gift <name> <username>` - Send a gift
@@ -51,7 +51,7 @@ Chat commands available to users:
 - `/suspend <username>` - Admin only: Suspend a user's account
 - `/unsuspend <username>` - Admin only: Unsuspend a user's account
 
-Commands starting with `/d` are special - they send private responses visible only to the sender.
+Commands starting with `/f` are special - they send private responses visible only to the sender.
 
 ### Game and Economy Systems
 
