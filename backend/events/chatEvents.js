@@ -353,6 +353,26 @@ module.exports = (io, socket) => {
               return;
             }
 
+            // Check if user is admin
+            const isAdmin = await userService.isAdmin(userId);
+
+            // If not admin, check if they have enough credits for vote kick
+            if (!isAdmin) {
+              const userCredits = await userService.getUserCredits(userId);
+              if (userCredits < 500) {
+                socket.emit('chat:message', {
+                  id: generateMessageId(),
+                  roomId,
+                  message: 'You don\'t have credite for start kick',
+                  messageType: 'cmdKick',
+                  type: 'notice',
+                  timestamp: new Date().toISOString(),
+                  isPrivate: true
+                });
+                return;
+              }
+            }
+
             // Emit room:kick event to roomEvents handler
             // The handler will check if user is admin (instant kick) or non-admin (vote kick)
             socket.emit('room:kick', {
@@ -360,7 +380,7 @@ module.exports = (io, socket) => {
               targetUsername,
               kickerUserId: userId,
               kickerUsername: username,
-              isAdmin: await userService.isAdmin(userId)
+              isAdmin: isAdmin
             });
 
             console.log(`⚔️ ${username} initiated kick for ${targetUsername} via /kick command in room ${roomId}`);
