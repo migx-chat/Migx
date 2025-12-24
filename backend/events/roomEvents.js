@@ -1096,7 +1096,7 @@ module.exports = (io, socket) => {
       
       console.log('📋 Sending participants list:', { roomId, count: participants.length, participants });
       
-      socket.emit('room:participants:list', {
+      socket.emit('room:participants:update', {
         roomId,
         participants
       });

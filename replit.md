@@ -4,6 +4,12 @@ This project is a cross-platform mobile chat application built with React Native
 
 ## Latest Changes (December 24, 2025)
 
+- **Kick Menu User List Fix**: Fixed Redis handling for participant list display
+  - Backend was emitting `room:participants:list` event but frontend was listening for `room:participants:update`
+  - Fixed backend to emit correct `room:participants:update` event when `/room:get-participants` is requested
+  - Frontend properly displays user list in kick menu modal via Redis participant data
+  - Uses `getRoomParticipantsWithNames` from redisUtils to fetch active room participants
+
 - **Follow/Unfollow Message Formatting**: Updated message styling with brown color
   - Follow message: "You are now follow [username]" (brown text, no checkmark, no ellipsis)
   - Unfollow message: "You are now unfollow [username]" (brown text, no checkmark, no ellipsis)
