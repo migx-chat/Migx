@@ -3,6 +3,7 @@ const userService = require('../services/userService');
 const banService = require('../services/banService');
 const { addXp, XP_REWARDS } = require('../utils/xpLeveling');
 const { getPresence } = require('../utils/presence');
+const { generateMessageId } = require('../utils/idGenerator');
 const {
   addUserRoom,
   removeUserRoom,
@@ -778,14 +779,30 @@ module.exports = (io, socket) => {
           const result = await startVoteKick(io, roomId, kickerUsername, targetUsername, roomUserCount, userId);
 
           if (!result.success) {
-            socket.emit('system:message', {
+            socket.emit('chat:message', {
+              id: generateMessageId(),
               roomId,
+              username: room.name,
               message: result.error,
               timestamp: new Date().toISOString(),
-              type: 'error'
+              type: 'notice',
+              messageType: 'cmdKick',
+              isPrivate: true
             });
             return;
           }
+
+          // Send confirmation message to the kicker
+          socket.emit('chat:message', {
+            id: generateMessageId(),
+            roomId,
+            username: room.name,
+            message: `✅ You started a vote to kick ${targetUsername}. Paid 500 IDR. ${result.votesNeeded - 1} votes needed to kick.`,
+            timestamp: new Date().toISOString(),
+            type: 'notice',
+            messageType: 'cmdKick',
+            isPrivate: true
+          });
         }
       }
 

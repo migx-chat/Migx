@@ -4,6 +4,20 @@ This project is a cross-platform mobile chat application built with React Native
 
 ## Latest Changes (December 24, 2025)
 
+- **Kick Command Response Message**: Added response display for non-admin users
+  - Non-admin `/kick [username]` now shows instant feedback message
+  - Success: `✅ You started a vote to kick [username]. Paid 500 IDR. [N] votes needed to kick.`
+  - Error: `You don't have credite for start kick` (if insufficient credits)
+  - Fixed chatEvents.js to emit `chat:message` response on kick initiation
+  - Added generateMessageId import to roomEvents.js
+
+- **User Entry Message Order**: Fixed message display order
+  - Join messages now appear in correct order: Welcome (0ms) → Managed by (100ms) → Currently users (200ms) → Has entered (300ms)
+  - "Has entered" message now appears BELOW "Currently users" as expected
+
+- **User See Own Entry Message**: Users now see their own "has entered" message
+  - Changed broadcast from `socket.broadcast.to()` to `io.to()` to include joining user
+
 - **Kick Menu User List Fix**: Fixed Redis handling for participant list display
   - Backend was emitting `room:participants:list` event but frontend was listening for `room:participants:update`
   - Fixed backend to emit correct `room:participants:update` event when `/room:get-participants` is requested
