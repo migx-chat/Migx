@@ -39,6 +39,17 @@ module.exports = (io, socket) => {
         recipientUsername = recipient.username;
       }
 
+      // Check if sender has been blocked by recipient
+      const profileService = require('../services/profileService');
+      const isBlocked = await profileService.isBlockedBy(toUserId, fromUserId);
+      if (isBlocked) {
+        socket.emit('pm:blocked', {
+          message: 'You has blocked',
+          toUsername: recipientUsername
+        });
+        return;
+      }
+
       const recipientPresence = await getPresence(recipientUsername);
       if (recipientPresence === 'busy') {
         socket.emit('pm:blocked', {

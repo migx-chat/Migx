@@ -46,6 +46,20 @@ module.exports = (io, socket) => {
         return;
       }
 
+      // Check if sender is blocked by getting list of blocked users
+      const profileService = require('../services/profileService');
+      const { getRoomParticipantsWithNames } = require('../utils/redisUtils');
+      const roomParticipants = await getRoomParticipantsWithNames(roomId);
+      
+      // Check which users in room have blocked this sender
+      const blockedByUsers = new Set();
+      for (const participant of roomParticipants) {
+        const isBlocked = await profileService.isBlockedBy(participant.userId, userId);
+        if (isBlocked) {
+          blockedByUsers.add(participant.username);
+        }
+      }
+
       // Check if message is a CMD command
       if (message.startsWith('/')) {
         const parts = message.slice(1).split(' ');
@@ -1061,7 +1075,15 @@ module.exports = (io, socket) => {
         timestamp: new Date().toISOString()
       };
 
-      io.to(`room:${roomId}`).emit('chat:message', messageData);
+      // Broadcast to room, filtering out users who blocked sender
+      const roomSockets = io.sockets.adapter.rooms.get(`room:${roomId}`) || new Set();
+      for (const socketId of roomSockets) {
+        const targetSocket = io.sockets.sockets.get(socketId);
+        if (targetSocket && targetSocket.username && !blockedByUsers.has(targetSocket.username)) {
+          targetSocket.emit('chat:message', messageData);
+        }
+      }
+      socket.emit('chat:message', messageData);
 
       // Notify all room members of chatlist update
       try {
