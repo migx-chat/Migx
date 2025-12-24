@@ -143,6 +143,11 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
       } catch (error) {
         console.error('Error fetching user ID:', error);
       }
+    } else if (action === 'private-chat') {
+      // Open private chat - will implement in next phase
+      Alert.alert('Coming Soon', 'Private chat feature is being implemented');
+      setShowUserMenu(false);
+      setSelectedUser(null);
     } else if (action === 'follow') {
       // Handle follow user action
       try {
