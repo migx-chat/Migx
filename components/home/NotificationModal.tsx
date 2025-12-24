@@ -292,14 +292,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    paddingTop: 12,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
   },
   closeButton: {
-    padding: 4,
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   list: {
     flex: 1,
