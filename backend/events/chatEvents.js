@@ -1452,7 +1452,7 @@ module.exports = (io, socket) => {
       }
 
       // Check if user is in room participants using Redis directly
-      const isMember = await redis.sismember(`room:${roomId}:participants`, userId);
+      const isMember = await redis.sIsMember(`room:${roomId}:participants`, userId);
       if (!isMember) {
         const roomService = require('../services/roomService');
         const roomInfo = await roomService.getRoomById(roomId);
