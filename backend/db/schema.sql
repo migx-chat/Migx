@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
   suspended_by VARCHAR(100),
   last_ip VARCHAR(45),
   pin VARCHAR(4),
+  login_streak INT DEFAULT 0,
+  last_login_date DATE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

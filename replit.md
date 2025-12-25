@@ -55,6 +55,27 @@ Chat commands available to users:
 
 The application includes an XP & Level System. A Merchant Commission System allows mentors to create merchants. An Auto Voucher system broadcasts free credit codes.
 
+# Recent Feature Additions (December 25, 2025)
+
+## Daily Login Streak System
+- Database: `login_streak` (INT) and `last_login_date` (DATE) columns on users table
+- Service (`streakService.js`): Tracks consecutive daily logins with reward multipliers
+- API: `POST /api/streak/check` updates streak, `GET /api/streak/info/:userId` retrieves info
+- Rewards: 10 base credits/day, 20 for 3+ day streak, 30 for 7+ day streak
+- Integrated into login endpoint - returns streak data in auth response
+
+## Admin Panel Expansion (React + Vite)
+- 6 main sections: Dashboard, Reports, Users, Rooms, Announcements, Transactions
+- Users page: Role filtering, Add Coins button, Change Role button
+- Announcements page: Create and manage system announcements
+- Transactions page: View credit transaction history with filtering
+- Dark green theme (#082919, #0a5229) with responsive design
+
+## Report Abuse System
+- Added to room participant menus with modal form
+- API: `POST /api/abuse/report` saves reports to database
+- Admin panel management of reports with status tracking (pending/reviewed/actioned)
+
 # External Dependencies
 
 ## Core Expo Modules

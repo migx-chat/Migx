@@ -6,6 +6,7 @@ const userService = require('../services/userService');
 const { getUserLevel } = require('../utils/xpLeveling');
 const crypto = require('crypto');
 const { sendOtpEmail, sendActivationEmail, sendPasswordChangeOtp } = require('../utils/emailService');
+const streakService = require('../services/streakService');
 
 // Username validation regex (MIG33 rules)
 const usernameRegex = /^[a-z][a-z0-9._]{5,11}$/;
@@ -76,6 +77,14 @@ router.post('/login', async (req, res, next) => {
     }
 
     const levelData = await getUserLevel(user.id);
+    
+    // Check and update daily login streak
+    let streakInfo = {};
+    try {
+      streakInfo = await streakService.updateStreak(user.id);
+    } catch (err) {
+      console.error('Error updating streak:', err);
+    }
 
     console.log('LOGIN SUCCESS:', username);
 
@@ -108,9 +117,12 @@ router.post('/login', async (req, res, next) => {
         country: user.country,
         gender: user.gender,
         isInvisible: user.is_invisible,
-        createdAt: user.created_at
+        createdAt: user.created_at,
+        streak: streakInfo.streak || 0,
+        streakReward: streakInfo.reward || 0
       },
-      rememberMe: rememberMe || false
+      rememberMe: rememberMe || false,
+      streakMessage: streakInfo.message
     });
 
   } catch (error) {

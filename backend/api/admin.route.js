@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, verifyAdminToken } = require('../middleware/auth');
+const authMiddleware = require('../middleware/auth');
 const db = require('../db/db');
 
 // Get dashboard stats
-router.get('/stats', verifyAdminToken, async (req, res) => {
+router.get('/stats', authMiddleware, async (req, res) => {
   try {
     const totalUsers = await db.query('SELECT COUNT(*) as count FROM users');
     const activeRooms = await db.query('SELECT COUNT(*) as count FROM rooms WHERE category IS NOT NULL');
@@ -24,7 +24,7 @@ router.get('/stats', verifyAdminToken, async (req, res) => {
 });
 
 // Get all reports with pagination
-router.get('/reports', verifyAdminToken, async (req, res) => {
+router.get('/reports', authMiddleware, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = 20;
@@ -48,7 +48,7 @@ router.get('/reports', verifyAdminToken, async (req, res) => {
 });
 
 // Update report status
-router.patch('/reports/:id/status', verifyAdminToken, async (req, res) => {
+router.patch('/reports/:id/status', authMiddleware, async (req, res) => {
   try {
     const { status } = req.body;
     await db.query(
@@ -63,7 +63,7 @@ router.patch('/reports/:id/status', verifyAdminToken, async (req, res) => {
 });
 
 // Delete report
-router.delete('/reports/:id', verifyAdminToken, async (req, res) => {
+router.delete('/reports/:id', authMiddleware, async (req, res) => {
   try {
     await db.query('DELETE FROM abuse_reports WHERE id = $1', [req.params.id]);
     res.json({ message: 'Report deleted' });
@@ -74,7 +74,7 @@ router.delete('/reports/:id', verifyAdminToken, async (req, res) => {
 });
 
 // Get users with pagination
-router.get('/users', verifyAdminToken, async (req, res) => {
+router.get('/users', authMiddleware, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const role = req.query.role;
@@ -105,7 +105,7 @@ router.get('/users', verifyAdminToken, async (req, res) => {
 });
 
 // Ban user
-router.patch('/users/:id/ban', verifyAdminToken, async (req, res) => {
+router.patch('/users/:id/ban', authMiddleware, async (req, res) => {
   try {
     await db.query(
       'UPDATE users SET is_suspended = true WHERE id = $1',
@@ -119,7 +119,7 @@ router.patch('/users/:id/ban', verifyAdminToken, async (req, res) => {
 });
 
 // Unban user
-router.patch('/users/:id/unban', verifyAdminToken, async (req, res) => {
+router.patch('/users/:id/unban', authMiddleware, async (req, res) => {
   try {
     await db.query(
       'UPDATE users SET is_suspended = false WHERE id = $1',
