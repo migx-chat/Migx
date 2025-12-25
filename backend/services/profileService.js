@@ -359,6 +359,23 @@ const deleteAvatar = async (userId) => {
   }
 };
 
+// ==================== BACKGROUND ====================
+
+const updateBackground = async (userId, backgroundUrl) => {
+  try {
+    const result = await query(
+      `UPDATE users SET background_image = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING id, username, background_image`,
+      [backgroundUrl, userId]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error updating background:', error);
+    return null;
+  }
+};
+
 module.exports = {
   // Posts
   createPost,
@@ -387,7 +404,8 @@ module.exports = {
   isBlockedBy,
   getBlockedUsers,
   
-  // Avatar
+  // Avatar & Background
   updateAvatar,
-  deleteAvatar
+  deleteAvatar,
+  updateBackground
 };

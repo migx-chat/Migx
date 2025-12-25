@@ -190,6 +190,7 @@ export default function ViewProfileScreen() {
           {profileData && (
             <>
               <ViewProfileHeader
+                backgroundImage={profileData.user.background_image}
                 avatarImage={profileData.user.avatar}
                 username={profileData.user.username}
                 level={profileData.user.level}

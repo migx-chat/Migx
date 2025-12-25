@@ -69,29 +69,94 @@ export default function EditProfileScreen() {
 
   const uploadBackground = async (uri: string) => {
     try {
-      console.log('📤 Setting background image...');
-      
-      // Store the background image URI locally
-      setBackgroundImage(uri);
-      
-      // Update user data with new background
+      setUploading(true);
+
+      // Get token from user_data in AsyncStorage
       const userDataStr = await AsyncStorage.getItem('user_data');
-      if (userDataStr) {
-        const userData = JSON.parse(userDataStr);
+      console.log('📱 Checking AsyncStorage for user_data...');
+      
+      if (!userDataStr) {
+        console.log('❌ No user_data found in AsyncStorage');
+        Alert.alert('Error', 'User not logged in. Please login again.');
+        return;
+      }
+
+      const userData = JSON.parse(userDataStr);
+      console.log('✅ user_data found:', {
+        id: userData.id,
+        username: userData.username,
+        hasToken: !!userData.token
+      });
+
+      const token = userData.token;
+      
+      if (!token) {
+        console.log('❌ No token found in user_data');
+        Alert.alert('Error', 'Authentication token missing. Please login again.');
+        return;
+      }
+
+      console.log('🔑 Token retrieved:', `${token.substring(0, 20)}...`);
+
+      // Create form data
+      const formData = new FormData();
+      formData.append('userId', userData.id.toString());
+      
+      formData.append('background', {
+        uri,
+        name: `background.jpg`,
+        type: 'image/jpeg',
+      } as any);
+
+      console.log('📤 Uploading background...');
+      console.log('📦 Endpoint:', API_ENDPOINTS.PROFILE.BACKGROUND_UPLOAD);
+      console.log('📦 User ID:', userData.id);
+
+      // Upload with Authorization header
+      const response = await fetch(API_ENDPOINTS.PROFILE.BACKGROUND_UPLOAD, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      console.log('📡 Response status:', response.status);
+      
+      const data = await response.json();
+      console.log('📥 Upload response:', JSON.stringify(data, null, 2));
+
+      if (response.ok && data.success) {
+        console.log('✅ Background uploaded successfully!');
+        Alert.alert('Success', 'Background updated successfully');
+        
+        // Get the new background URL
+        const newBackgroundUrl = data.backgroundUrl || data.user?.background_image || data.background;
+        console.log('🖼️ New background URL:', newBackgroundUrl);
+        
+        // Update user data with new background - keep token intact
         const updatedUser = {
           ...userData,
-          background: uri,
+          background_image: newBackgroundUrl,
+          token: token // Ensure token is preserved
         };
         
         setUser(updatedUser);
+        setBackgroundImage(newBackgroundUrl);
+        
+        // Update stored user data in AsyncStorage - preserve token
         await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser));
+        
+        console.log('✅ User data updated in storage with background');
+      } else {
+        console.log('❌ Upload failed:', data.error || data.message);
+        Alert.alert('Error', data.error || data.message || 'Failed to upload background');
       }
-      
-      console.log('✅ Background image set successfully!');
-      Alert.alert('Success', 'Background updated successfully');
     } catch (error) {
-      console.error('❌ Background update error:', error);
-      Alert.alert('Error', 'Failed to update background. Please try again.');
+      console.error('❌ Background upload error:', error);
+      Alert.alert('Error', 'Failed to upload background. Please try again.');
+    } finally {
+      setUploading(false);
     }
   };
 

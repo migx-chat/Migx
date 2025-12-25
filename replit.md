@@ -2,7 +2,21 @@
 
 This project is a cross-platform mobile chat application built with React Native and Expo, designed to offer a classic chat experience. It features real-time messaging, chat rooms, private conversations, user profiles, and social networking functionalities like friends lists and online status. The application supports iOS, Android, and Web, incorporating room browsing, favorite management, user leveling, theme customization, and a credit transfer system. The goal is to create an engaging social platform that fosters community and interaction, reminiscent of early chat services.
 
-## Latest Changes (December 25, 2025 - Auto-Clear Notification Badge + Pull-to-Refresh)
+## Latest Changes (December 25, 2025 - Profile Background Image Upload + Avatar/Background Display in View Profile)
+
+- **Background Image Upload**: Added background image upload to edit profile
+  - Users can click camera icon on background to upload from gallery
+  - Image uploaded to server with same file storage as avatars (/uploads/avatars/)
+  - Background persists in database (background_image column)
+  - URL stored in user record and returned to frontend
+  
+- **View Profile Image Display Fix**: Avatar and background now display correctly in view profile
+  - Added backgroundImage prop to ViewProfileHeader component
+  - ViewProfileHeader properly converts relative URLs to full URLs using API_BASE_URL
+  - View profile now fetches and passes background_image from backend
+  - Both avatar and background show when available, fallback to placeholders if missing
+
+## Previous Changes (December 25, 2025 - Auto-Clear Notification Badge + Pull-to-Refresh)
 
 - **Auto-Clear Notification Badge**: Red notification badge automatically disappears when user opens notification modal
   - NotificationModal immediately marks all notifications as read via DELETE endpoint

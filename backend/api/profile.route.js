@@ -42,6 +42,69 @@ const upload = multer({
   }
 });
 
+// ==================== BACKGROUND ====================
+
+router.post('/background/upload', authMiddleware, upload.single('background'), async (req, res) => {
+  try {
+    console.log('📥 Background upload request received');
+    console.log('📋 Authenticated user:', req.user);
+    console.log('📋 File:', req.file ? req.file.filename : 'No file');
+    
+    if (!req.file) {
+      console.log('❌ No file uploaded');
+      return res.status(400).json({ 
+        success: false,
+        error: 'No file uploaded' 
+      });
+    }
+    
+    // Use authenticated user ID from token
+    const userId = req.user.id || req.user.userId || req.body.userId;
+    
+    if (!userId) {
+      console.log('❌ No userId in token or body');
+      return res.status(400).json({ 
+        success: false,
+        error: 'User ID is required' 
+      });
+    }
+    
+    console.log('✅ Uploading background for user:', userId);
+    console.log('📁 File saved as:', req.file.filename);
+    
+    // Generate background URL
+    const backgroundUrl = `/uploads/avatars/${req.file.filename}`;
+    
+    // Update user background in database
+    const result = await profileService.updateBackground(userId, backgroundUrl);
+    
+    if (!result) {
+      console.log('❌ Failed to update background in database');
+      return res.status(500).json({ 
+        success: false,
+        error: 'Failed to update background' 
+      });
+    }
+    
+    console.log('✅ Background updated successfully:', backgroundUrl);
+    
+    res.json({
+      success: true,
+      backgroundUrl: backgroundUrl,
+      background: backgroundUrl,
+      user: result
+    });
+    
+  } catch (error) {
+    console.error('❌ Background upload error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to upload background',
+      message: error.message 
+    });
+  }
+});
+
 // ==================== AVATAR ====================
 
 router.post('/avatar/upload', authMiddleware, upload.single('avatar'), async (req, res) => {

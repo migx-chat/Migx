@@ -92,15 +92,22 @@ export function ViewProfileHeader({
       ? `${API_BASE_URL}${avatarImage}` 
       : null;
 
+  const backgroundUri = backgroundImage?.startsWith('http')
+    ? backgroundImage
+    : backgroundImage
+      ? `${API_BASE_URL}${backgroundImage}`
+      : null;
+
   console.log('ViewProfileHeader - Avatar URI:', avatarUri);
   console.log('ViewProfileHeader - Raw avatarImage:', avatarImage);
+  console.log('ViewProfileHeader - Background URI:', backgroundUri);
 
   return (
     <View style={styles.container}>
       {/* Background Image Section */}
       <View style={styles.backgroundContainer}>
-        {backgroundImage ? (
-          <Image source={{ uri: backgroundImage }} style={styles.backgroundImage} />
+        {backgroundUri ? (
+          <Image source={{ uri: backgroundUri }} style={styles.backgroundImage} />
         ) : (
           <View style={[styles.backgroundPlaceholder, { backgroundColor: '#2D5016' }]} />
         )}

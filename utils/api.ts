@@ -37,6 +37,7 @@ export const API_ENDPOINTS = {
   },
   PROFILE: {
     AVATAR_UPLOAD: `${API_BASE_URL}/api/profile/avatar/upload`,
+    BACKGROUND_UPLOAD: `${API_BASE_URL}/api/profile/background/upload`,
     AVATAR_DELETE: (userId: string) => `${API_BASE_URL}/api/profile/avatar/${userId}`,
     POSTS: `${API_BASE_URL}/api/profile/posts`,
     GET_POSTS: (userId: string) => `${API_BASE_URL}/api/profile/posts/${userId}`,
