@@ -90,6 +90,10 @@ export default function FeedScreen() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
 
+  // Image modal
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+
   useEffect(() => {
     loadCurrentUser();
     fetchPosts(1);
@@ -476,7 +480,14 @@ export default function FeedScreen() {
 
       <Text style={[styles.postContent, { color: theme.text }]}>{item.content}</Text>
 
-      <FeedMedia mediaType={mediaType} mediaUrl={mediaUrl} />
+      <FeedMedia 
+        mediaType={mediaType} 
+        mediaUrl={mediaUrl}
+        onPress={mediaType === 'image' ? () => {
+          setSelectedImageUrl(mediaUrl || null);
+          setShowImageModal(true);
+        } : undefined}
+      />
 
       <View style={styles.postActions}>
         <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
@@ -685,6 +696,13 @@ export default function FeedScreen() {
             </View>
           </KeyboardAvoidingView>
         </Modal>
+
+        {/* Image Modal */}
+        <ImageModal 
+          visible={showImageModal} 
+          imageUrl={selectedImageUrl || undefined}
+          onClose={() => setShowImageModal(false)}
+        />
       </View>
     </SwipeableScreen>
   );
