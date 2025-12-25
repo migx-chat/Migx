@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import '../styles/ManagementPages.css';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL || ''}/api`;
 
 export default function Gifts() {
   const [gifts, setGifts] = useState([]);
