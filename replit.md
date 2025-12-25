@@ -57,7 +57,16 @@ Chat commands available to users:
 
 The application includes an XP & Level System. A Merchant Commission System allows mentors to create merchants. An Auto Voucher system broadcasts free credit codes.
 
-# Recent Feature Additions (December 25, 2025)
+# Recent Feature Additions (December 26, 2025)
+
+## Room Info Modal UI Updates
+- Modal now displays **full screen** instead of half-screen (flex: 1 layout)
+- Changed "Online Users" section header to **"List Moderator"**
+- Room owner now displays actual **username** from database (e.g., "migx" for Merchant Area) instead of "Unknown"
+- Backend `/api/rooms/:roomId/info` endpoint now joins with users table to fetch correct owner username
+- Maintains all existing room information: description, participants count, privacy status, creation date
+
+# Previous Feature Additions (December 25, 2025)
 
 ## Gift Management System (Admin Panel)
 - Database: New `gifts` table with columns: `id` (PK), `name` (unique), `price`, `image_url`, `created_at`, `updated_at`

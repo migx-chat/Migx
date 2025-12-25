@@ -18,17 +18,18 @@ router.get('/:roomId/info', async (req, res) => {
     // Ambil data static dari PostgreSQL
     const roomResult = await query(
       `SELECT 
-        id,
-        name,
-        description,
-        creator_name as "ownerName",
-        created_at as "createdAt",
-        updated_at as "updatedAt",
-        room_code as "roomCode",
-        max_users as "maxUsers",
-        is_private as "isPrivate"
-       FROM rooms
-       WHERE id = $1`,
+        r.id,
+        r.name,
+        r.description,
+        COALESCE(u.username, 'Unknown') as "ownerName",
+        r.created_at as "createdAt",
+        r.updated_at as "updatedAt",
+        r.room_code as "roomCode",
+        r.max_users as "maxUsers",
+        r.is_private as "isPrivate"
+       FROM rooms r
+       LEFT JOIN users u ON r.owner_id = u.id
+       WHERE r.id = $1`,
       [roomId]
     );
     
@@ -50,7 +51,7 @@ router.get('/:roomId/info', async (req, res) => {
       id: room.id,
       name: room.name,
       description: room.description || 'No description',
-      ownerName: room.ownerName || 'Unknown',
+      ownerName: room.ownerName,
       createdAt: room.createdAt,
       updatedAt: room.updatedAt,
       roomCode: room.roomCode,

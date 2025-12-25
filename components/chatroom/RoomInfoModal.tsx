@@ -156,7 +156,7 @@ export function RoomInfoModal({ visible, onClose, roomId, info }: RoomInfoModalP
                 <>
                   <View style={styles.divider} />
                   <View style={styles.participantsSection}>
-                    <Text style={[styles.participantsTitle, dynamicStyles.participantsTitle]}>Online Users</Text>
+                    <Text style={[styles.participantsTitle, dynamicStyles.participantsTitle]}>List Moderator</Text>
                     {roomInfo.participants.map((username, index) => (
                       <View key={index} style={styles.participantItem}>
                         <View style={styles.onlineDot} />
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
