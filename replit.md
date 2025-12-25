@@ -59,17 +59,27 @@ The application includes an XP & Level System. A Merchant Commission System allo
 
 # Recent Feature Additions (December 26, 2025)
 
-## Moderator System for Rooms
+## Moderator System for Rooms (COMPLETE)
 - Command: `/mod [username]` - Room owner only, makes a user a moderator of that room
+- Command: `/unmod [username]` - Room owner only, removes a moderator from that room
 - Database: New `room_moderators` table (room_id, user_id with unique constraint)
 - Moderator role: **Per-room only** - moderators only have special status in the room where they're promoted
-- Moderator color: **Yellow (#FFD700)** - same as room owner/creator
-- Owner color: **Yellow (#FFD700)** - applies in their created rooms
+- Moderator messages: **Brown (#8B6F47)** - public system announcements
+  - Add: `[Username] Has Been Moderator in Chatroom [name]`
+  - Remove: `[Username] Has No Longer Moderator in Chatroom [name]`
 - Backend validates:
-  - Only room owner can add moderators
+  - Only room owner can add/remove moderators
   - Cannot add duplicate moderators
   - Prevents self-promotion
-- System messages announce moderator promotions to all room participants
+- System messages announce moderator actions to all room participants
+
+## Avatar Display Fix for Contact List
+- **Issue**: Avatars in contact list were displayed as text emoji instead of actual images
+- **Solution**: 
+  - Updated ContactItem component to use Image component for URL-based avatars
+  - Updated ContactList to convert relative avatar paths to full URLs with API_BASE_URL
+  - Properly handles fallback to emoji when avatar URL is unavailable
+  - Fixed API response parsing for `/api/people/all` grouped data (admin, care_service, mentor, merchant)
 
 # Previous Feature Additions (December 26, 2025)
 

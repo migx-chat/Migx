@@ -1,9 +1,13 @@
 import React, { forwardRef, useImperativeHandle } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeCustom } from '@/theme/provider';
 import { ContactItem } from './ContactItem';
 import { API_ENDPOINTS } from '@/utils/api';
+
+const API_BASE_URL = Platform.OS === 'web'
+  ? 'https://d1a7ddfc-5415-44f9-92c0-a278e94f8f08-00-1i8qhqy6zm7hx.sisko.replit.dev'
+  : 'https://d1a7ddfc-5415-44f9-92c0-a278e94f8f08-00-1i8qhqy6zm7hx.sisko.replit.dev';
 
 type PresenceStatus = 'online' | 'away' | 'busy' | 'offline';
 
@@ -40,13 +44,24 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
       const data = await response.json();
 
       if (data.following) {
-        const contacts: Contact[] = data.following.map((user: any) => ({
-          name: user.username,
-          status: user.status_message || '',
-          presence: user.presence_status || (user.status === 'online' ? 'online' : user.status === 'away' ? 'away' : user.status === 'busy' ? 'busy' : 'offline'),
-          lastSeen: `Last seen ${new Date(user.followed_at).toLocaleString()}`,
-          avatar: user.avatar || '👤',
-        }));
+        const contacts: Contact[] = data.following.map((user: any) => {
+          // Convert avatar path to full URL
+          let avatarUrl = '👤';
+          if (user.avatar) {
+            if (user.avatar.startsWith('http')) {
+              avatarUrl = user.avatar;
+            } else if (user.avatar.startsWith('/')) {
+              avatarUrl = `${API_BASE_URL}${user.avatar}`;
+            }
+          }
+          return {
+            name: user.username,
+            status: user.status_message || '',
+            presence: user.presence_status || (user.status === 'online' ? 'online' : user.status === 'away' ? 'away' : user.status === 'busy' ? 'busy' : 'offline'),
+            lastSeen: `Last seen ${new Date(user.followed_at).toLocaleString()}`,
+            avatar: avatarUrl,
+          };
+        });
         setOnlineFriends(contacts);
       }
 
@@ -55,16 +70,35 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
       const allUsersData = await allUsersResponse.json();
 
       if (allUsersData.users) {
-        const allContacts: Contact[] = allUsersData.users
+        // Flatten all users from different role categories
+        const allUsers = [
+          ...(allUsersData.admin?.users || []),
+          ...(allUsersData.care_service?.users || []),
+          ...(allUsersData.mentor?.users || []),
+          ...(allUsersData.merchant?.users || [])
+        ];
+
+        const allContacts: Contact[] = allUsers
           .filter((u: any) => u.id !== userData.id)
           .slice(0, 10)
-          .map((user: any) => ({
-            name: user.username,
-            status: user.status_message || '',
-            presence: user.presence_status || (user.status === 'online' ? 'online' : user.status === 'away' ? 'away' : user.status === 'busy' ? 'busy' : 'offline'),
-            lastSeen: `Last seen ${new Date().toLocaleString()}`,
-            avatar: user.avatar || '👤',
-          }));
+          .map((user: any) => {
+            // Convert avatar path to full URL
+            let avatarUrl = '👤';
+            if (user.avatar) {
+              if (user.avatar.startsWith('http')) {
+                avatarUrl = user.avatar;
+              } else if (user.avatar.startsWith('/')) {
+                avatarUrl = `${API_BASE_URL}${user.avatar}`;
+              }
+            }
+            return {
+              name: user.username,
+              status: user.status_message || '',
+              presence: user.presence_status || (user.status === 'online' ? 'online' : user.status === 'away' ? 'away' : user.status === 'busy' ? 'busy' : 'offline'),
+              lastSeen: `Last seen ${new Date().toLocaleString()}`,
+              avatar: avatarUrl,
+            };
+          });
         setMig33Contacts(allContacts);
       }
     } catch (error) {

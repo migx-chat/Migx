@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useThemeCustom } from '@/theme/provider';
 import { parseEmojiMessage } from '@/utils/emojiParser';
 
@@ -88,6 +88,9 @@ export function ContactItem({
 
   const parsedStatus = status ? parseEmojiMessage(status) : [];
 
+  // Determine if avatar is a URL or emoji
+  const isAvatarUrl = avatar && (avatar.startsWith('http') || avatar.startsWith('/'));
+
   return (
     <TouchableOpacity 
       style={[styles.container, { backgroundColor: theme.background, borderBottomColor: theme.border }]}
@@ -95,9 +98,17 @@ export function ContactItem({
     >
       <View style={styles.leftSection}>
         <View style={styles.avatarContainer}>
-          <View style={[styles.avatar, { backgroundColor: theme.card }]}>
-            <Text style={styles.avatarText}>{avatar || '👤'}</Text>
-          </View>
+          {isAvatarUrl ? (
+            <Image
+              source={{ uri: avatar }}
+              style={[styles.avatar, { backgroundColor: theme.card }]}
+              onError={(e) => console.log('Avatar load error:', e.nativeEvent.error)}
+            />
+          ) : (
+            <View style={[styles.avatar, { backgroundColor: theme.card }]}>
+              <Text style={styles.avatarText}>{avatar || '👤'}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.content}>
