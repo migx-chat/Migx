@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import Svg, { Circle } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE_URL from '@/utils/api';
+import { ReportAbuseModal } from './ReportAbuseModal';
 
 interface Participant {
   username: string;
@@ -48,6 +49,7 @@ const menuOptions = [
   { label: 'Private Chat', value: 'private-chat' },
   { label: 'Kick User', value: 'kick' },
   { label: 'Block User', value: 'block' },
+  { label: 'Report Abuse', value: 'report-abuse' },
 ];
 
 export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPress }: MenuParticipantsModalProps) {
@@ -56,6 +58,7 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     if (visible && roomId) {
@@ -256,6 +259,10 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
         console.error('Error following user:', error);
         Alert.alert('Error', 'Failed to follow user');
       }
+    } else if (action === 'report-abuse') {
+      // Open report abuse modal
+      setShowReportModal(true);
+      setShowUserMenu(false);
     } else if (onUserMenuPress) {
       onUserMenuPress(selectedUser, action);
       setShowUserMenu(false);
@@ -368,6 +375,18 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Report Abuse Modal */}
+      <ReportAbuseModal
+        visible={showReportModal}
+        onClose={() => {
+          setShowReportModal(false);
+          setSelectedUser(null);
+        }}
+        roomId={roomId || ''}
+        roomName=""
+        targetUsername={selectedUser || ''}
+      />
     </>
   );
 }
