@@ -65,11 +65,6 @@ const FeedMedia: React.FC<FeedMediaProps> = ({ mediaUrl, mediaType, url, type, o
               setLoading(false);
             }}
           />
-          {!loading && !onPress && (
-             <View style={styles.playButton} pointerEvents="none">
-               <Ionicons name="play" size={40} color="white" />
-             </View>
-          )}
         </View>
       )}
       {loading && (
