@@ -116,8 +116,8 @@ The application includes an XP & Level System. A Merchant Commission System allo
 ## Admin Panel Room Management - "Managed By" Column
 - Rooms table now displays "Managed By" column showing who manages each category
 - **Official rooms**: Shows "migx" (also displayed in welcome message as "This room is managed by migx")
-- **Game rooms**: Shows "-" (no manager)
-- **Global rooms**: Shows "-" (no manager)
+- **Game rooms**: Shows "-" (no manager message displayed, treated like global rooms)
+- **Global rooms**: Shows "-" (no manager message displayed)
 - Conditional display based on room category to clarify room ownership structure
 
 ## Admin Panel Responsive Design
