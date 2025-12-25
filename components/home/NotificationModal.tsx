@@ -57,9 +57,10 @@ interface NotificationModalProps {
   onClose: () => void;
   username: string;
   socket: any;
+  onNotificationsCleared?: () => void;
 }
 
-export function NotificationModal({ visible, onClose, username, socket }: NotificationModalProps) {
+export function NotificationModal({ visible, onClose, username, socket, onNotificationsCleared }: NotificationModalProps) {
   const { theme } = useThemeCustom();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,6 +69,7 @@ export function NotificationModal({ visible, onClose, username, socket }: Notifi
     if (visible && username) {
       console.log('NotificationModal opened for username:', username);
       fetchNotifications();
+      clearNotificationsImmediately();
     }
   }, [visible, username]);
 
@@ -97,6 +99,21 @@ export function NotificationModal({ visible, onClose, username, socket }: Notifi
     }
   };
 
+  const clearNotificationsImmediately = async () => {
+    try {
+      await fetch(
+        `${API_ENDPOINTS.NOTIFICATION.LIST}/${username}`,
+        { method: 'DELETE' }
+      );
+      // Call callback to update badge in Header
+      if (onNotificationsCleared) {
+        onNotificationsCleared();
+      }
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
+    }
+  };
+
   const clearNotifications = async () => {
     try {
       await fetch(
@@ -104,6 +121,9 @@ export function NotificationModal({ visible, onClose, username, socket }: Notifi
         { method: 'DELETE' }
       );
       setNotifications([]);
+      if (onNotificationsCleared) {
+        onNotificationsCleared();
+      }
       onClose();
     } catch (error) {
       console.error('Error clearing notifications:', error);

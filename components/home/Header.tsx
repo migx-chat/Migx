@@ -95,6 +95,10 @@ export function Header() {
     }
   };
 
+  const handleNotificationsClear = () => {
+    setNotificationCount(0);
+  };
+
   return (
    <>
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
@@ -138,6 +142,7 @@ export function Header() {
         onClose={() => setShowNotifications(false)}
         username={username}
         socket={socket}
+        onNotificationsCleared={handleNotificationsClear}
       />
 
       <ProfileMenuModal
