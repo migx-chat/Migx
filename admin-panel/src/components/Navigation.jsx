@@ -9,6 +9,8 @@ export function Navigation({ currentPage, onPageChange, onLogout }) {
     { id: 'reports', label: '📋 Reports' },
     { id: 'users', label: '👥 Users' },
     { id: 'rooms', label: '💬 Rooms' },
+    { id: 'announcements', label: '📢 Announcements' },
+    { id: 'transactions', label: '💰 Transactions' },
   ];
 
   return (
