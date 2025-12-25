@@ -307,10 +307,16 @@ module.exports = (io, socket) => {
               console.log('Could not fetch user rooms:', e.message);
             }
 
+            // Always add current room to the list
+            const currentRoom = await roomService.getRoomById(roomId);
+            if (currentRoom && !userRoomNames.includes(currentRoom.name)) {
+              userRoomNames.unshift(currentRoom.name); // Add to beginning
+            }
+
             const roomsText = userRoomNames.length > 0 ? userRoomNames.join(', ') : '';
             const whoisMsg = roomsText 
-              ? `** Username ${targetUsername}, Level ${level}, Gender: ${gender}, Country: ${country}, Chatting in, ${roomsText} **`
-              : `** Username ${targetUsername}, Level ${level}, Gender: ${gender}, Country: ${country} **`;
+              ? `** Username ${targetUsername}, Level ${level}, Gender ${gender}, Country ${country}, Chatting in, ${roomsText} **`
+              : `** Username ${targetUsername}, Level ${level}, Gender ${gender}, Country ${country} **`;
 
             io.to(`room:${roomId}`).emit('chat:message', {
               id: generateMessageId(),
@@ -318,6 +324,7 @@ module.exports = (io, socket) => {
               message: whoisMsg,
               messageType: 'cmdWhois',
               type: 'notice',
+              color: '#A0826D',
               timestamp: new Date().toISOString()
             });
 
