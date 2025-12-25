@@ -67,6 +67,12 @@ export const adminApi = {
   getRoomDetail: (id) => apiCall(`/api/rooms/${id}`),
   deleteRoom: (id) =>
     apiCall(`/api/rooms/${id}`, { method: 'DELETE' }),
+  createRoom: (roomData) =>
+    apiCall('/api/rooms/create', {
+      method: 'POST',
+      body: JSON.stringify(roomData),
+    }),
+  getAllUsers: () => apiCall('/api/admin/users?page=1&limit=1000'),
 
   // Analytics
   getStats: () => apiCall('/api/admin/stats'),

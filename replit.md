@@ -83,6 +83,15 @@ The application includes an XP & Level System. A Merchant Commission System allo
 - API: `POST /api/abuse/report` saves reports to database
 - Admin panel management of reports with status tracking (pending/reviewed/actioned)
 
+## Admin Panel Create Room Feature
+- New "+ Create Room" button in Rooms management page
+- Modal form with fields: Room Name, Room Owner (dropdown), Description
+- Validation: Name required, 3-50 character limit, owner selection required
+- API calls `/api/rooms/create` matching app's room creation endpoint
+- Auto-loads users list for owner selection dropdown
+- Success/error messaging with form validation
+- Styling: Responsive modal with dark green theme matching admin panel design
+
 # External Dependencies
 
 ## Core Expo Modules
