@@ -130,6 +130,21 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /goal command
+        if (cmdKey === 'goal') {
+          const formatted = `** ${username} cheers "GOALLLLLLLLLLL" **`;
+          const systemMsg = {
+            id: generateMessageId(),
+            roomId,
+            message: formatted,
+            messageType: 'cmdGoal',
+            type: 'cmdGoal',
+            timestamp: new Date().toISOString()
+          };
+          io.to(`room:${roomId}`).emit('chat:message', systemMsg);
+          return;
+        }
+
         // Handle /gift command
         if (cmdKey === 'gift') {
           const giftName = parts[1] || null;
