@@ -40,7 +40,7 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
     
     console.log("MESSAGE RECEIVE", targetRoomId, data.message);
     
-    const cmdTypes = ['cmd', 'cmdMe', 'cmdRoll', 'cmdGift'];
+    const cmdTypes = ['cmd', 'cmdMe', 'cmdRoll', 'cmdGift', 'cmdGoal', 'cmdGo'];
     const isCommandMessage = cmdTypes.includes(data.messageType) || cmdTypes.includes(data.type);
     const isPresenceMessage = data.messageType === 'presence' || data.type === 'presence';
     
