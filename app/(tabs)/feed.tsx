@@ -633,7 +633,7 @@ export default function FeedScreen() {
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
           >
             <View style={styles.modalOverlay}>
-              <View style={[styles.modalContent, { backgroundColor: theme.card, height: '80%' }]}>
+              <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
                 <View style={styles.modalHeader}>
                   <Text style={[styles.modalTitle, { color: theme.text }]}>Comments</Text>
                   <TouchableOpacity onPress={() => setShowCommentModal(false)}>
@@ -660,7 +660,8 @@ export default function FeedScreen() {
                   contentContainerStyle={styles.commentsList}
                   scrollEnabled={true}
                   keyboardShouldPersistTaps="handled"
-                  style={{ flex: 1 }}
+                  nestedScrollEnabled={true}
+                  style={{ maxHeight: 300 }}
                 />
 
                 <View style={[styles.commentInputContainer, { borderTopColor: theme.border }]}>
@@ -823,7 +824,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    minHeight: 400,
+    maxHeight: '90%',
+    flexDirection: 'column',
   },
   modalHeader: {
     flexDirection: 'row',
