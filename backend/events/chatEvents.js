@@ -865,6 +865,113 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /unmod <username> command - Remove moderator
+        if (cmdKey === 'unmod') {
+          const targetUsername = parts[1]?.toLowerCase();
+
+          if (!targetUsername) {
+            socket.emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: 'Usage: /unmod <username>',
+              messageType: 'error',
+              type: 'error',
+              timestamp: new Date().toISOString(),
+              isPrivate: true
+            });
+            return;
+          }
+
+          try {
+            // Check if room exists
+            const room = await roomService.getRoomById(roomId);
+            if (!room) {
+              socket.emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                message: 'Room not found.',
+                messageType: 'error',
+                type: 'error',
+                timestamp: new Date().toISOString(),
+                isPrivate: true
+              });
+              return;
+            }
+
+            // Check if sender is room owner
+            if (room.owner_id !== userId) {
+              socket.emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                message: 'Only room owner can remove moderators.',
+                messageType: 'error',
+                type: 'error',
+                timestamp: new Date().toISOString(),
+                isPrivate: true
+              });
+              return;
+            }
+
+            // Get target user
+            const targetUser = await userService.getUserByUsername(targetUsername);
+            if (!targetUser) {
+              socket.emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                message: `User ${targetUsername} not found.`,
+                messageType: 'error',
+                type: 'error',
+                timestamp: new Date().toISOString(),
+                isPrivate: true
+              });
+              return;
+            }
+
+            // Check if is moderator
+            const isMod = await moderatorService.isModerator(roomId, targetUser.id);
+            if (!isMod) {
+              socket.emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                message: `${targetUsername} is not a moderator.`,
+                messageType: 'error',
+                type: 'error',
+                timestamp: new Date().toISOString(),
+                isPrivate: true
+              });
+              return;
+            }
+
+            // Remove moderator
+            await moderatorService.removeModerator(roomId, targetUser.id);
+
+            // Broadcast announcement (public, visible to all)
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: `${targetUsername} Has Removed Moderator in Chatroom ${room.name}`,
+              messageType: 'modRemoval',
+              type: 'cmd',
+              timestamp: new Date().toISOString()
+            });
+
+            console.log(`👑 ${username} removed ${targetUsername} as moderator from room ${roomId}`);
+          } catch (error) {
+            console.error('Error removing moderator:', error);
+            socket.emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: 'Failed to remove moderator.',
+              messageType: 'error',
+              type: 'error',
+              timestamp: new Date().toISOString(),
+              isPrivate: true
+            });
+          }
+
+          return;
+        }
+
         // Handle /c <code> command for Free Credit Claim (Voucher)
         if (cmdKey === 'c') {
           const code = parts[1] || null;

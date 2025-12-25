@@ -69,8 +69,8 @@ export function ChatMessage({
     let textColor = '#C96F4A';
     if (messageType === 'cmdFollow' || messageType === 'cmdUnfollow') {
       textColor = '#8B6F47'; // Brown for follow/unfollow
-    } else if (messageType === 'modPromotion') {
-      textColor = '#8B6F47'; // Brown for moderator promotion
+    } else if (messageType === 'modPromotion' || messageType === 'modRemoval') {
+      textColor = '#8B6F47'; // Brown for moderator promotion/removal
     }
     
     return (
