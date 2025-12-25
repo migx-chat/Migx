@@ -66,25 +66,30 @@ export function Rooms() {
       setFormError('Room name must not exceed 50 characters');
       return;
     }
-    if (!formData.ownerId) {
-      setFormError('Please select a room owner');
-      return;
-    }
     if (!formData.category) {
       setFormError('Please select a category');
+      return;
+    }
+    if (formData.category === 'official' && !formData.ownerId) {
+      setFormError('Please select a room owner for official category');
       return;
     }
 
     setFormLoading(true);
     try {
-      const owner = users.find(u => u.id === parseInt(formData.ownerId));
-      await adminApi.createRoom({
+      const roomData = {
         name: formData.name.trim(),
-        ownerId: parseInt(formData.ownerId),
-        creatorName: owner.username,
         description: formData.description.trim(),
         category: formData.category
-      });
+      };
+
+      if (formData.category === 'official' && formData.ownerId) {
+        const owner = users.find(u => u.id === parseInt(formData.ownerId));
+        roomData.ownerId = parseInt(formData.ownerId);
+        roomData.creatorName = owner.username;
+      }
+
+      await adminApi.createRoom(roomData);
       setShowCreateModal(false);
       setFormData({ name: '', description: '', ownerId: '', creatorName: '', category: 'global' });
       loadRooms();
@@ -149,20 +154,22 @@ export function Rooms() {
                 </select>
               </div>
 
-              <div className="form-group">
-                <label>Room Owner *</label>
-                <select
-                  value={formData.ownerId}
-                  onChange={(e) => setFormData({...formData, ownerId: e.target.value})}
-                >
-                  <option value="">Select owner</option>
-                  {users.map(user => (
-                    <option key={user.id} value={user.id}>
-                      {user.username} (ID: {user.id})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {formData.category === 'official' && (
+                <div className="form-group">
+                  <label>Room Owner *</label>
+                  <select
+                    value={formData.ownerId}
+                    onChange={(e) => setFormData({...formData, ownerId: e.target.value})}
+                  >
+                    <option value="">Select owner</option>
+                    {users.map(user => (
+                      <option key={user.id} value={user.id}>
+                        {user.username} (ID: {user.id})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="form-group">
                 <label>Description</label>
