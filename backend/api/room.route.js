@@ -402,9 +402,9 @@ router.get('/game', async (req, res) => {
 
 router.post('/create', async (req, res) => {
   try {
-    const { name, ownerId, creatorName, description } = req.body;
+    const { name, ownerId, creatorName, description, category } = req.body;
     
-    console.log('Create room request:', { name, ownerId, creatorName, description });
+    console.log('Create room request:', { name, ownerId, creatorName, description, category });
     
     // Validasi required fields
     if (!name) {
@@ -414,17 +414,18 @@ router.post('/create', async (req, res) => {
       });
     }
     
-    if (!ownerId) {
+    // Owner is only required for official category
+    if (category === 'official' && !ownerId) {
       return res.status(400).json({ 
         success: false,
-        error: 'ownerId is required' 
+        error: 'ownerId is required for official rooms' 
       });
     }
     
-    if (!creatorName) {
+    if (category === 'official' && !creatorName) {
       return res.status(400).json({ 
         success: false,
-        error: 'creatorName is required' 
+        error: 'creatorName is required for official rooms' 
       });
     }
     
@@ -455,10 +456,10 @@ router.post('/create', async (req, res) => {
     // Create room dengan maxUsers fixed 25
     const room = await roomService.createRoom(
       name.trim(), 
-      ownerId,
-      creatorName.trim(),
+      ownerId || null,
+      creatorName ? creatorName.trim() : null,
       description ? description.trim() : '',
-      req.body.category || 'general'
+      category || 'global'
     );
     
     if (!room) {
