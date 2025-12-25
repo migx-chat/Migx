@@ -131,4 +131,25 @@ router.patch('/users/:id/unban', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// Update user role
+router.patch('/users/:id/role', superAdminMiddleware, async (req, res) => {
+  try {
+    const { role } = req.body;
+    const validRoles = ['user', 'mentor', 'merchant', 'admin', 'customer_service', 'super_admin'];
+    
+    if (!role || !validRoles.includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
+
+    await db.query(
+      'UPDATE users SET role = $1 WHERE id = $2',
+      [role, req.params.id]
+    );
+    res.json({ message: 'User role updated', role });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({ message: 'Error updating user role' });
+  }
+});
+
 module.exports = router;

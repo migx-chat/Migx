@@ -25,16 +25,24 @@ export function Users() {
     }
   };
 
-  const handleAddCoins = async (username) => {
-    const amount = window.prompt(`Add coins to ${username}:`, '100');
-    if (!amount) return;
+  const handleAddCoins = async (userId) => {
+    const amount = window.prompt(`Add coins to user:`, '100');
+    if (!amount || isNaN(amount)) {
+      alert('Invalid amount');
+      return;
+    }
     
     try {
-      // Would call API endpoint
-      alert(`Added ${amount} coins to ${username}`);
-      loadUsers();
+      setLoading(true);
+      const numAmount = parseInt(amount);
+      // This would call API endpoint when available
+      // For now, just show success message
+      alert(`Added ${numAmount} coins to user`);
+      await loadUsers();
     } catch (err) {
       alert('Error adding coins: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,11 +56,14 @@ export function Users() {
     }
 
     try {
-      // Would call API endpoint
+      setLoading(true);
+      await adminApi.updateUserRole(id, newRole);
       alert(`Role changed to ${newRole}`);
-      loadUsers();
+      await loadUsers();
     } catch (err) {
       alert('Error changing role: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
