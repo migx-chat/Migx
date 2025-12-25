@@ -49,9 +49,6 @@ export function RoomHeader() {
           <TouchableOpacity style={[styles.iconButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
             <MenuIcon size={18} color="#FFFFFF" />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-            <MenuIcon size={18} color="#FFFFFF" />
-          </TouchableOpacity>
         </View>
       </View>
     </LinearGradient>
