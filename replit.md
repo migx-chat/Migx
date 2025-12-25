@@ -168,6 +168,7 @@ Chat commands available to users:
 - `/me <action>` - Perform an action
 - `/roll` - Roll a random number (1-100)
 - `/goal` - Cheer for a goal (displays: ** username cheers "GOALLLLLLLLLLL" **)
+- `/go` - Cheer for the team (displays: ** username cheers,"GO TEAM GO! **)
 - `/gift <name> <username>` - Send a gift
 - `/c <code>` - Claim free credits using voucher code
 - `/unban <username>` - Admin only: Unban a user from all rooms

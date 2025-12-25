@@ -145,6 +145,21 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /go command
+        if (cmdKey === 'go') {
+          const formatted = `** ${username} cheers,"GO TEAM GO! **`;
+          const systemMsg = {
+            id: generateMessageId(),
+            roomId,
+            message: formatted,
+            messageType: 'cmdGo',
+            type: 'cmdGo',
+            timestamp: new Date().toISOString()
+          };
+          io.to(`room:${roomId}`).emit('chat:message', systemMsg);
+          return;
+        }
+
         // Handle /gift command
         if (cmdKey === 'gift') {
           const giftName = parts[1] || null;
