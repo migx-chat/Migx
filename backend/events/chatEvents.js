@@ -1451,25 +1451,6 @@ module.exports = (io, socket) => {
         }
       }
 
-      // Check if user is in room participants using Redis directly
-      const isMember = await redis.sIsMember(`room:${roomId}:participants`, userId);
-      if (!isMember) {
-        const roomService = require('../services/roomService');
-        const roomInfo = await roomService.getRoomById(roomId);
-        const roomName = roomInfo?.name || roomId;
-        
-        socket.emit('chat:message', {
-          id: generateMessageId(),
-          roomId,
-          message: `you are not in the Chatroom ${roomName}`,
-          messageType: 'notInRoom',
-          type: 'notInRoom',
-          timestamp: new Date().toISOString(),
-          isPrivate: true
-        });
-        return;
-      }
-
       const messageData = {
         id: generateMessageId(),
         roomId,
