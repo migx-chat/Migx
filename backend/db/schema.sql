@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
   suspended_at TIMESTAMP,
   suspended_by VARCHAR(100),
   last_ip VARCHAR(45),
-  pin VARCHAR(4),
+  pin VARCHAR(6) DEFAULT '123456',
   login_streak INT DEFAULT 0,
   last_login_date DATE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -302,6 +302,9 @@ CREATE INDEX IF NOT EXISTS idx_user_room_history_last_joined ON user_room_histor
 -- 🔐 STEP 5: Add request_id column for idempotency tracking (migration for existing tables)
 ALTER TABLE credit_logs ADD COLUMN IF NOT EXISTS request_id VARCHAR(100) UNIQUE;
 CREATE INDEX IF NOT EXISTS idx_credit_logs_request_id ON credit_logs(request_id);
+
+-- 🔐 Set default PIN (123456) for existing users without PIN
+UPDATE users SET pin = '123456' WHERE pin IS NULL;
 
 -- Insert default rooms (only if they don't exist)
 INSERT INTO rooms (name, description, max_users, room_code) VALUES

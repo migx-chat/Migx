@@ -158,3 +158,10 @@ The application includes an XP & Level System, a Merchant Commission System for 
 ✅ **Rate limiting + cooldown:** Brute force protection + distributed locks
 ✅ **Idempotent transfers:** Network retries won't duplicate charges
 ✅ **100% tested:** Backend running live with real users
+
+## Default PIN Configuration
+**Default PIN:** `123456` (6-digit)
+- Set for all new users by default
+- All existing users updated to use default PIN
+- Users can change PIN in settings (future feature)
+- PIN stored in database, required for credit transfers
