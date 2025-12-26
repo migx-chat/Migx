@@ -137,7 +137,9 @@ module.exports = (io, socket) => {
       // 🔐 Track user's active rooms in Redis (for /whois command)
       try {
         const redisForRooms = getRedisClient();
-        await redisForRooms.sAdd(`user:${userId}:rooms`, roomId);
+        await redisForRooms.sAdd(`user:${userId}:rooms`, String(roomId)); // Ensure room ID is string
+        await redisForRooms.expire(`user:${userId}:rooms`, 21600); // 6 hour expiry
+        console.log(`✅ Added room ${roomId} to user ${userId} active rooms`);
       } catch (roomsErr) {
         console.warn('⚠️ Could not track user rooms:', roomsErr.message);
       }
@@ -390,7 +392,8 @@ module.exports = (io, socket) => {
       // 🔐 Remove room from user's active rooms in Redis (for /whois command)
       try {
         const redisForRooms = require('../redis').getRedisClient();
-        await redisForRooms.sRem(`user:${presenceUserId}:rooms`, roomId);
+        await redisForRooms.sRem(`user:${presenceUserId}:rooms`, String(roomId)); // Ensure room ID is string
+        console.log(`✅ Removed room ${roomId} from user ${presenceUserId} active rooms`);
       } catch (roomsErr) {
         console.warn('⚠️ Could not remove user rooms:', roomsErr.message);
       }
@@ -1203,6 +1206,16 @@ module.exports = (io, socket) => {
               const redis = getRedisClient();
               const roomUsersKey = `room:users:${currentRoomId}`;
               await redis.sRem(roomUsersKey, username);
+
+              // 🔐 Clean up user's active rooms from Redis set on disconnect timeout
+              if (userId && userId !== 'unknown') {
+                try {
+                  await redis.sRem(`user:${userId}:rooms`, String(currentRoomId));
+                  console.log(`✅ Removed room ${currentRoomId} from user ${userId} on disconnect timeout`);
+                } catch (cleanupErr) {
+                  console.warn('⚠️ Could not cleanup user rooms on timeout:', cleanupErr.message);
+                }
+              }
 
               // Clean up any legacy SET-type participants key
               const legacyParticipantsKey = `room:${currentRoomId}:participants`;

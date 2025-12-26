@@ -301,6 +301,8 @@ module.exports = (io, socket) => {
                 const userRoomsKey = `user:${targetUser.id}:rooms`;
                 const roomIds = await redis.smembers(userRoomsKey);
                 
+                console.log(`🔍 /whois ${targetUsername}: checking Redis set ${userRoomsKey}, found rooms:`, roomIds);
+                
                 if (roomIds && roomIds.length > 0) {
                   // Fetch details for each room
                   for (const roomId of roomIds) {
@@ -317,6 +319,8 @@ module.exports = (io, socket) => {
               } catch (e) {
                 console.log('Could not get user rooms:', e.message);
               }
+            } else {
+              console.log(`🔍 /whois ${targetUsername}: user NOT online (no presence found)`);
             }
 
             // Build response message with room count
