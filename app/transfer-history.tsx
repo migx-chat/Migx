@@ -56,11 +56,12 @@ export default function TransferHistoryScreen() {
         return;
       }
       const userData = JSON.parse(userDataStr);
-      const response = await fetch(`${API_ENDPOINTS.CREDIT.HISTORY}/${userData.id}`);
+      const response = await fetch(`${API_ENDPOINTS.CREDIT.TRANSFER}s/${userData.id}`);
       const data = await response.json();
       
-      if (data.transfers && Array.isArray(data.transfers)) {
-        const formattedTransfers = data.transfers.map((transfer: any) => {
+      const transfersList = data.transfers || data.transactions || [];
+      if (transfersList && Array.isArray(transfersList)) {
+        const formattedTransfers = transfersList.map((transfer: any) => {
           const transferDate = new Date(transfer.created_at);
           return {
             id: transfer.id || Math.random().toString(),
