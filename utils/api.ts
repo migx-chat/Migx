@@ -2,6 +2,7 @@ import { io } from 'socket.io-client';
 import { Platform } from 'react-native';
 
 let socket: any = null;
+let chatSocket: any = null;
 
 // Backend URL - Replit handles port forwarding automatically
 const API_BASE_URL = Platform.OS === 'web'
@@ -144,11 +145,33 @@ export const getSocket = () => {
   return socket;
 };
 
+export const getChatSocket = () => {
+  if (!socket) {
+    createSocket();
+  }
+  if (!chatSocket) {
+    console.log('📌 Connecting to /chat namespace');
+    chatSocket = io(`${API_BASE_URL}/chat`, {
+      transports: ['polling', 'websocket'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+      timeout: 10000,
+    });
+  }
+  return chatSocket;
+};
+
 export const disconnectSocket = () => {
   if (socket) {
     socket.disconnect();
     socket = null;
     console.log('🔌 Socket disconnected');
+  }
+  if (chatSocket) {
+    chatSocket.disconnect();
+    chatSocket = null;
+    console.log('🔌 Chat Socket disconnected');
   }
 };
 
