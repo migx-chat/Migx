@@ -1,19 +1,14 @@
 
 const jwt = require('jsonwebtoken');
 const db = require('../db/db');
+const logger = require('../utils/logger');
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers['authorization'];
   const clientDeviceId = req.headers['x-device-id'];
   
-  console.log('🔐 Auth Middleware - Headers:', {
-    authorization: authHeader ? `${authHeader.substring(0, 20)}...` : 'missing',
-    deviceId: clientDeviceId ? `${clientDeviceId.substring(0, 8)}...` : 'missing',
-    contentType: req.headers['content-type']
-  });
-  
   if (!authHeader) {
-    console.log('❌ No authorization header');
+    logger.warn('AUTH_FAILED: Missing authorization header', { endpoint: req.path });
     return res.status(401).json({ 
       success: false,
       error: 'Authentication token missing. Please login again.' 
@@ -23,7 +18,7 @@ function authMiddleware(req, res, next) {
   const token = authHeader.split(' ')[1];
   
   if (!token) {
-    console.log('❌ Invalid token format');
+    logger.warn('AUTH_FAILED: Invalid token format', { endpoint: req.path });
     return res.status(401).json({ 
       success: false,
       error: 'Invalid token format. Please login again.' 
@@ -35,7 +30,10 @@ function authMiddleware(req, res, next) {
     
     // 🔐 STEP 11: Validate device_id (device binding - prevent token theft)
     if (!clientDeviceId) {
-      console.log('❌ Device ID missing from request');
+      logger.security('DEVICE_BINDING_FAILED: Device ID missing', { 
+        userId: decoded.id || decoded.userId,
+        endpoint: req.path 
+      });
       return res.status(401).json({ 
         success: false,
         error: 'Session expired. Please login again.' 
@@ -43,8 +41,10 @@ function authMiddleware(req, res, next) {
     }
 
     if (decoded.deviceId !== clientDeviceId) {
-      console.log(`❌ Device mismatch - Token: ${decoded.deviceId?.substring(0, 8)}... vs Request: ${clientDeviceId.substring(0, 8)}...`);
-      console.log(`🚨 SUSPICIOUS: Token from different device - User: ${decoded.id || decoded.userId}`);
+      logger.security('DEVICE_MISMATCH_DETECTED: Possible token theft attempt', { 
+        userId: decoded.id || decoded.userId,
+        endpoint: req.path 
+      });
       return res.status(401).json({ 
         success: false,
         error: 'Session expired. Please login again.' 
@@ -52,10 +52,16 @@ function authMiddleware(req, res, next) {
     }
 
     req.user = decoded;
-    console.log('✅ Token verified + device bound for user:', decoded.id || decoded.userId);
+    logger.info('AUTH_SUCCESS: Device binding verified', { 
+      userId: decoded.id || decoded.userId,
+      endpoint: req.path 
+    });
     next();
   } catch (err) {
-    console.log('❌ Token verification failed:', err.message);
+    logger.warn('AUTH_FAILED: Token verification error', { 
+      error: err.message,
+      endpoint: req.path 
+    });
     return res.status(401).json({ 
       success: false,
       error: 'Invalid or expired token. Please login again.' 

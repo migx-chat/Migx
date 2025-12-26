@@ -181,3 +181,62 @@ Injection Attack (Device B/Postman):
 - `app/transfer-credit.tsx` - Send x-device-id header
 - `app/(tabs)/feed.tsx` - Send x-device-id header
 - All authenticated API calls - Include x-device-id header
+
+---
+
+# 🔐 Backend Logging & Data Security
+
+## Centralized Logger Implementation
+**Status:** ✅ IMPLEMENTED & PRODUCTION-READY
+
+### Logger Utility (`backend/utils/logger.js`)
+Prevents data leakage while maintaining audit capability:
+
+```javascript
+// Logger Levels:
+- INFO     → Normal operation (login success, transfer complete)
+- WARN     → Validation failures (invalid PIN, insufficient balance)
+- SECURITY → Abuse attempts (rate limit, device mismatch, fraud)
+- ERROR    → Internal errors (DB errors, system failures)
+```
+
+### Data Masking Features:
+✅ **Token Masking:** First 10 + last 4 chars only
+✅ **PIN Protection:** Never logged (shows "***")
+✅ **Password Protection:** Never logged (shows "***")
+✅ **Device ID Masking:** First 8 chars only
+✅ **Request Amount:** Marked as "[MASKED]" in fraud logs
+✅ **Authorization Header:** Shows "[MASKED]" in logs
+
+### Log Format (Structured):
+```json
+{
+  "timestamp": "2025-12-26T08:05:15.123Z",
+  "level": "SECURITY",
+  "message": "DEVICE_MISMATCH_DETECTED",
+  "data": {
+    "userId": 123,
+    "endpoint": "/api/credit/transfer"
+  }
+}
+```
+
+### Security Events Logged:
+- **AUTH_SUCCESS:** Device binding verified (no tokens logged)
+- **AUTH_FAILED:** Token/format errors (safe details only)
+- **DEVICE_MISMATCH_DETECTED:** Token theft attempt (userId + endpoint)
+- **FRAUD_ATTEMPT:** Amount exceeds max (userId only, no amount)
+- **TRANSFER_VALIDATION_FAILED:** Reason for failure
+- **TRANSFER_COMPLETED:** Success confirmation with usernames
+- **TRANSFER_FAILED:** Error without payload details
+
+### Environment-Based Behavior:
+- **Development:** Verbose logging with details (still masked)
+- **Production:** Minimal logging, only critical events
+- **Never:** Full request bodies, raw tokens, PINs, passwords
+
+### Updated Endpoints:
+- `backend/api/auth.route.js` - Login logging with security events
+- `backend/api/credit.route.js` - Transfer logging + fraud detection
+- `backend/services/creditService.js` - Transfer completion/failure
+- `backend/middleware/auth.js` - Device binding validation logs

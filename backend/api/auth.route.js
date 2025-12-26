@@ -7,6 +7,7 @@ const { getUserLevel } = require('../utils/xpLeveling');
 const crypto = require('crypto');
 const { sendOtpEmail, sendActivationEmail, sendPasswordChangeOtp } = require('../utils/emailService');
 const streakService = require('../services/streakService');
+const logger = require('../utils/logger');
 
 // Username validation regex (MIG33 rules)
 const usernameRegex = /^[a-z][a-z0-9._]{5,11}$/;
@@ -22,25 +23,25 @@ function generateActivationToken() {
 
 router.post('/login', async (req, res, next) => {
   try {
-    console.log('LOGIN REQUEST RECEIVED:', { username: req.body.username });
-
     const { username, password, rememberMe, invisible } = req.body;
+    
+    logger.info('LOGIN_ATTEMPT', { username, endpoint: '/api/auth/login' });
 
     if (!username) {
-      console.log('LOGIN FAILED: Username missing');
+      logger.warn('LOGIN_FAILED: Username missing', { endpoint: '/api/auth/login' });
       return res.status(400).json({ success: false, error: 'Username is required' });
     }
 
     let user = await userService.getUserByUsername(username);
 
     if (!user) {
-      console.log('LOGIN FAILED: User not found');
+      logger.warn('LOGIN_FAILED: User not found', { username, endpoint: '/api/auth/login' });
       return res.status(400).json({ success: false, error: 'Invalid username or password' });
     }
 
     // Check if account is activated
     if (!user.is_active) {
-      console.log('LOGIN FAILED: Account not activated');
+      logger.warn('LOGIN_FAILED: Account not activated', { userId: user.id, endpoint: '/api/auth/login' });
       return res.status(403).json({ success: false, error: 'Account not activated. Please check your email.' });
     }
 
@@ -48,13 +49,14 @@ router.post('/login', async (req, res, next) => {
     if (password && user.password_hash) {
       const isValidPassword = await bcrypt.compare(password, user.password_hash);
       if (!isValidPassword) {
-        console.log('LOGIN FAILED: Invalid password');
+        logger.warn('LOGIN_FAILED: Invalid password', { username, endpoint: '/api/auth/login' });
         return res.status(400).json({ success: false, error: 'Invalid username or password' });
       }
     }
 
     // Check if user is suspended
     if (user.status === 'suspended') {
+      logger.warn('LOGIN_FAILED: Account suspended', { userId: user.id, endpoint: '/api/auth/login' });
       return res.status(403).json({
         success: false,
         error: 'Your account has been suspended. For information, please contact admin.',
@@ -86,11 +88,9 @@ router.post('/login', async (req, res, next) => {
       console.error('Error updating streak:', err);
     }
 
-    console.log('LOGIN SUCCESS:', username);
-
     // 🔐 STEP 11: Generate device_id for device binding (prevent token theft)
     const deviceId = crypto.randomBytes(12).toString('hex');
-    console.log(`🔐 Device ID generated: ${deviceId.substring(0, 8)}... for user ${user.id}`);
+    logger.info('LOGIN_SUCCESS: Device ID generated', { userId: user.id, endpoint: '/api/auth/login' });
 
     // 🔐 STEP 8: Generate JWT tokens with SHORT expiry (anti token reuse)
     // Access token: 15 minutes (short-lived, used for API requests)
@@ -119,7 +119,7 @@ router.post('/login', async (req, res, next) => {
       { expiresIn: '7d' }
     );
 
-    console.log('✅ JWT tokens generated - Access (15m) + Refresh (7d) for user:', user.id);
+    logger.info('TOKENS_GENERATED: Access + Refresh tokens created', { userId: user.id, endpoint: '/api/auth/login' });
 
     res.status(200).json({
       success: true,
@@ -150,12 +150,10 @@ router.post('/login', async (req, res, next) => {
     });
 
   } catch (error) {
-    console.error('LOGIN ERROR:', error);
-    console.error('ERROR STACK:', error.stack);
+    logger.error('LOGIN_ERROR: Unexpected error during login', error, { endpoint: '/api/auth/login' });
     return res.status(500).json({ 
       success: false, 
-      error: 'Login failed',
-      message: error.message
+      error: 'Login failed'
     });
   }
 });

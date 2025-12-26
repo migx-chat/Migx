@@ -3,6 +3,7 @@ const router = express.Router();
 const creditService = require('../services/creditService');
 const userService = require('../services/userService');
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 
 router.post('/transfer', async (req, res) => {
   const { fromUserId, toUserId, amount, message, pin } = req.body;
@@ -35,7 +36,11 @@ router.post('/transfer', async (req, res) => {
     
     if (normalizedAmount > MAX_AMOUNT) {
       // NEVER allow more than MAX - reject instead of clamping
-      console.warn(`🚨 FRAUD ALERT: User ${fromUserId} attempted transfer of ${normalizedAmount} credits (exceeds MAX of ${MAX_AMOUNT})`);
+      logger.security('FRAUD_ATTEMPT: Transfer amount exceeds maximum', { 
+        userId: fromUserId,
+        attemptedAmount: '[MASKED]',
+        maxAmount: MAX_AMOUNT
+      });
       return res.status(400).json({ error: `Maximum transfer is ${MAX_AMOUNT} credits per transaction` });
     }
     
@@ -55,7 +60,10 @@ router.post('/transfer', async (req, res) => {
     const validation = await creditService.validateTransfer(fromUserId, toUserId, normalizedAmount);
     if (!validation.valid) {
       // 🔐 STEP 7: Log detailed error server-side but return generic message to client
-      console.warn(`⚠️ Transfer validation failed for user ${fromUserId}: ${validation.error}`);
+      logger.warn('TRANSFER_VALIDATION_FAILED', { 
+        userId: fromUserId,
+        reason: validation.error
+      });
       return res.status(400).json({ error: validation.error });
     }
     

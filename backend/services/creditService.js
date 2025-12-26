@@ -2,6 +2,7 @@ const { query, getClient } = require('../db/db');
 const { generateTransactionId } = require('../utils/idGenerator');
 const { checkTransferLimit } = require('../utils/floodControl');
 const { getRedisClient } = require('../redis');
+const logger = require('../utils/logger');
 
 const transferCredits = async (fromUserId, toUserId, amount, description = null, requestId = null) => {
   const client = await getClient();
@@ -99,7 +100,12 @@ const transferCredits = async (fromUserId, toUserId, amount, description = null,
     const newFromCredits = Number(sender.credits) - Number(amount);
     const newToCredits = Number(recipient.credits) + Number(amount);
     
-    console.log(`🔐 Audit log recorded: ${requestId} | ${sender.username} → ${recipient.username} (${amount} credits) | Status: COMPLETED`);
+    logger.info('TRANSFER_COMPLETED: Credit transfer successful', { 
+      fromUser: sender.username,
+      toUser: recipient.username,
+      amount: amount,
+      requestId: requestId ? requestId.substring(0, 8) : 'N/A'
+    });
     
     return {
       success: true,
@@ -125,13 +131,14 @@ const transferCredits = async (fromUserId, toUserId, amount, description = null,
           [error.message, requestId]
         );
       } catch (auditError) {
-        console.error('Failed to update audit log:', auditError);
+        logger.error('AUDIT_LOG_ERROR: Failed to update audit log', auditError, { requestId: requestId?.substring(0, 8) });
       }
     }
     
     await client.query('ROLLBACK');
-    console.error('Error transferring credits:', error);
-    console.log(`🔐 Audit log recorded: ${requestId} | Status: FAILED | Reason: ${error.message}`);
+    logger.error('TRANSFER_FAILED: Credit transfer error', error, { 
+      requestId: requestId ? requestId.substring(0, 8) : 'N/A'
+    });
     return { success: false, error: 'Transfer failed' };
   } finally {
     client.release();
@@ -164,7 +171,7 @@ const addCredits = async (userId, amount, transactionType = 'topup', description
       newBalance: result.rows[0].credits
     };
   } catch (error) {
-    console.error('Error adding credits:', error);
+    logger.error('ADD_CREDITS_ERROR: Failed to add credits', error, { userId });
     return { success: false, error: 'Failed to add credits' };
   }
 };
@@ -213,7 +220,7 @@ const deductCredits = async (userId, amount, transactionType = 'game_spend', des
     };
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error deducting credits:', error);
+    logger.error('DEDUCT_CREDITS_ERROR: Failed to deduct credits', error, { userId });
     return { success: false, error: 'Failed to deduct credits' };
   } finally {
     client.release();
@@ -228,7 +235,7 @@ const getBalance = async (userId) => {
     );
     return result.rows[0]?.credits || 0;
   } catch (error) {
-    console.error('Error getting balance:', error);
+    logger.error('GET_BALANCE_ERROR: Failed to get balance', error, { userId });
     return 0;
   }
 };
@@ -244,7 +251,7 @@ const getTransactionHistory = async (userId, limit = 50, offset = 0) => {
     );
     return result.rows;
   } catch (error) {
-    console.error('Error getting transaction history:', error);
+    logger.error('GET_HISTORY_ERROR: Failed to get transaction history', error, { userId });
     return [];
   }
 };
@@ -261,7 +268,7 @@ const getTransferHistory = async (userId, limit = 50) => {
     );
     return result.rows;
   } catch (error) {
-    console.error('Error getting transfer history:', error);
+    logger.error('GET_TRANSFER_HISTORY_ERROR: Failed to get transfer history', error, { userId });
     return [];
   }
 };
