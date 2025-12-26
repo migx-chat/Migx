@@ -2,6 +2,21 @@
 const express = require('express');
 const router = express.Router();
 const { query } = require('../db/db');
+const { getRedisClient } = require('../redis');
+
+// Helper to check Redis presence (source of truth for online status)
+const checkRedisPresence = async (userId) => {
+  try {
+    const redis = getRedisClient();
+    // Check if user has any presence key in Redis (room presence)
+    // Pattern: room:*:user:{userId}
+    const keys = await redis.keys(`room:*:user:${userId}`);
+    return keys.length > 0; // User is online if they have any active room presence
+  } catch (error) {
+    console.error('Error checking Redis presence:', error);
+    return false;
+  }
+};
 
 // Get users by role with their level information
 router.get('/role/:role', async (req, res) => {
@@ -16,7 +31,8 @@ router.get('/role/:role', async (req, res) => {
     }
 
     const result = await query(
-      `SELECT u.id, u.username, u.avatar, u.role, u.status, u.gender,
+      `SELECT u.id, u.username, u.avatar, u.role, u.gender,
+              u.last_login_date,
               ul.level, ul.xp
        FROM users u
        LEFT JOIN user_levels ul ON u.id = ul.user_id
@@ -26,10 +42,21 @@ router.get('/role/:role', async (req, res) => {
       [role, parseInt(limit)]
     );
 
+    // Check Redis presence for each user
+    const usersWithPresence = await Promise.all(
+      result.rows.map(async (user) => {
+        const isOnline = await checkRedisPresence(user.id);
+        return {
+          ...user,
+          presence_status: isOnline ? 'online' : 'offline'
+        };
+      })
+    );
+
     res.json({
       role,
-      users: result.rows,
-      count: result.rows.length
+      users: usersWithPresence,
+      count: usersWithPresence.length
     });
 
   } catch (error) {
@@ -45,7 +72,8 @@ router.get('/all', async (req, res) => {
 
     const [admins, careService, mentors, merchants] = await Promise.all([
       query(
-        `SELECT u.id, u.username, u.avatar, u.role, u.status, u.gender,
+        `SELECT u.id, u.username, u.avatar, u.role, u.gender,
+                u.last_login_date,
                 ul.level, ul.xp
          FROM users u
          LEFT JOIN user_levels ul ON u.id = ul.user_id
@@ -55,7 +83,8 @@ router.get('/all', async (req, res) => {
         [parseInt(limit)]
       ),
       query(
-        `SELECT u.id, u.username, u.avatar, u.role, u.status, u.gender,
+        `SELECT u.id, u.username, u.avatar, u.role, u.gender,
+                u.last_login_date,
                 ul.level, ul.xp
          FROM users u
          LEFT JOIN user_levels ul ON u.id = ul.user_id
@@ -65,7 +94,8 @@ router.get('/all', async (req, res) => {
         [parseInt(limit)]
       ),
       query(
-        `SELECT u.id, u.username, u.avatar, u.role, u.status, u.gender,
+        `SELECT u.id, u.username, u.avatar, u.role, u.gender,
+                u.last_login_date,
                 ul.level, ul.xp
          FROM users u
          LEFT JOIN user_levels ul ON u.id = ul.user_id
@@ -75,7 +105,8 @@ router.get('/all', async (req, res) => {
         [parseInt(limit)]
       ),
       query(
-        `SELECT u.id, u.username, u.avatar, u.role, u.status, u.gender,
+        `SELECT u.id, u.username, u.avatar, u.role, u.gender,
+                u.last_login_date,
                 ul.level, ul.xp
          FROM users u
          LEFT JOIN user_levels ul ON u.id = ul.user_id
@@ -86,22 +117,42 @@ router.get('/all', async (req, res) => {
       )
     ]);
 
+    // Add Redis presence to each user
+    const addPresence = async (users) => {
+      return Promise.all(
+        users.rows.map(async (user) => {
+          const isOnline = await checkRedisPresence(user.id);
+          return {
+            ...user,
+            presence_status: isOnline ? 'online' : 'offline'
+          };
+        })
+      );
+    };
+
+    const [adminsWithPresence, careServiceWithPresence, mentorsWithPresence, merchantsWithPresence] = await Promise.all([
+      addPresence(admins),
+      addPresence(careService),
+      addPresence(mentors),
+      addPresence(merchants)
+    ]);
+
     res.json({
       admin: {
-        users: admins.rows,
-        count: admins.rows.length
+        users: adminsWithPresence,
+        count: adminsWithPresence.length
       },
       care_service: {
-        users: careService.rows,
-        count: careService.rows.length
+        users: careServiceWithPresence,
+        count: careServiceWithPresence.length
       },
       mentor: {
-        users: mentors.rows,
-        count: mentors.rows.length
+        users: mentorsWithPresence,
+        count: mentorsWithPresence.length
       },
       merchant: {
-        users: merchants.rows,
-        count: merchants.rows.length
+        users: merchantsWithPresence,
+        count: merchantsWithPresence.length
       }
     });
 

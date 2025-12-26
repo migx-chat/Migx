@@ -54,11 +54,15 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
               avatarUrl = `${API_BASE_URL}${user.avatar}`;
             }
           }
+          const presence = user.presence_status || 'offline';
           return {
             name: user.username,
             status: user.status_message || '',
-            presence: user.presence_status || (user.status === 'online' ? 'online' : user.status === 'away' ? 'away' : user.status === 'busy' ? 'busy' : 'offline'),
-            lastSeen: `Last seen ${new Date(user.followed_at).toLocaleString()}`,
+            presence: presence as PresenceStatus,
+            // Only show last seen when user is offline
+            lastSeen: presence === 'offline' && user.last_login_date
+              ? `Last seen ${new Date(user.last_login_date).toLocaleString()}`
+              : '',
             avatar: avatarUrl,
           };
         });
@@ -69,7 +73,7 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
       const allUsersResponse = await fetch(`${API_ENDPOINTS.PEOPLE.ALL}`);
       const allUsersData = await allUsersResponse.json();
 
-      if (allUsersData.users) {
+      if (allUsersData) {
         // Flatten all users from different role categories
         const allUsers = [
           ...(allUsersData.admin?.users || []),
@@ -91,11 +95,15 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
                 avatarUrl = `${API_BASE_URL}${user.avatar}`;
               }
             }
+            const presence = user.presence_status || 'offline';
             return {
               name: user.username,
               status: user.status_message || '',
-              presence: user.presence_status || (user.status === 'online' ? 'online' : user.status === 'away' ? 'away' : user.status === 'busy' ? 'busy' : 'offline'),
-              lastSeen: `Last seen ${new Date().toLocaleString()}`,
+              presence: presence as PresenceStatus,
+              // Only show last seen when user is offline
+              lastSeen: presence === 'offline' && user.last_login_date
+                ? `Last seen ${new Date(user.last_login_date).toLocaleString()}`
+                : '',
               avatar: avatarUrl,
             };
           });

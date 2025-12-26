@@ -141,7 +141,7 @@ export function ContactItem({
       </View>
 
       <View style={styles.rightSection}>
-        {lastSeen && (
+        {lastSeen && lastSeen.trim() !== '' && (
           <Text style={[styles.lastSeen, { color: theme.secondary }]} numberOfLines={1}>
             {lastSeen}
           </Text>
