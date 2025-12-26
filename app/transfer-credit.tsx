@@ -106,7 +106,7 @@ export default function TransferCreditScreen() {
 
     try {
       // Find recipient user by username
-      const userResponse = await fetch(`${API_ENDPOINTS.USER.PROFILE}?username=${username}`);
+      const userResponse = await fetch(`${API_ENDPOINTS.USER.BY_USERNAME(username)}`);
       const recipientData = await userResponse.json();
 
       if (!recipientData.id) {
