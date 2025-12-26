@@ -5,6 +5,7 @@ const notificationService = require('../services/notificationService');
 const { getUserSocket } = require('../utils/presence');
 const { addXp, XP_REWARDS } = require('../utils/xpLeveling');
 const { getRedisClient } = require('../redis');
+const crypto = require('crypto');
 
 module.exports = (io, socket) => {
   const transferCredits = async (data) => {
@@ -74,12 +75,17 @@ module.exports = (io, socket) => {
 
       console.log(`[TRANSFER] 🔄 Processing: ${fromUserId} → ${toUserId} (${numAmount} credits)`);
 
-      // 💳 STEP 3: Execute database transaction
+      // 🆔 STEP 5: Generate request_id for idempotency
+      const requestId = crypto.randomBytes(16).toString('hex');
+      console.log(`[TRANSFER] 🆔 Generated request_id: ${requestId}`);
+
+      // 💳 STEP 3: Execute database transaction with request_id for idempotency
       const result = await creditService.transferCredits(
         fromUserId,
         toUserId,
         numAmount,
-        message || 'Credit transfer'
+        message || 'Credit transfer',
+        requestId
       );
 
       // All database failures MUST emit error

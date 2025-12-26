@@ -76,8 +76,15 @@ The application includes an XP & Level System, a Merchant Commission System for 
 
 # Recent Changes (December 26, 2025)
 
-## 🔒 Credit Transfer - Complete Security Hardening
-**Status:** 4 of 7 security layers implemented + 3 remaining for Autonomous mode
+## 🔒 Credit Transfer - Security Hardening (Turn 1-3)
+**Status:** 5 of 7 security layers COMPLETED + 2 remaining for Autonomous mode
+
+### Implementation Summary:
+- ✅ All validation logic server-side (MIN/MAX amounts, self-transfer prevention)
+- ✅ Rate limiting prevents spam (5 transfers/minute per user)
+- ✅ Distributed locks prevent double-send (button double-click protection)
+- ✅ Idempotency tracking prevents duplicate transactions (network retry safe)
+- ✅ Error handling ensures no stuck UI states
 
 ### Completed Security Features:
 
@@ -108,8 +115,14 @@ The application includes an XP & Level System, a Merchant Commission System for 
 - Lock released in finally block to ensure cleanup
 - Prevents button double-click and concurrent transfer attempts
 
+**5️⃣ Idempotency Tracking** ✅
+- Added `request_id` UNIQUE column to `credit_logs` table
+- Generates unique request ID for each transfer using crypto.randomBytes
+- Checks for duplicate request_id before processing transfer
+- Returns "Duplicate transfer request" if same request_id detected
+- Prevents processing same transfer twice even if network retries occur
+
 ### Remaining Security Layers (Autonomous Mode):
-5. **Idempotency Tracking** - Add `request_id` UNIQUE column to `credit_logs` table
 6. **PIN Attempt Limiting** - Track failed PIN attempts with 10-minute cooldown via Redis
 7. **Enhanced Error Messages** - Hide sensitive errors from client, log details server-side
 
@@ -118,8 +131,9 @@ The application includes an XP & Level System, a Merchant Commission System for 
 - ✅ String concatenation bug in balance calculation (`"11010" + 1000`) → Now converts to numbers
 - ✅ Transfer history not showing → Fixed API endpoint mapping
 
-### Updated Files (Turn 1-2):
-- `backend/services/creditService.js` - Added MIN/MAX validation, improved error messages
-- `backend/events/creditEvents.js` - Step 1-4: Strict validation → Redis locks with finally cleanup
+### Updated Files (Turn 1-3):
+- `backend/db/schema.sql` - Added `request_id` UNIQUE column to credit_logs + ALTER TABLE migration
+- `backend/services/creditService.js` - Added MIN/MAX validation, request_id parameter, idempotency check
+- `backend/events/creditEvents.js` - Step 1-5: Validation → Locks → request_id generation with crypto
 - `app/transfer-history.tsx` - Fixed API endpoint and response handling
 - `backend/api/credit.route.js` - Already complete with proper error responses

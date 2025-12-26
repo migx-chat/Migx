@@ -2,11 +2,23 @@ const { query, getClient } = require('../db/db');
 const { generateTransactionId } = require('../utils/idGenerator');
 const { checkTransferLimit } = require('../utils/floodControl');
 
-const transferCredits = async (fromUserId, toUserId, amount, description = null) => {
+const transferCredits = async (fromUserId, toUserId, amount, description = null, requestId = null) => {
   const client = await getClient();
   
   try {
     await client.query('BEGIN');
+    
+    // 🔐 STEP 5: Check for duplicate request_id (idempotency)
+    if (requestId) {
+      const existingTransfer = await client.query(
+        'SELECT id FROM credit_logs WHERE request_id = $1',
+        [requestId]
+      );
+      if (existingTransfer.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return { success: false, error: 'Duplicate transfer request. Transaction already processed.' };
+      }
+    }
     
     const fromResult = await client.query(
       'SELECT id, username, credits FROM users WHERE id = $1 FOR UPDATE',
@@ -48,9 +60,9 @@ const transferCredits = async (fromUserId, toUserId, amount, description = null)
     );
     
     await client.query(
-      `INSERT INTO credit_logs (from_user_id, to_user_id, from_username, to_username, amount, transaction_type, description)
-       VALUES ($1, $2, $3, $4, $5, 'transfer', $6)`,
-      [fromUserId, toUserId, sender.username, recipient.username, amount, description]
+      `INSERT INTO credit_logs (from_user_id, to_user_id, from_username, to_username, amount, transaction_type, description, request_id)
+       VALUES ($1, $2, $3, $4, $5, 'transfer', $6, $7)`,
+      [fromUserId, toUserId, sender.username, recipient.username, amount, description, requestId]
     );
     
     await client.query('COMMIT');

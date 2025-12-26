@@ -136,6 +136,7 @@ CREATE TABLE IF NOT EXISTS credit_logs (
   amount INT NOT NULL,
   transaction_type VARCHAR(30) DEFAULT 'transfer' CHECK (transaction_type IN ('transfer', 'game_spend', 'reward', 'topup', 'commission')),
   description TEXT,
+  request_id VARCHAR(100) UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -297,6 +298,10 @@ CREATE INDEX IF NOT EXISTS idx_user_room_history_user_id ON user_room_history(us
 CREATE INDEX IF NOT EXISTS idx_user_room_history_room_id ON user_room_history(room_id);
 CREATE INDEX IF NOT EXISTS idx_user_room_history_last_joined ON user_room_history(last_joined_at DESC);
 
+
+-- 🔐 STEP 5: Add request_id column for idempotency tracking (migration for existing tables)
+ALTER TABLE credit_logs ADD COLUMN IF NOT EXISTS request_id VARCHAR(100) UNIQUE;
+CREATE INDEX IF NOT EXISTS idx_credit_logs_request_id ON credit_logs(request_id);
 
 -- Insert default rooms (only if they don't exist)
 INSERT INTO rooms (name, description, max_users, room_code) VALUES
