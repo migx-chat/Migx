@@ -134,6 +134,14 @@ module.exports = (io, socket) => {
       socket.userId = userId;
       socket.currentRoomId = roomId;
 
+      // 🔐 Track user's active rooms in Redis (for /whois command)
+      try {
+        const redisForRooms = getRedisClient();
+        await redisForRooms.sAdd(`user:${userId}:rooms`, roomId);
+      } catch (roomsErr) {
+        console.warn('⚠️ Could not track user rooms:', roomsErr.message);
+      }
+
       // Store presence in Redis with 6-hour TTL
       await storeUserPresence(roomId, userId, socket.id, username);
 
@@ -378,6 +386,14 @@ module.exports = (io, socket) => {
 
       socket.leave(`room:${roomId}`);
       await removeUserRoom(username, roomId);
+
+      // 🔐 Remove room from user's active rooms in Redis (for /whois command)
+      try {
+        const redisForRooms = require('../redis').getRedisClient();
+        await redisForRooms.sRem(`user:${presenceUserId}:rooms`, roomId);
+      } catch (roomsErr) {
+        console.warn('⚠️ Could not remove user rooms:', roomsErr.message);
+      }
 
       // Remove room from user_room_history (DATABASE)
       if (presenceUserId) {
