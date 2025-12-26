@@ -76,8 +76,8 @@ The application includes an XP & Level System, a Merchant Commission System for 
 
 # Recent Changes (December 26, 2025)
 
-## 🔒 Credit Transfer - Security Hardening (Turn 1-3)
-**Status:** 5 of 7 security layers COMPLETED + 2 remaining for Autonomous mode
+## 🔒 Credit Transfer - Security Hardening (Turn 1-4)
+**Status:** 6 of 7 security layers COMPLETED + 1 remaining for Autonomous mode
 
 ### Implementation Summary:
 - ✅ All validation logic server-side (MIN/MAX amounts, self-transfer prevention)
@@ -122,8 +122,15 @@ The application includes an XP & Level System, a Merchant Commission System for 
 - Returns "Duplicate transfer request" if same request_id detected
 - Prevents processing same transfer twice even if network retries occur
 
-### Remaining Security Layers (Autonomous Mode):
-6. **PIN Attempt Limiting** - Track failed PIN attempts with 10-minute cooldown via Redis
+**6️⃣ PIN Attempt Limiting** ✅ (Turn 4)
+- Added server-side PIN validation in `validatePIN()` function
+- Tracks failed attempts in Redis (`pin:attempts:{userId}`)
+- After 3 failed attempts, triggers 10-minute cooldown (`pin:cooldown:{userId}`)
+- Returns HTTP 429 for cooldown (too many attempts), HTTP 400 for invalid PIN
+- Clears attempts on successful PIN validation
+- TTL: attempts counter expires after 1 hour if unused
+
+### Remaining Security Layers (for future work):
 7. **Enhanced Error Messages** - Hide sensitive errors from client, log details server-side
 
 ### Fixed Bugs:
@@ -131,9 +138,9 @@ The application includes an XP & Level System, a Merchant Commission System for 
 - ✅ String concatenation bug in balance calculation (`"11010" + 1000`) → Now converts to numbers
 - ✅ Transfer history not showing → Fixed API endpoint mapping
 
-### Updated Files (Turn 1-3):
+### Updated Files (Turn 1-4):
 - `backend/db/schema.sql` - Added `request_id` UNIQUE column to credit_logs + ALTER TABLE migration
-- `backend/services/creditService.js` - Added MIN/MAX validation, request_id parameter, idempotency check
-- `backend/events/creditEvents.js` - Step 1-5: Validation → Locks → request_id generation with crypto
+- `backend/services/creditService.js` - Added validatePIN(), PIN validation with Redis attempt tracking
+- `backend/api/credit.route.js` - Added PIN validation before transfer, handles 429 cooldown responses
+- `app/transfer-credit.tsx` - Fixed API endpoint, sends PIN in request body
 - `app/transfer-history.tsx` - Fixed API endpoint and response handling
-- `backend/api/credit.route.js` - Already complete with proper error responses

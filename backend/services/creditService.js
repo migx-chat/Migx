@@ -1,6 +1,7 @@
 const { query, getClient } = require('../db/db');
 const { generateTransactionId } = require('../utils/idGenerator');
 const { checkTransferLimit } = require('../utils/floodControl');
+const { getRedisClient } = require('../redis');
 
 const transferCredits = async (fromUserId, toUserId, amount, description = null, requestId = null) => {
   const client = await getClient();
@@ -262,6 +263,64 @@ const validateTransfer = async (fromUserId, toUserId, amount) => {
   return { valid: true };
 };
 
+// 🔐 STEP 6: PIN Attempt Limiting with 10-minute cooldown
+const validatePIN = async (userId, providedPin) => {
+  const redis = getRedisClient();
+  const MAX_ATTEMPTS = 3;
+  const COOLDOWN_MINUTES = 10;
+  const COOLDOWN_SECONDS = COOLDOWN_MINUTES * 60;
+  
+  const attemptKey = `pin:attempts:${userId}`;
+  const cooldownKey = `pin:cooldown:${userId}`;
+  
+  try {
+    // 1️⃣ Check if user is in cooldown
+    const cooldownExists = await redis.exists(cooldownKey);
+    if (cooldownExists) {
+      return { valid: false, error: `Too many failed PIN attempts. Try again in ${COOLDOWN_MINUTES} minutes.`, cooldown: true };
+    }
+    
+    // 2️⃣ Get user's stored PIN
+    const userResult = await query('SELECT pin FROM users WHERE id = $1', [userId]);
+    if (userResult.rows.length === 0) {
+      return { valid: false, error: 'User not found' };
+    }
+    
+    const storedPin = userResult.rows[0].pin;
+    
+    // 3️⃣ Validate PIN matches
+    if (!storedPin || storedPin !== providedPin) {
+      // Increment failed attempts
+      const attempts = await redis.incr(attemptKey);
+      
+      // Set TTL on attempts counter (expires after 1 hour)
+      if (attempts === 1) {
+        await redis.expire(attemptKey, 3600);
+      }
+      
+      // Check if max attempts reached
+      if (attempts >= MAX_ATTEMPTS) {
+        // Set cooldown
+        await redis.setex(cooldownKey, COOLDOWN_SECONDS, '1');
+        // Clear attempts counter
+        await redis.del(attemptKey);
+        return { valid: false, error: `Too many failed PIN attempts. Try again in ${COOLDOWN_MINUTES} minutes.`, cooldown: true };
+      }
+      
+      const attemptsLeft = MAX_ATTEMPTS - attempts;
+      return { valid: false, error: `Invalid PIN. ${attemptsLeft} attempt${attemptsLeft > 1 ? 's' : ''} remaining.` };
+    }
+    
+    // 4️⃣ PIN is valid - clear attempts
+    await redis.del(attemptKey);
+    return { valid: true };
+    
+  } catch (error) {
+    console.error('❌ PIN validation error:', error);
+    return { valid: false, error: 'PIN validation failed' };
+  }
+};
+
 module.exports = {
   transferCredits,
   addCredits,
@@ -269,5 +328,6 @@ module.exports = {
   getBalance,
   getTransactionHistory,
   getTransferHistory,
-  validateTransfer
+  validateTransfer,
+  validatePIN
 };

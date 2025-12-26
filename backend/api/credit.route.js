@@ -5,7 +5,7 @@ const userService = require('../services/userService');
 
 router.post('/transfer', async (req, res) => {
   try {
-    const { fromUserId, toUserId, amount, message } = req.body;
+    const { fromUserId, toUserId, amount, message, pin } = req.body;
     
     if (!fromUserId || !toUserId || amount === undefined || amount === null) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -14,6 +14,18 @@ router.post('/transfer', async (req, res) => {
     // Validate amount is a positive integer
     if (!Number.isInteger(amount) || amount <= 0) {
       return res.status(400).json({ error: 'Amount must be a positive integer' });
+    }
+    
+    // 🔐 STEP 6: Validate PIN before transfer
+    if (!pin) {
+      return res.status(400).json({ error: 'PIN required for transfer' });
+    }
+    
+    const pinValidation = await creditService.validatePIN(fromUserId, pin);
+    if (!pinValidation.valid) {
+      // Return 429 for cooldown (too many attempts), 400 for invalid PIN
+      const statusCode = pinValidation.cooldown ? 429 : 400;
+      return res.status(statusCode).json({ error: pinValidation.error, cooldown: pinValidation.cooldown });
     }
     
     const validation = await creditService.validateTransfer(fromUserId, toUserId, amount);

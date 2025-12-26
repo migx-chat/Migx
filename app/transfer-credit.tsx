@@ -121,7 +121,7 @@ export default function TransferCreditScreen() {
       }
 
       // Use REST API for transfer (simpler & more reliable than Socket.IO)
-      console.log('📤 Sending transfer via REST API', { username, amountNum });
+      console.log('📤 Sending transfer via REST API', { username, amountNum, pin: '****' });
       
       const token = await AsyncStorage.getItem('auth_token');
       const response = await fetch(`${API_ENDPOINTS.CREDIT.TRANSFER}`, {
@@ -133,7 +133,8 @@ export default function TransferCreditScreen() {
         body: JSON.stringify({
           fromUserId: userData.id,
           toUserId: recipientData.id,
-          amount: amountNum
+          amount: amountNum,
+          pin
         })
       });
 
