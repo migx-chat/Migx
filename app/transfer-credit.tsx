@@ -123,7 +123,9 @@ export default function TransferCreditScreen() {
       // Get the authenticated default socket for credit transfer
       const socket = getSocket();
       
-      // Use Socket.IO for transfer to trigger real-time balance updates
+      console.log('📤 Emitting credit:transfer with PIN and amount', { username, amountNum, pinLength: pin.length });
+      
+      // Use Socket.IO for transfer
       socket.emit('credit:transfer', {
         fromUserId: userData.id,
         toUserId: recipientData.id,
@@ -135,6 +137,7 @@ export default function TransferCreditScreen() {
       // Listen for success response
       const handleSuccess = (response: any) => {
         const formattedAmount = `Rp${amountNum.toLocaleString('id-ID')}`;
+        console.log('✅ Transfer successful:', response);
         Alert.alert('Success', `Successfully transferred ${formattedAmount} to ${username}`, [
           {
             text: 'OK',
@@ -148,29 +151,31 @@ export default function TransferCreditScreen() {
         ]);
         setIsLoading(false);
         socket.off('credit:transfer:success', handleSuccess);
-        socket.off('error', handleError);
+        socket.off('credit:transfer:error', handleError);
       };
 
-      // Listen for error response
+      // Listen for error response - use specific event name
       const handleError = (error: any) => {
+        console.error('❌ Transfer error:', error);
         Alert.alert('Error', error.message || 'Transfer failed');
         setIsLoading(false);
         socket.off('credit:transfer:success', handleSuccess);
-        socket.off('error', handleError);
+        socket.off('credit:transfer:error', handleError);
       };
 
       socket.on('credit:transfer:success', handleSuccess);
-      socket.on('error', handleError);
+      socket.on('credit:transfer:error', handleError);
 
-      // Timeout if no response after 10 seconds
+      // Timeout if no response after 15 seconds
       const timeoutId = setTimeout(() => {
         if (isLoading) {
-          Alert.alert('Error', 'Transfer request timed out');
+          console.warn('⏱️ Transfer request timed out after 15 seconds');
+          Alert.alert('Error', 'Transfer request timed out. Please try again.');
           setIsLoading(false);
           socket.off('credit:transfer:success', handleSuccess);
-          socket.off('error', handleError);
+          socket.off('credit:transfer:error', handleError);
         }
-      }, 10000);
+      }, 15000);
 
     } catch (error) {
       console.error('Transfer error:', error);

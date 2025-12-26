@@ -10,19 +10,26 @@ module.exports = (io, socket) => {
     try {
       const { fromUserId, toUserId, toUsername, amount, message } = data;
 
+      // 📋 Validation checks with explicit logging
       if (!fromUserId || !toUserId || !amount) {
-        socket.emit('error', { message: 'Missing required fields' });
+        console.warn(`[TRANSFER] Missing fields: fromUserId=${fromUserId}, toUserId=${toUserId}, amount=${amount}`);
+        socket.emit('credit:transfer:error', { message: 'Missing required fields' });
         return;
       }
 
+      // Note: PIN is validated on frontend in AsyncStorage, not in backend
+      // Backend focuses on authorization via Socket.IO authentication
+
       if (amount <= 0) {
-        socket.emit('error', { message: 'Amount must be positive' });
+        console.warn(`[TRANSFER] Invalid amount: ${amount}`);
+        socket.emit('credit:transfer:error', { message: 'Amount must be positive' });
         return;
       }
 
       const validation = await creditService.validateTransfer(fromUserId, toUserId, amount);
       if (!validation.valid) {
-        socket.emit('error', { message: validation.error });
+        console.warn(`[TRANSFER] Validation failed: ${validation.error}`);
+        socket.emit('credit:transfer:error', { message: validation.error });
         return;
       }
 
@@ -30,11 +37,14 @@ module.exports = (io, socket) => {
       if (!recipientUsername) {
         const recipient = await userService.getUserById(toUserId);
         if (!recipient) {
-          socket.emit('error', { message: 'Recipient not found' });
+          console.warn(`[TRANSFER] Recipient not found: ${toUserId}`);
+          socket.emit('credit:transfer:error', { message: 'Recipient not found' });
           return;
         }
         recipientUsername = recipient.username;
       }
+
+      console.log(`[TRANSFER] Processing: ${fromUserId} → ${toUserId} (${amount} credits)`);
 
       const result = await creditService.transferCredits(
         fromUserId,
@@ -44,9 +54,12 @@ module.exports = (io, socket) => {
       );
 
       if (!result.success) {
-        socket.emit('error', { message: result.error });
+        console.error(`[TRANSFER] Failed: ${result.error}`);
+        socket.emit('credit:transfer:error', { message: result.error });
         return;
       }
+
+      console.log(`[TRANSFER] Success: ${fromUserId} → ${toUserId} (${amount} credits)`);
 
       await addXp(fromUserId, XP_REWARDS.TRANSFER_CREDIT, 'transfer_credit', io);
 
@@ -111,8 +124,8 @@ module.exports = (io, socket) => {
       );
 
     } catch (error) {
-      console.error('Error transferring credits:', error);
-      socket.emit('error', { message: 'Transfer failed' });
+      console.error('[TRANSFER] Unexpected error:', error);
+      socket.emit('credit:transfer:error', { message: 'Transfer failed: ' + (error.message || 'Unknown error') });
     }
   };
 
