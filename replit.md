@@ -6,6 +6,13 @@ This project is a cross-platform mobile chat application built with React Native
 
 Preferred communication style: Simple, everyday language.
 
+### Feed System
+The feed system was migrated from Redis (ephemeral) to PostgreSQL (persistent) to ensure post visibility and reliability.
+- **Table:** `posts` stores all user posts, including content and media URLs.
+- **Table:** `post_likes` tracks user interactions.
+- **Table:** `post_comments` handles social engagement.
+Initial seed data has been added to the `posts` table to ensure the feed is not empty on fresh installations.
+
 # System Architecture
 
 ## Frontend
