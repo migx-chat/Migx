@@ -10,6 +10,7 @@ import {
   Modal,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useThemeCustom } from '@/theme/provider';
@@ -285,7 +286,14 @@ export default function LeaderboardPage() {
           )}
           
           <View style={[styles.avatar, { backgroundColor: roleColor }]}>
-            <Text style={styles.avatarText}>{user.username.charAt(0).toUpperCase()}</Text>
+            {user.avatar ? (
+              <Image
+                source={{ uri: `${API_ENDPOINTS.BASE_URL}${user.avatar}` }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <Text style={styles.avatarText}>{user.username.charAt(0).toUpperCase()}</Text>
+            )}
           </View>
           
           <View style={styles.userInfo}>
@@ -513,6 +521,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   userInfo: {
     flex: 1,
