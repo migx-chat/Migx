@@ -695,6 +695,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 12,
+    paddingBottom: 28, // Added more padding for Android bottom menu
     gap: 16,
     backgroundColor: '#0a5229',
   },
