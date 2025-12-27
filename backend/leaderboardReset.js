@@ -87,6 +87,47 @@ const checkAndResetLeaderboard = async () => {
         await query("INSERT INTO leaderboard_reset_log (category) VALUES ('top_gift_sender')");
         logger.info('LEADERBOARD_RESET_COMPLETE', { category: 'top_gift_sender' });
       }
+
+      // 3. TOP GIFT RECEIVER RESET & REWARD
+      const lastReceiverReset = await query(
+        "SELECT reset_at FROM leaderboard_reset_log WHERE category = 'top_gift_receiver' ORDER BY reset_at DESC LIMIT 1"
+      );
+
+      const receiverResetNeeded = !lastReceiverReset.rows.length || 
+        (new Date() - new Date(lastReceiverReset.rows[0].reset_at)) > 24 * 60 * 60 * 1000;
+
+      if (receiverResetNeeded) {
+        logger.info('LEADERBOARD_RESET_START', { category: 'top_gift_receiver' });
+
+        // Get Top 1 Gift Receiver
+        const topReceiverUser = await query(
+          `SELECT u.id, COUNT(ug.id) as total_gifts
+           FROM users u
+           LEFT JOIN user_gifts ug ON u.id = ug.receiver_id
+           WHERE u.is_active = true
+           GROUP BY u.id
+           HAVING COUNT(ug.id) > 0
+           ORDER BY total_gifts DESC LIMIT 1`
+        );
+
+        if (topReceiverUser.rows.length) {
+          const userId = topReceiverUser.rows[0].id;
+          const expiry = new Date();
+          expiry.setDate(expiry.getDate() + 3);
+
+          await query(
+            "UPDATE users SET username_color = '#FF69B4', username_color_expiry = $1 WHERE id = $2",
+            [expiry, userId]
+          );
+          logger.info('TOP1_RECEIVER_REWARD_GRANTED', { userId, expiry });
+        }
+
+        // Note: user_gifts is cleared in the sender reset above, 
+        // which covers both sender and receiver lists for the new week.
+
+        await query("INSERT INTO leaderboard_reset_log (category) VALUES ('top_gift_receiver')");
+        logger.info('LEADERBOARD_RESET_COMPLETE', { category: 'top_gift_receiver' });
+      }
     }
   } catch (error) {
     logger.error('LEADERBOARD_RESET_ERROR', error);
