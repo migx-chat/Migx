@@ -168,14 +168,14 @@ export function ChatMessage({
 
 const styles = StyleSheet.create({
   messageContainer: {
-    paddingVertical: 4,
+    paddingVertical: 1,
     paddingHorizontal: 12,
     marginRight: 50,
     flexDirection: 'row',
   },
   messageWrapper: {
     fontSize: 13,
-    lineHeight: 20,
+    lineHeight: 18,
     flex: 1,
     flexWrap: 'wrap',
   },
