@@ -300,7 +300,7 @@ router.get('/transactions/all', superAdminMiddleware, async (req, res) => {
         id,
         game_type,
         bet_amount,
-        win_amount,
+        reward_amount,
         result,
         created_at
       FROM game_history
@@ -322,13 +322,13 @@ router.get('/transactions/all', superAdminMiddleware, async (req, res) => {
           created_at: row.created_at,
         });
       }
-      // Add win transaction
-      if (row.win_amount > 0) {
+      // Add win transaction (reward_amount)
+      if (row.reward_amount > 0) {
         transactions.push({
           id: `game-win-${row.id}`,
           type: 'win',
           category: 'game',
-          amount: row.win_amount,
+          amount: row.reward_amount,
           username: user.username,
           description: `${row.game_type} Win`,
           created_at: row.created_at,
