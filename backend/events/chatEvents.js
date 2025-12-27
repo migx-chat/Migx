@@ -152,6 +152,67 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /whois command
+        if (cmdKey === 'whois') {
+          const targetUsername = parts[1];
+          if (!targetUsername) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /whois <username>`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          try {
+            const userService = require('../services/userService');
+            const targetUser = await userService.getUserByUsername(targetUsername);
+
+            if (!targetUser) {
+              socket.emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                message: `** User ${targetUsername} not found **`,
+                messageType: 'cmd',
+                type: 'cmd',
+                timestamp: new Date().toISOString()
+              });
+              return;
+            }
+
+            const levelData = await addXp(targetUser.id, 0, 'none', null); // Get current level without adding XP
+            const gender = targetUser.gender ? targetUser.gender.charAt(0).toUpperCase() + targetUser.gender.slice(1) : 'Unknown';
+            const country = targetUser.country || 'Unknown';
+            
+            // Check if user is online and in a room
+            const { getRedisClient } = require('../redis');
+            const redis = getRedisClient();
+            const currentRoomId = await redis.get(`user:${targetUser.id}:room`);
+            
+            let chatStatus = '*';
+            if (currentRoomId) {
+              const roomService = require('../services/roomService');
+              const room = await roomService.getRoomById(currentRoomId);
+              chatStatus = room ? room.name : currentRoomId;
+            }
+
+            const response = `** Username: ${targetUser.username}, Level ${levelData.level}, Gender: ${gender}, Country: ${country}, Chatting in, ${chatStatus} **`;
+
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: response,
+              messageType: 'cmd',
+              type: 'cmd',
+              timestamp: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error processing /whois:', error);
+          }
+          return;
+        }
+
         // Handle /kick command
         if (cmdKey === 'kick') {
           const targetUsername = parts[1];
