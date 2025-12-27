@@ -168,7 +168,7 @@ const getGameRooms = async (limit = 20) => {
 
 const updateRoom = async (roomId, updates) => {
   try {
-    const { name, description, maxUsers, isPrivate, password } = updates;
+    const { name, description, maxUsers, isPrivate, password, minLevel } = updates;
     const result = await query(
       `UPDATE rooms SET 
         name = COALESCE($1, name),
@@ -176,10 +176,11 @@ const updateRoom = async (roomId, updates) => {
         max_users = COALESCE($3, max_users),
         is_private = COALESCE($4, is_private),
         password = COALESCE($5, password),
+        min_level = COALESCE($6, min_level),
         updated_at = CURRENT_TIMESTAMP
-       WHERE id = $6
+       WHERE id = $7
        RETURNING *`,
-      [name, description, maxUsers, isPrivate, password, roomId]
+      [name, description, maxUsers, isPrivate, password, minLevel, roomId]
     );
     return result.rows[0];
   } catch (error) {
@@ -269,6 +270,17 @@ const joinRoom = async (roomId, userId, username) => {
     const isBanned = await presence.isBanned(roomId, userId, username);
     if (isBanned) {
       return { success: false, error: 'You are banned from this room' };
+    }
+    
+    // Level Check
+    const { getUserLevel } = require('../utils/xpLeveling');
+    const levelData = await getUserLevel(userId);
+    if (room.min_level && levelData.level < room.min_level) {
+      return { 
+        success: false, 
+        error: `Unable to join chat room. Minimum level has been set to ${room.min_level}`,
+        minLevel: room.min_level
+      };
     }
     
     const userCount = await presence.getRoomUserCount(roomId);

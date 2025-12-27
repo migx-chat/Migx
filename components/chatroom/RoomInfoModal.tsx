@@ -9,10 +9,13 @@ import {
   ScrollView,
   ActivityIndicator,
   useColorScheme,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import API_BASE_URL from '@/utils/api';
 import { Colors } from '@/constants/Colors';
+import { useRoomTabsStore } from '@/stores/useRoomTabsStore';
 
 interface RoomInfoModalProps {
   visible: boolean;
@@ -26,11 +29,13 @@ interface RoomInfo {
   name: string;
   description: string;
   ownerName: string;
+  ownerId: string;
   createdAt: string;
   updatedAt: string;
   roomCode: string;
   maxUsers: number;
   isPrivate: boolean;
+  minLevel: number;
   currentUsers: number;
   participants: string[];
 }
@@ -38,6 +43,10 @@ interface RoomInfo {
 export function RoomInfoModal({ visible, onClose, roomId, info }: RoomInfoModalProps) {
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [minLevelInput, setMinLevelInput] = useState('');
+  const [updatingLevel, setUpdatingLevel] = useState(false);
+  
+  const currentUserId = useRoomTabsStore(state => state.currentUserId);
   const colorScheme = useColorScheme();
   const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const dynamicStyles = getDynamicStyles(colors);
@@ -60,11 +69,40 @@ export function RoomInfoModal({ visible, onClose, roomId, info }: RoomInfoModalP
       
       if (data.success) {
         setRoomInfo(data.roomInfo);
+        setMinLevelInput(data.roomInfo.minLevel?.toString() || '1');
       }
     } catch (error) {
       console.error('Error fetching room info:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSetMinLevel = async () => {
+    const level = parseInt(minLevelInput);
+    if (isNaN(level) || level < 1 || level > 100) {
+      Alert.alert('Error', 'Please enter a level between 1 and 100');
+      return;
+    }
+
+    try {
+      setUpdatingLevel(true);
+      const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/min-level`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minLevel: level, userId: currentUserId }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setRoomInfo(prev => prev ? { ...prev, minLevel: level } : null);
+        Alert.alert('Success', `Minimum level set to ${level}`);
+      } else {
+        Alert.alert('Error', data.error || 'Failed to update level');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Connection failed');
+    } finally {
+      setUpdatingLevel(false);
     }
   };
 
@@ -150,6 +188,34 @@ export function RoomInfoModal({ visible, onClose, roomId, info }: RoomInfoModalP
                   <Text style={[styles.infoLabel, dynamicStyles.infoLabel]}>Created</Text>
                   <Text style={[styles.infoValue, dynamicStyles.infoValue]}>{formatDate(roomInfo.createdAt)}</Text>
                 </View>
+              </View>
+
+              <View style={[styles.divider, dynamicStyles.divider]} />
+
+              <View style={styles.minLevelSection}>
+                <Text style={[styles.infoLabel, dynamicStyles.infoLabel]}>Minimum Entry Level (1-100)</Text>
+                <View style={styles.levelInputRow}>
+                  <TextInput
+                    style={[styles.levelInput, { color: colors.text, borderColor: colors.icon }]}
+                    value={minLevelInput}
+                    onChangeText={setMinLevelInput}
+                    keyboardType="numeric"
+                    placeholder="1"
+                    placeholderTextColor="#999"
+                  />
+                  <TouchableOpacity 
+                    style={styles.setLevelButton} 
+                    onPress={handleSetMinLevel}
+                    disabled={updatingLevel}
+                  >
+                    {updatingLevel ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.setLevelText}>Set Level</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.levelHint}>Users below level {roomInfo.minLevel} cannot join this room.</Text>
               </View>
 
               {roomInfo.participants.length > 0 && (
@@ -310,6 +376,43 @@ const styles = StyleSheet.create({
   participantName: {
     fontSize: 14,
     color: '#333',
+  },
+  minLevelSection: {
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  levelInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 12,
+  },
+  levelInput: {
+    flex: 1,
+    height: 44,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    fontSize: 16,
+  },
+  setLevelButton: {
+    backgroundColor: '#0a5229',
+    paddingHorizontal: 20,
+    height: 44,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  setLevelText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  levelHint: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   errorContainer: {
     padding: 40,

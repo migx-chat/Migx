@@ -181,4 +181,61 @@ router.get('/:roomId/status', async (req, res) => {
   }
 });
 
+router.get('/:roomId/info', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const room = await roomService.getRoomById(roomId);
+    if (!room) return res.status(404).json({ success: false, error: 'Room not found' });
+
+    const participants = await getRoomParticipants(roomId);
+    const userCount = await getRoomUserCount(roomId);
+
+    res.json({
+      success: true,
+      roomInfo: {
+        id: room.id,
+        name: room.name,
+        description: room.description,
+        ownerName: room.owner_name,
+        ownerId: room.owner_id,
+        createdAt: room.created_at,
+        updatedAt: room.updated_at,
+        roomCode: room.room_code,
+        maxUsers: room.max_users,
+        isPrivate: room.is_private,
+        minLevel: room.min_level || 1,
+        currentUsers: userCount,
+        participants
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to get room info' });
+  }
+});
+
+router.post('/:roomId/min-level', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { minLevel, userId } = req.body;
+
+    if (isNaN(minLevel) || minLevel < 1 || minLevel > 100) {
+      return res.status(400).json({ success: false, error: 'Level must be 1-100' });
+    }
+
+    const isAdmin = await roomService.isRoomAdmin(roomId, userId);
+    if (!isAdmin) {
+      return res.status(403).json({ success: false, error: 'Only owner or moderator can set level' });
+    }
+
+    const updated = await roomService.updateRoom(roomId, { minLevel });
+    if (updated) {
+      res.json({ success: true, minLevel: updated.min_level });
+    } else {
+      res.status(500).json({ success: false, error: 'Failed to update level' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
 module.exports = router;
