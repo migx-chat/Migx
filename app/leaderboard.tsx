@@ -117,16 +117,6 @@ const MedalIcon = ({ rank, size = 24 }: { rank: number; size?: number }) => {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <Text
-        x="12"
-        y="17"
-        fontSize="10"
-        fontWeight="bold"
-        textAnchor="middle"
-        fill="#fff"
-      >
-        {rank}
-      </Text>
     </Svg>
   );
 };
@@ -223,7 +213,6 @@ export default function LeaderboardPage() {
       count: leaderboardData.top_get?.length || 0,
     },
   ];
-  ];
 
   const fetchLeaderboards = async () => {
     try {
@@ -286,6 +275,7 @@ export default function LeaderboardPage() {
           {showRank ? (
             <View style={styles.medalContainer}>
               <MedalIcon rank={index + 1} size={28} />
+              <Text style={styles.rankOnMedal}>{index + 1}</Text>
             </View>
           ) : (
             <Text style={[styles.rankNumber, { color: theme.text }]}>#{index + 1}</Text>
@@ -493,6 +483,15 @@ const styles = StyleSheet.create({
   medalContainer: {
     width: 32,
     alignItems: 'center',
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  rankOnMedal: {
+    position: 'absolute',
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#fff',
+    top: 10,
   },
   rankNumber: {
     fontSize: 15,
