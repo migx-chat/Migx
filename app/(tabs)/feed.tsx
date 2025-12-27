@@ -121,9 +121,18 @@ export default function FeedScreen() {
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       const token = userData?.token;
 
-      // Validasi token sebelum request
-      if (!token || token.trim() === '') {
-        console.warn('⚠️ Feed: No valid token available, skipping fetch');
+      // Validasi token JWT format sebelum request
+      if (!token || typeof token !== 'string' || token.trim() === '') {
+        console.warn('⚠️ Feed: No token available, skipping fetch');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      // Validasi format JWT (harus ada 3 bagian: header.payload.signature)
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) {
+        console.warn('⚠️ Feed: Invalid JWT format, skipping fetch');
         setLoading(false);
         setRefreshing(false);
         return;
@@ -131,19 +140,22 @@ export default function FeedScreen() {
 
       const deviceId = await AsyncStorage.getItem('device_id');
       
-      // 🔐 STEP 11: Include device_id for device binding validation
+      // Headers hanya dikirim jika token valid
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${token}`,
+        'x-device-id': deviceId || '',
+      };
+      
       const response = await fetch(`${API_ENDPOINTS.FEED.LIST}?page=${pageNum}&limit=10`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'x-device-id': deviceId || '',
-        },
+        headers,
       });
 
-      // Tangani 401 Unauthorized
+      // Tangani 401 Unauthorized - hentikan retry
       if (response.status === 401) {
         console.warn('⚠️ Feed: Authentication failed (401), stopping fetch');
         setLoading(false);
         setRefreshing(false);
+        setHasMore(false); // Hentikan load more
         return;
       }
 
@@ -237,8 +249,16 @@ export default function FeedScreen() {
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       const token = userData?.token;
 
-      if (!token || token.trim() === '') {
+      // Validasi token JWT format
+      if (!token || typeof token !== 'string' || token.trim() === '') {
         Alert.alert('Error', 'Please login to create a post');
+        setPosting(false);
+        return;
+      }
+
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) {
+        Alert.alert('Error', 'Invalid session. Please login again.');
         setPosting(false);
         return;
       }
@@ -305,8 +325,15 @@ export default function FeedScreen() {
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       const token = userData?.token;
 
-      if (!token || token.trim() === '') {
+      // Validasi token JWT format
+      if (!token || typeof token !== 'string' || token.trim() === '') {
         console.warn('⚠️ Feed: No token for like action');
+        return;
+      }
+
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) {
+        console.warn('⚠️ Feed: Invalid JWT format for like action');
         return;
       }
 
@@ -351,8 +378,15 @@ export default function FeedScreen() {
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       const token = userData?.token;
 
-      if (!token || token.trim() === '') {
+      // Validasi token JWT format
+      if (!token || typeof token !== 'string' || token.trim() === '') {
         console.warn('⚠️ Feed: No token for fetching comments');
+        return;
+      }
+
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) {
+        console.warn('⚠️ Feed: Invalid JWT format for fetching comments');
         return;
       }
 
@@ -390,8 +424,15 @@ export default function FeedScreen() {
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       const token = userData?.token;
 
-      if (!token || token.trim() === '') {
+      // Validasi token JWT format
+      if (!token || typeof token !== 'string' || token.trim() === '') {
         console.warn('⚠️ Feed: No token for sending comment');
+        return;
+      }
+
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) {
+        console.warn('⚠️ Feed: Invalid JWT format for sending comment');
         return;
       }
 
