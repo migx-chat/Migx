@@ -217,4 +217,42 @@ router.put('/:userId/status', async (req, res) => {
   }
 });
 
+// Notifications routes
+router.get('/:username/notifications', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const user = await userService.getUserByUsername(username);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const notifications = await query(
+      `SELECT id, type, message, data, is_read, 
+              EXTRACT(EPOCH FROM created_at) * 1000 as timestamp
+       FROM notifications 
+       WHERE user_id = $1 
+       ORDER BY created_at DESC 
+       LIMIT 50`,
+      [user.id]
+    );
+
+    res.json({ notifications: notifications.rows });
+  } catch (error) {
+    logger.error('GET_NOTIFICATIONS_ERROR', error);
+    res.status(500).json({ error: 'Failed to get notifications' });
+  }
+});
+
+router.delete('/:username/notifications', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const user = await userService.getUserByUsername(username);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    await query('DELETE FROM notifications WHERE user_id = $1', [user.id]);
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('DELETE_NOTIFICATIONS_ERROR', error);
+    res.status(500).json({ error: 'Failed to clear notifications' });
+  }
+});
+
 module.exports = router;

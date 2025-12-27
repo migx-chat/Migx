@@ -97,6 +97,18 @@ const transferCredits = async (fromUserId, toUserId, amount, description = null,
     
     await client.query('COMMIT');
     
+    // 🔔 Send notification to recipient
+    try {
+      const notificationMessage = `You have received credit of ${amount.toLocaleString()} IDR from ${sender.username}`;
+      await client.query(
+        `INSERT INTO notifications (user_id, type, message, data)
+         VALUES ($1, 'credit', $2, $3)`,
+        [toUserId, notificationMessage, JSON.stringify({ from: sender.username, amount })]
+      );
+    } catch (notificationError) {
+      logger.error('NOTIFICATION_ERROR: Failed to create transfer notification', notificationError);
+    }
+    
     const newFromCredits = Number(sender.credits) - Number(amount);
     const newToCredits = Number(recipient.credits) + Number(amount);
     

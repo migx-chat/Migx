@@ -42,6 +42,7 @@ const FollowIcon = ({ size = 20, color = '#4CAF50' }: { size?: number; color?: s
 );
 
 interface Notification {
+  id: string;
   type: 'credit' | 'gift' | 'follow';
   from: string;
   fromUserId?: string;
@@ -49,7 +50,7 @@ interface Notification {
   giftName?: string;
   message: string;
   timestamp: number;
-  id?: string;
+  is_read: boolean;
 }
 
 interface NotificationModalProps {
@@ -67,29 +68,17 @@ export function NotificationModal({ visible, onClose, username, socket, onNotifi
 
   useEffect(() => {
     if (visible && username) {
-      console.log('NotificationModal opened for username:', username);
       fetchNotifications();
-      clearNotificationsImmediately();
     }
   }, [visible, username]);
 
   const fetchNotifications = async () => {
-    if (!username) {
-      console.warn('Cannot fetch notifications: username is missing');
-      return;
-    }
-    
+    if (!username) return;
     setLoading(true);
     try {
-      console.log('Fetching notifications for:', username);
       const response = await fetch(`${API_ENDPOINTS.NOTIFICATION.LIST}/${username}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
+      if (!response.ok) throw new Error('Failed to fetch');
       const data = await response.json();
-      console.log('Notifications received:', data);
       setNotifications(data.notifications || []);
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -99,212 +88,67 @@ export function NotificationModal({ visible, onClose, username, socket, onNotifi
     }
   };
 
-  const clearNotificationsImmediately = async () => {
-    try {
-      await fetch(
-        `${API_ENDPOINTS.NOTIFICATION.LIST}/${username}`,
-        { method: 'DELETE' }
-      );
-      // Call callback to update badge in Header
-      if (onNotificationsCleared) {
-        onNotificationsCleared();
-      }
-    } catch (error) {
-      console.error('Error clearing notifications:', error);
-    }
-  };
-
   const clearNotifications = async () => {
     try {
-      await fetch(
-        `${API_ENDPOINTS.NOTIFICATION.LIST}/${username}`,
-        { method: 'DELETE' }
-      );
+      await fetch(`${API_ENDPOINTS.NOTIFICATION.LIST}/${username}`, { method: 'DELETE' });
       setNotifications([]);
-      if (onNotificationsCleared) {
-        onNotificationsCleared();
-      }
+      if (onNotificationsCleared) onNotificationsCleared();
       onClose();
     } catch (error) {
       console.error('Error clearing notifications:', error);
     }
   };
 
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'credit':
-        return <CreditIcon />;
-      case 'gift':
-        return <GiftIcon />;
-      case 'follow':
-        return <FollowIcon />;
-      default:
-        return <CreditIcon />;
-    }
-  };
-
   const formatTime = (timestamp: number) => {
-    const now = Date.now();
-    const diff = now - timestamp;
+    const diff = Date.now() - timestamp;
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
-
     if (minutes < 1) return 'Just now';
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     return `${days}d ago`;
   };
 
-  const handleFollowAccept = async (notification: Notification) => {
+  const handleFollowAction = async (notification: Notification, action: 'accept' | 'reject') => {
     try {
-      console.log('Accept clicked for notification:', notification);
-      
-      // Get followerId - either from fromUserId or fetch it from the from username
       let followerId = notification.fromUserId;
-      
       if (!followerId && notification.from) {
-        // Fetch user ID from username
-        console.log('Fetching user ID for username:', notification.from);
-        const userResponse = await fetch(`${API_BASE_URL}/api/users/username/${notification.from}`);
-        const userData = await userResponse.json();
-        if (userData?.id) {
-          followerId = userData.id;
-          console.log('Got user ID from username:', followerId);
-        }
+        const userRes = await fetch(`${API_ENDPOINTS.USER.BY_USERNAME(notification.from)}`);
+        const userData = await userRes.json();
+        followerId = userData?.id;
       }
-      
-      if (!followerId) {
-        console.error('❌ Cannot get followerId from notification:', notification);
-        Alert.alert('Error', 'Invalid notification data - cannot identify user');
-        return;
-      }
+      if (!followerId) return Alert.alert('Error', 'User not found');
 
-      const response = await fetch(`${API_BASE_URL}/api/profile/follow/accept`, {
+      const response = await fetch(`${API_BASE_URL}/api/profile/follow/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          followerId: followerId,
-          followingUsername: username,
-        }),
-      });
-
-      const data = await response.json();
-      console.log('Follow accept response:', response.status, data);
-      
-      if (response.ok && data.success) {
-        // Show success popup
-        Alert.alert('✅ Full Accepted', `You are now following ${notification.from}!`, [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Remove notification after accepting
-              const newNotifications = notifications.filter(n => n.id !== notification.id);
-              setNotifications(newNotifications);
-            }
-          }
-        ]);
-      } else {
-        Alert.alert('Error', data.error || 'Failed to accept follow');
-      }
-    } catch (error) {
-      console.error('Error accepting follow:', error);
-      Alert.alert('Error', 'Failed to accept follow: ' + (error as any).message);
-    }
-  };
-
-  const handleFollowReject = async (notification: Notification) => {
-    try {
-      // Get followerId - either from fromUserId or fetch it from the from username
-      let followerId = notification.fromUserId;
-      
-      if (!followerId && notification.from) {
-        // Fetch user ID from username
-        const userResponse = await fetch(`${API_BASE_URL}/api/users/username/${notification.from}`);
-        const userData = await userResponse.json();
-        if (userData?.id) {
-          followerId = userData.id;
-        }
-      }
-      
-      if (!followerId) {
-        Alert.alert('Error', 'Invalid notification data - cannot identify user');
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/profile/follow/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          followerId: followerId,
-          followingUsername: username,
-        }),
+        body: JSON.stringify({ followerId, followingUsername: username }),
       });
 
       const data = await response.json();
       if (response.ok && data.success) {
-        // Show rejection success
-        Alert.alert('✅ Rejected', `You rejected ${notification.from}'s follow request`, [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Remove notification after rejecting
-              const newNotifications = notifications.filter(n => n.id !== notification.id);
-              setNotifications(newNotifications);
-            }
-          }
-        ]);
+        Alert.alert('Success', `Follow request ${action}ed`);
+        setNotifications(notifications.filter(n => n.id !== notification.id));
       } else {
-        Alert.alert('Error', data.error || 'Failed to reject follow');
+        Alert.alert('Error', data.error || 'Action failed');
       }
     } catch (error) {
-      console.error('Error rejecting follow:', error);
-      Alert.alert('Error', 'Failed to reject follow');
-    }
-  };
-
-  const getNotificationBorderColor = (type: string) => {
-    switch (type) {
-      case 'credit':
-        return '#4A90E2';
-      case 'gift':
-        return '#E91E63';
-      case 'follow':
-        return '#4CAF50';
-      default:
-        return '#999';
+      Alert.alert('Error', 'Failed to perform action');
     }
   };
 
   const renderNotification = ({ item }: { item: Notification }) => (
-    <View
-      style={[
-        styles.notificationItem,
-        {
-          backgroundColor: theme.card,
-          borderLeftColor: getNotificationBorderColor(item.type),
-        },
-      ]}
-    >
+    <View style={[styles.notificationItem, { backgroundColor: theme.card, borderLeftColor: item.type === 'credit' ? '#4A90E2' : item.type === 'gift' ? '#E91E63' : '#4CAF50', opacity: item.is_read ? 0.7 : 1 }]}>
       <View style={styles.notificationContent}>
-        <Text style={[styles.notificationMessage, { color: theme.text }]}>
-          {item.message}
-        </Text>
-        <Text style={[styles.notificationTime, { color: theme.secondary }]}>
-          {formatTime(item.timestamp)}
-        </Text>
-        {item.type === 'follow' && (
+        <Text style={[styles.notificationMessage, { color: theme.text }]}>{item.message}</Text>
+        <Text style={[styles.notificationTime, { color: theme.secondary }]}>{formatTime(item.timestamp)}</Text>
+        {item.type === 'follow' && !item.is_read && (
           <View style={styles.notificationActions}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.rejectButton]}
-              onPress={() => handleFollowReject(item)}
-            >
+            <TouchableOpacity style={[styles.actionButton, styles.rejectButton]} onPress={() => handleFollowAction(item, 'reject')}>
               <Text style={styles.actionButtonText}>Reject</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.acceptButton]}
-              onPress={() => handleFollowAccept(item)}
-            >
+            <TouchableOpacity style={[styles.actionButton, styles.acceptButton]} onPress={() => handleFollowAction(item, 'accept')}>
               <Text style={styles.actionButtonText}>Accept</Text>
             </TouchableOpacity>
           </View>
@@ -314,12 +158,7 @@ export function NotificationModal({ visible, onClose, username, socket, onNotifi
   );
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={false}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
       <View style={[styles.modalOverlay, { backgroundColor: theme.background }]}>
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <Text style={[styles.title, { color: theme.text }]}>Notifications</Text>
@@ -334,24 +173,12 @@ export function NotificationModal({ visible, onClose, username, socket, onNotifi
             </TouchableOpacity>
           </View>
         </View>
-
         {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4A90E2" />
-          </View>
+          <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#4A90E2" /></View>
         ) : notifications.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.secondary }]}>
-              No notifications
-            </Text>
-          </View>
+          <View style={styles.emptyContainer}><Text style={[styles.emptyText, { color: theme.secondary }]}>No notifications</Text></View>
         ) : (
-          <FlatList
-            data={notifications}
-            renderItem={renderNotification}
-            keyExtractor={(item, index) => `${item.timestamp}-${index}`}
-            style={styles.list}
-          />
+          <FlatList data={notifications} renderItem={renderNotification} keyExtractor={(item) => item.id} style={styles.list} />
         )}
       </View>
     </Modal>
@@ -359,99 +186,24 @@ export function NotificationModal({ visible, onClose, username, socket, onNotifi
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    paddingBottom: 4,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 12,
-  },
-  clearAllButton: {
-    padding: 8,
-    paddingBottom: 4,
-  },
-  clearAllText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  closeButton: {
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  list: {
-    flex: 1,
-  },
-  notificationItem: {
-    padding: 16,
-    marginHorizontal: 0,
-    marginVertical: 0,
-    borderLeftWidth: 4,
-    borderBottomWidth: 1,
-  },
-  notificationContent: {
-    flex: 1,
-  },
-  notificationMessage: {
-    fontSize: 15,
-    marginBottom: 6,
-    fontWeight: '500',
-  },
-  notificationTime: {
-    fontSize: 11,
-    marginTop: 4,
-  },
-  notificationActions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 12,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  rejectButton: {
-    backgroundColor: '#999',
-  },
-  acceptButton: {
-    backgroundColor: '#4CAF50',
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  loadingContainer: {
-    flex: 1,
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-  },
+  modalOverlay: { flex: 1 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 16, paddingTop: 24, paddingBottom: 16, borderBottomWidth: 1 },
+  title: { fontSize: 20, fontWeight: 'bold', paddingBottom: 4 },
+  headerRight: { flexDirection: 'row', alignItems: 'flex-end', gap: 12 },
+  clearAllButton: { padding: 8, paddingBottom: 4 },
+  clearAllText: { fontSize: 14, fontWeight: '600' },
+  closeButton: { padding: 8, justifyContent: 'center', alignItems: 'center' },
+  list: { flex: 1 },
+  notificationItem: { padding: 16, borderLeftWidth: 4, borderBottomWidth: 1 },
+  notificationContent: { flex: 1 },
+  notificationMessage: { fontSize: 15, marginBottom: 6, fontWeight: '500' },
+  notificationTime: { fontSize: 11, marginTop: 4 },
+  notificationActions: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  actionButton: { flex: 1, paddingVertical: 8, borderRadius: 6, alignItems: 'center' },
+  rejectButton: { backgroundColor: '#999' },
+  acceptButton: { backgroundColor: '#4CAF50' },
+  actionButtonText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  emptyText: { fontSize: 16 },
 });
