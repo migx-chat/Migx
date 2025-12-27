@@ -5,6 +5,7 @@ import { ChatMessage } from './ChatMessage';
 interface Message {
   id: string;
   username: string;
+  usernameColor?: string;
   message: string;
   isOwnMessage?: boolean;
   isSystem?: boolean;
@@ -35,6 +36,7 @@ export function ChatRoomContent({ messages, bottomPadding = 70 }: ChatRoomConten
       renderItem={({ item }) => (
         <ChatMessage
           username={item.username}
+          usernameColor={item.usernameColor}
           message={item.message}
           timestamp=""
           isSystem={item.isSystem}

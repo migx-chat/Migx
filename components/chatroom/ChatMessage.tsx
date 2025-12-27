@@ -6,6 +6,7 @@ import { roleColors } from '@/utils/roleColors';
 
 interface ChatMessageProps {
   username: string;
+  usernameColor?: string;
   message: string;
   timestamp: string;
   isSystem?: boolean;
@@ -20,6 +21,7 @@ interface ChatMessageProps {
 
 export function ChatMessage({
   username,
+  usernameColor,
   message,
   timestamp,
   isSystem,
@@ -37,6 +39,7 @@ export function ChatMessage({
   const getUsernameColor = () => {
     if (isSystem) return '#FF8C00';
     if (isPresence) return '#FF8C00';
+    if (usernameColor) return usernameColor;
     if (isOwnMessage) return roleColors.own;
     if (userType === 'creator') return roleColors.creator;
     if (userType === 'admin') return roleColors.admin;

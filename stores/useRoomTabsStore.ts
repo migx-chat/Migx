@@ -4,6 +4,7 @@ import { Socket } from 'socket.io-client';
 export interface Message {
   id: string;
   username: string;
+  usernameColor?: string;
   message: string;
   isOwnMessage?: boolean;
   isSystem?: boolean;

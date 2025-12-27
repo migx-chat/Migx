@@ -47,6 +47,7 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
     const newMessage: Message = {
       id: data.id || `msg-${Date.now()}-${Math.random()}`,
       username: data.username,
+      usernameColor: data.usernameColor,
       message: data.message,
       isOwnMessage: data.username === currentUsername,
       isSystem: (data.messageType === 'system' || data.type === 'system') && !isPresenceMessage,

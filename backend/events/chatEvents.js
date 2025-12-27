@@ -273,16 +273,24 @@ module.exports = (io, socket) => {
         }
       }
 
+      const userService = require('../services/userService');
+      const sender = await userService.getUserById(userId);
+      const usernameColor = (sender && sender.username_color_expiry && new Date(sender.username_color_expiry) > new Date()) 
+        ? sender.username_color 
+        : null;
+
       const messageData = {
         id: generateMessageId(),
         roomId,
         userId,
         username,
+        usernameColor,
         message,
         messageType: 'chat',
         timestamp: new Date().toISOString()
       };
 
+      console.log('📤 Sending message with color:', username, usernameColor);
       io.to(`room:${roomId}`).emit('chat:message', messageData);
       await addXp(userId, XP_REWARDS.SEND_MESSAGE, 'send_message', io);
 
