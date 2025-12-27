@@ -6,17 +6,17 @@ const { query } = require('../db/db');
 // Get top level users
 router.get('/top-level', async (req, res) => {
   try {
-    const { limit = 10 } = req.query;
+    const { limit = 5 } = req.query;
 
     const result = await query(
-      `SELECT u.id, u.username, u.avatar, u.gender, u.role, u.country,
+      `SELECT u.id, u.username, u.avatar, u.gender, u.role, u.country, u.username_color,
               ul.level, ul.xp
        FROM users u
        LEFT JOIN user_levels ul ON u.id = ul.user_id
        WHERE u.is_active = true
        ORDER BY ul.level DESC, ul.xp DESC
        LIMIT $1`,
-      [parseInt(limit)]
+      [Math.min(parseInt(limit), 5)]
     );
 
     res.json({
@@ -208,14 +208,14 @@ router.get('/all', async (req, res) => {
 
     const [topLevel, topGiftSender, topGiftReceiver, topFootprint, topGamer, topGet] = await Promise.all([
       query(
-        `SELECT u.id, u.username, u.avatar, u.gender, u.role, u.country,
+        `SELECT u.id, u.username, u.avatar, u.gender, u.role, u.country, u.username_color,
                 ul.level, ul.xp
          FROM users u
          LEFT JOIN user_levels ul ON u.id = ul.user_id
          WHERE u.is_active = true
          ORDER BY ul.level DESC, ul.xp DESC
-         LIMIT $1`,
-        [limitInt]
+         LIMIT 5`,
+        []
       ),
       query(
         `SELECT u.id, u.username, u.avatar, u.gender, u.role, u.country,
@@ -297,7 +297,7 @@ router.get('/all', async (req, res) => {
     ]);
 
     res.json({
-      top_level: topLevel.rows,
+      top_level: topLevel.rows.map((u, i) => i === 0 ? { ...u, username_color: u.username_color || '#FF69B4' } : u),
       top_gift_sender: topGiftSender.rows,
       top_gift_receiver: topGiftReceiver.rows,
       top_footprint: topFootprint.rows,

@@ -485,6 +485,9 @@ const startServer = async () => {
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`Server running on 0.0.0.0:${PORT}`);
 
+      const { checkAndResetLeaderboard } = require('./leaderboardReset');
+      checkAndResetLeaderboard();
+
       // Start presence cleanup job (Step 3️⃣)
       startPresenceCleanup(io);
 

@@ -79,6 +79,15 @@ router.post('/login', async (req, res, next) => {
     }
 
     const levelData = await getUserLevel(user.id);
+
+    // Check if username color expired
+    if (user.username_color_expiry && new Date(user.username_color_expiry) < new Date()) {
+      await query(
+        'UPDATE users SET username_color = NULL, username_color_expiry = NULL WHERE id = $1',
+        [user.id]
+      );
+      user.username_color = null;
+    }
     
     // Check and update daily login streak
     let streakInfo = {};
@@ -142,6 +151,7 @@ router.post('/login', async (req, res, next) => {
         role: user.role,
         status: invisible ? 'offline' : user.status,
         avatar: user.avatar,
+        usernameColor: user.username_color,
         level: levelData.level,
         xp: levelData.xp,
         country: user.country,

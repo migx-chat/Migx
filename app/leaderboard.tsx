@@ -145,6 +145,7 @@ type LeaderboardUser = {
   total_games?: number;
   total_winnings?: number;
   wins?: number;
+  username_color?: string;
 };
 
 // Role colors
@@ -166,7 +167,7 @@ export default function LeaderboardPage() {
   const CATEGORIES: LeaderboardCategory[] = [
     {
       id: 'top_level',
-      title: 'TOP LEVEL',
+      title: 'TOP LEVEL (5)',
       icon: <TrophyIcon size={22} color="#fff" />,
       backgroundColor: '#082919',
       textColor: '#fff',
@@ -262,6 +263,8 @@ export default function LeaderboardPage() {
   const renderUserItem = (user: LeaderboardUser, index: number, categoryId: string) => {
     const roleColor = ROLE_COLORS[user.role || 'user'];
     const showRank = index < 3;
+    const isTop1 = index === 0 && categoryId === 'top_level';
+    const userNameColor = isTop1 ? '#FF69B4' : (user.username_color || theme.text);
 
     return (
       <View
@@ -286,7 +289,7 @@ export default function LeaderboardPage() {
           </View>
           
           <View style={styles.userInfo}>
-            <Text style={[styles.userName, { color: theme.text }]}>{user.username}</Text>
+            <Text style={[styles.userName, { color: userNameColor }]}>{user.username}</Text>
             <Text style={[styles.userDetails, { color: theme.secondary }]}>
               Level {user.level || 0}, {user.country || 'Unknown'}
             </Text>
