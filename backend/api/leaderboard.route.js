@@ -97,7 +97,7 @@ router.get('/top-gift-receiver', async (req, res) => {
   }
 });
 
-// Get top footprint (most active in rooms/messages)
+// Get top footprint (most profile views)
 router.get('/top-footprint', async (req, res) => {
   try {
     const { limit = 5 } = req.query;
@@ -105,15 +105,14 @@ router.get('/top-footprint', async (req, res) => {
     const result = await query(
       `SELECT u.id, u.username, u.avatar, u.gender, u.role, u.country,
               ul.level,
-              COUNT(DISTINCT m.id) as total_messages,
-              COUNT(DISTINCT m.room_id) as rooms_visited
+              COUNT(pf.id) as total_footprints
        FROM users u
-       LEFT JOIN messages m ON u.id = m.user_id
+       LEFT JOIN profile_footprints pf ON u.id = pf.profile_id
        LEFT JOIN user_levels ul ON u.id = ul.user_id
        WHERE u.is_active = true
        GROUP BY u.id, u.username, u.avatar, u.gender, u.role, u.country, ul.level
-       HAVING COUNT(DISTINCT m.id) > 0
-       ORDER BY total_messages DESC, rooms_visited DESC
+       HAVING COUNT(pf.id) > 0
+       ORDER BY total_footprints DESC
        LIMIT $1`,
       [parseInt(limit)]
     );
@@ -253,15 +252,14 @@ router.get('/all', async (req, res) => {
       query(
         `SELECT u.id, u.username, u.avatar, u.gender, u.role, u.country,
                 ul.level,
-                COUNT(DISTINCT m.id) as total_messages,
-                COUNT(DISTINCT m.room_id) as rooms_visited
+                COUNT(pf.id) as total_footprints
          FROM users u
-         LEFT JOIN messages m ON u.id = m.user_id
+         LEFT JOIN profile_footprints pf ON u.id = pf.profile_id
          LEFT JOIN user_levels ul ON u.id = ul.user_id
          WHERE u.is_active = true
          GROUP BY u.id, u.username, u.avatar, u.gender, u.role, u.country, ul.level
-         HAVING COUNT(DISTINCT m.id) > 0
-         ORDER BY total_messages DESC, rooms_visited DESC
+         HAVING COUNT(pf.id) > 0
+         ORDER BY total_footprints DESC
          LIMIT 5`,
         []
       ),

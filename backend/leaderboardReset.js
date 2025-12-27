@@ -128,6 +128,24 @@ const checkAndResetLeaderboard = async () => {
         await query("INSERT INTO leaderboard_reset_log (category) VALUES ('top_gift_receiver')");
         logger.info('LEADERBOARD_RESET_COMPLETE', { category: 'top_gift_receiver' });
       }
+
+      // 4. TOP FOOTPRINT RESET
+      const lastFootprintReset = await query(
+        "SELECT reset_at FROM leaderboard_reset_log WHERE category = 'top_footprint' ORDER BY reset_at DESC LIMIT 1"
+      );
+
+      const footprintResetNeeded = !lastFootprintReset.rows.length || 
+        (new Date() - new Date(lastFootprintReset.rows[0].reset_at)) > 24 * 60 * 60 * 1000;
+
+      if (footprintResetNeeded) {
+        logger.info('LEADERBOARD_RESET_START', { category: 'top_footprint' });
+        
+        // Clear footprints for the new week
+        await query("DELETE FROM profile_footprints WHERE viewed_at < NOW()");
+
+        await query("INSERT INTO leaderboard_reset_log (category) VALUES ('top_footprint')");
+        logger.info('LEADERBOARD_RESET_COMPLETE', { category: 'top_footprint' });
+      }
     }
   } catch (error) {
     logger.error('LEADERBOARD_RESET_ERROR', error);

@@ -39,6 +39,21 @@ router.get('/:userId', async (req, res) => {
     let isFollowing = false;
     if (viewerId) {
       isFollowing = await profileService.isFollowing(viewerId, userId);
+      
+      // 👣 Track footprint (Profile View)
+      if (viewerId !== userId) {
+        try {
+          await query(
+            `INSERT INTO profile_footprints (profile_id, viewer_id) 
+             VALUES ($1, $2) 
+             ON CONFLICT (profile_id, viewer_id) 
+             DO UPDATE SET viewed_at = CURRENT_TIMESTAMP`,
+            [userId, viewerId]
+          );
+        } catch (err) {
+          logger.error('FOOTPRINT_TRACKING_ERROR', err);
+        }
+      }
     }
     
     res.json({

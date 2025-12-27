@@ -142,7 +142,7 @@ type LeaderboardUser = {
   role?: 'admin' | 'merchant' | 'mentor' | 'care_service' | 'user';
   total_gifts_sent?: number;
   total_gifts_received?: number;
-  total_messages?: number;
+  total_footprints?: number;
   total_games?: number;
   total_winnings?: number;
   wins?: number;
@@ -251,7 +251,7 @@ export default function LeaderboardPage() {
       case 'top_gift_receiver':
         return `${user.total_gifts_received || 0} gifts`;
       case 'top_footprint':
-        return `${user.total_messages || 0} messages`;
+        return `${(user as any).total_footprints || 0} footprints`;
       case 'top_gamer':
         return `${user.total_games || 0} games`;
       case 'top_get':
