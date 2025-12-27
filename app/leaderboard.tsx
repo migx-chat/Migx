@@ -309,17 +309,15 @@ export default function LeaderboardPage() {
 
   if (loading) {
     return (
-      <Modal visible={true} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContainer, { height: SCREEN_HEIGHT * 0.75, backgroundColor: theme.background }]}>
-            <View style={[styles.header, { backgroundColor: 'transparent' }]}>
-              <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
-                <CloseIcon size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={theme.primary} />
-            </View>
+      <Modal visible={true} animationType="slide" transparent={false}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+          <View style={styles.fullscreenHeader}>
+            <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
+              <CloseIcon size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.primary} />
           </View>
         </View>
       </Modal>
@@ -327,133 +325,107 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <Modal visible={true} animationType="slide" transparent={true}>
-      <View style={styles.modalOverlay}>
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={() => router.back()}
-        />
-        
-        <View style={[styles.modalContainer, { height: SCREEN_HEIGHT * 0.75, backgroundColor: theme.background }]}>
-          {/* Header */}
-          <View style={[styles.header, { backgroundColor: 'transparent' }]}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => router.back()}
-              activeOpacity={0.7}
-            >
-              <CloseIcon size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Content */}
-          <ScrollView 
-            style={styles.content} 
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={theme.primary}
-              />
-            }
+    <Modal visible={true} animationType="slide" transparent={false}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        {/* Fullscreen Header with X Icon */}
+        <View style={styles.fullscreenHeader}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
           >
-            <View style={styles.categoriesContainer}>
-              {CATEGORIES.map((category) => {
-                const isExpanded = expandedCategory === category.id;
-                const users = leaderboardData[category.id] || [];
-                
-                return (
-                  <View key={category.id} style={styles.categoryWrapper}>
-                    <TouchableOpacity
-                      style={[
-                        styles.categoryHeader,
-                        {
-                          backgroundColor: category.backgroundColor,
-                          borderColor: theme.border,
-                        },
-                      ]}
-                      onPress={() => toggleCategory(category.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.categoryLeft}>
-                        {category.icon}
-                        <Text style={[styles.categoryTitle, { color: category.textColor }]}>
-                          {category.title}
-                        </Text>
-                        <Text style={[styles.categoryCount, { color: category.textColor }]}>
-                          ({category.count})
-                        </Text>
-                      </View>
-                      
-                      <View
-                        style={[
-                          styles.chevronContainer,
-                          isExpanded && styles.chevronRotated,
-                        ]}
-                      >
-                        <ChevronDownIcon size={20} color={category.textColor} />
-                      </View>
-                    </TouchableOpacity>
-
-                    {isExpanded && (
-                      <View style={[styles.userList, { backgroundColor: theme.background }]}>
-                        {users.length === 0 ? (
-                          <Text style={[styles.emptyText, { color: theme.secondary }]}>
-                            No data available
-                          </Text>
-                        ) : (
-                          users.map((user, index) => renderUserItem(user, index, category.id))
-                        )}
-                      </View>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          </ScrollView>
+            <CloseIcon size={24} color="#fff" />
+          </TouchableOpacity>
         </View>
+
+        {/* Content */}
+        <ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.primary}
+            />
+          }
+        >
+          <View style={styles.categoriesContainer}>
+            {CATEGORIES.map((category) => {
+              const isExpanded = expandedCategory === category.id;
+              const users = leaderboardData[category.id] || [];
+              
+              return (
+                <View key={category.id} style={styles.categoryWrapper}>
+                  <TouchableOpacity
+                    style={[
+                      styles.categoryHeader,
+                      {
+                        backgroundColor: category.backgroundColor,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                    onPress={() => toggleCategory(category.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.categoryLeft}>
+                      {category.icon}
+                      <Text style={[styles.categoryTitle, { color: category.textColor }]}>
+                        {category.title}
+                      </Text>
+                      <Text style={[styles.categoryCount, { color: category.textColor }]}>
+                        ({category.count})
+                      </Text>
+                    </View>
+                    
+                    <View
+                      style={[
+                        styles.chevronContainer,
+                        isExpanded && styles.chevronRotated,
+                      ]}
+                    >
+                      <ChevronDownIcon size={20} color={category.textColor} />
+                    </View>
+                  </TouchableOpacity>
+
+                  {isExpanded && (
+                    <View style={[styles.userList, { backgroundColor: theme.background }]}>
+                      {users.length === 0 ? (
+                        <Text style={[styles.emptyText, { color: theme.secondary }]}>
+                          No data available
+                        </Text>
+                      ) : (
+                        users.map((user, index) => renderUserItem(user, index, category.id))
+                      )}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        </ScrollView>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
+  container: {
     flex: 1,
   },
-  modalContainer: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -4,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  header: {
-    paddingTop: 16,
-    paddingBottom: 16,
+  fullscreenHeader: {
+    height: 100, // Memberikan ruang yang cukup agar tidak terlalu atas
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
+    paddingTop: 40, // Penyesuaian agar tidak mengenai status bar
   },
   closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
