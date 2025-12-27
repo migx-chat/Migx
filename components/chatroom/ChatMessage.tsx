@@ -126,7 +126,7 @@ export function ChatMessage({
       <View style={styles.messageContainer}>
         <Text style={styles.messageWrapper}>
           <Text style={[styles.username, { color: getUsernameColor() }]}>
-            {username} {hasTopMerchantBadge && <BadgeTop1 />} :{' '}
+            {username}{hasTopMerchantBadge && <BadgeTop1 />}:{' '}
           </Text>
           <Text style={[styles.message, { color: getMessageColor() }]}>
             {message}
@@ -140,7 +140,7 @@ export function ChatMessage({
     <View style={styles.messageContainer}>
       <Text style={styles.messageWrapper}>
         <Text style={[styles.username, { color: getUsernameColor() }]}>
-          {username} {hasTopMerchantBadge && <BadgeTop1 />} :{' '}
+          {username}{hasTopMerchantBadge && <BadgeTop1 />}:{' '}
         </Text>
         {parsedMessage.map((item, index) => {
           if (item.type === 'emoji') {
