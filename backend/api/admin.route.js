@@ -160,7 +160,7 @@ router.put('/users/:id/role', superAdminMiddleware, updateUserRoleHandler);
 const bcrypt = require('bcryptjs');
 const changePasswordHandler = async (req, res) => {
   try {
-    const { password } = req.body;
+    const password = req.body.password || req.body.newPassword;
     
     if (!password || password.length < 6) {
       return res.status(400).json({ message: 'Password must be at least 6 characters' });
@@ -181,5 +181,63 @@ const changePasswordHandler = async (req, res) => {
 
 router.patch('/users/:id/password', superAdminMiddleware, changePasswordHandler);
 router.put('/users/:id/password', superAdminMiddleware, changePasswordHandler);
+
+// Change user email (admin)
+const changeEmailHandler = async (req, res) => {
+  try {
+    const email = req.body.email || req.body.newEmail;
+    
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'Valid email is required' });
+    }
+
+    // Check if email already exists
+    const existingUser = await db.query(
+      'SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id != $2',
+      [email, req.params.id]
+    );
+    
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ message: 'Email already in use' });
+    }
+
+    await db.query(
+      'UPDATE users SET email = $1 WHERE id = $2',
+      [email, req.params.id]
+    );
+    res.json({ message: 'Email updated successfully' });
+  } catch (error) {
+    console.error('Error changing user email:', error);
+    res.status(500).json({ message: 'Error changing email' });
+  }
+};
+
+router.patch('/users/:id/email', superAdminMiddleware, changeEmailHandler);
+router.put('/users/:id/email', superAdminMiddleware, changeEmailHandler);
+
+// Reset user PIN (admin)
+const resetPinHandler = async (req, res) => {
+  try {
+    const pin = req.body.pin || req.body.newPin;
+    
+    if (!pin || !/^\d{4}$/.test(pin)) {
+      return res.status(400).json({ message: 'PIN must be exactly 4 digits' });
+    }
+
+    const hashedPin = await bcrypt.hash(pin, 10);
+    
+    await db.query(
+      'UPDATE users SET credit_pin = $1 WHERE id = $2',
+      [hashedPin, req.params.id]
+    );
+    res.json({ message: 'PIN reset successfully' });
+  } catch (error) {
+    console.error('Error resetting user PIN:', error);
+    res.status(500).json({ message: 'Error resetting PIN' });
+  }
+};
+
+router.patch('/users/:id/pin', superAdminMiddleware, resetPinHandler);
+router.put('/users/:id/pin', superAdminMiddleware, resetPinHandler);
 
 module.exports = router;
