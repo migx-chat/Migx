@@ -453,10 +453,11 @@ export default function FeedScreen() {
 
     // Get role badge
     const getRoleBadge = (role?: string) => {
-      if (role === 'admin') return require('@/assets/badge role/ic_admin.png');
-      if (role === 'mentor') return require('@/assets/badge role/ic_mentor.png');
-      if (role === 'merchant') return require('@/assets/badge role/ic_merchant.png');
-      return null;
+      const lowerRole = role?.toLowerCase();
+      if (lowerRole === 'admin') return require('@/assets/badge role/ic_admin.png');
+      if (lowerRole === 'mentor') return require('@/assets/badge role/ic_mentor.png');
+      if (lowerRole === 'merchant') return require('@/assets/badge role/ic_merchant.png');
+      return 'user'; // String indicator for special User badge
     };
 
     const userLevel = (item as any).level || 1;
@@ -471,7 +472,10 @@ export default function FeedScreen() {
           return '#FF69B4'; // Pink
         }
       }
-      if (userRole === 'merchant') return '#9C27B0';
+      const lowerRole = userRole?.toLowerCase();
+      if (lowerRole === 'admin') return '#FF0000'; // Red for admin
+      if (lowerRole === 'mentor') return '#4CAF50'; // Green for mentor
+      if (lowerRole === 'merchant') return '#9C27B0'; // Purple for merchant
       return (item as any).username_color || (item as any).usernameColor || theme.text;
     };
 
@@ -491,13 +495,17 @@ export default function FeedScreen() {
             <Text style={[styles.username, { color: usernameColor() }]}>{item.username}</Text>
             {/* Level Badge */}
             <View style={styles.levelBadgeContainer}>
-              <Image source={levelConfig.icon} style={styles.levelBadgeIcon} />
+              <Image source={levelConfig.icon} style={styles.levelBadgeIcon} resizeMode="contain" />
               <Text style={styles.levelBadgeText}>{userLevel}</Text>
             </View>
             {/* Role Badge */}
-            {roleBadge && (
-              <Image source={roleBadge} style={styles.roleBadgeIcon} />
-            )}
+            {roleBadge === 'user' ? (
+              <View style={styles.userBadgeCircle}>
+                <Text style={styles.userBadgeText}>U</Text>
+              </View>
+            ) : roleBadge ? (
+              <Image source={roleBadge} style={styles.roleBadgeIcon} resizeMode="contain" />
+            ) : null}
           </View>
           <Text style={[styles.timestamp, { color: theme.secondary }]}>{formatTime(item.created_at)}</Text>
         </View>
