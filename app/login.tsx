@@ -75,6 +75,9 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
+      // Clear any existing session data before new login to prevent stale data
+      await AsyncStorage.multiRemove(['auth_token', 'user_data', 'device_id']);
+      
       const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

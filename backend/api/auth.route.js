@@ -80,6 +80,14 @@ router.post('/login', async (req, res, next) => {
 
     const levelData = await getUserLevel(user.id);
 
+    // Check and update daily login streak
+    let streakInfo = {};
+    try {
+      streakInfo = await streakService.updateStreak(user.id);
+    } catch (err) {
+      console.error('Error updating streak:', err);
+    }
+
     // 🔐 STEP 8: Generate JWT tokens with SHORT expiry (anti token reuse)
     // Access token: 15 minutes (short-lived, used for API requests)
     const accessToken = jwt.sign(
@@ -93,7 +101,6 @@ router.post('/login', async (req, res, next) => {
       { expiresIn: '15m' }
     );
 
-    // Refresh token: 7 days (longer-lived, used to get new access tokens)
     const refreshToken = jwt.sign(
       { 
         id: user.id,
@@ -116,7 +123,7 @@ router.post('/login', async (req, res, next) => {
       accessToken: accessToken,
       refreshToken: refreshToken,
       tokenType: 'Bearer',
-      expiresIn: 900, // 15 minutes in seconds
+      expiresIn: 900,
       user: {
         id: user.id,
         username: user.username,

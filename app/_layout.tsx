@@ -18,13 +18,12 @@ const [showSplash, setShowSplash] = useState(true);
 const [isLoading, setIsLoading] = useState(true);
 
 useEffect(() => {
-const initializeApp = async () => {
-// Auto-login disabled - always start at login screen
-// Clear any saved tokens to ensure fresh login
-await AsyncStorage.removeItem('authToken');
-await AsyncStorage.removeItem('user_data');
-setIsLoggedIn(false);
-setIsLoading(false);
+    const initializeApp = async () => {
+      // Auto-login disabled - always start at login screen
+      // Clear any saved tokens to ensure fresh login
+      await AsyncStorage.multiRemove(['authToken', 'user_data', 'auth_token', 'device_id']);
+      setIsLoggedIn(false);
+      setIsLoading(false);
 
 setTimeout(() => {  
     setShowSplash(false);  
