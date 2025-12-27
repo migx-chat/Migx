@@ -140,6 +140,29 @@ const checkAndResetLeaderboard = async () => {
       if (footprintResetNeeded) {
         logger.info('LEADERBOARD_RESET_START', { category: 'top_footprint' });
         
+        // Get Top 1 Footprint
+        const topFootprintUser = await query(
+          `SELECT u.id, COUNT(pf.id) as total_footprints
+           FROM users u
+           LEFT JOIN profile_footprints pf ON u.id = pf.profile_id
+           WHERE u.is_active = true
+           GROUP BY u.id
+           HAVING COUNT(pf.id) > 0
+           ORDER BY total_footprints DESC LIMIT 1`
+        );
+
+        if (topFootprintUser.rows.length) {
+          const userId = topFootprintUser.rows[0].id;
+          const expiry = new Date();
+          expiry.setDate(expiry.getDate() + 3);
+
+          await query(
+            "UPDATE users SET username_color = '#FF69B4', username_color_expiry = $1 WHERE id = $2",
+            [expiry, userId]
+          );
+          logger.info('TOP1_FOOTPRINT_REWARD_GRANTED', { userId, expiry });
+        }
+
         // Clear footprints for the new week
         await query("DELETE FROM profile_footprints WHERE viewed_at < NOW()");
 
