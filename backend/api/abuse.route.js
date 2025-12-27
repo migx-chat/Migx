@@ -20,10 +20,10 @@ router.post('/report', async (req, res) => {
 
     // Insert into abuse_reports table
     const result = await db.query(
-      `INSERT INTO abuse_reports (reporter, target, room_id, message_text, reason, status)
-       VALUES ($1, $2, $3, $4, $5, 'pending')
+      `INSERT INTO abuse_reports (reporter, target, room_id, room_name, message_text, reason, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending')
        RETURNING id, created_at`,
-      [reporter || 'anonymous', target, roomId, messageText || null, reason]
+      [reporter || 'anonymous', target, roomId, null, messageText || null, reason]
     );
 
     res.status(201).json({
