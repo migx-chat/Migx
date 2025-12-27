@@ -6,8 +6,36 @@ const path = require('path');
 const fs = require('fs').promises;
 const profileService = require('../services/profileService');
 const authMiddleware = require('../middleware/auth');
+const cloudinary = require('cloudinary').v2;
 
-// Configure multer for avatar uploads
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Configure multer for memory storage (for Cloudinary upload)
+const memoryStorage = multer.memoryStorage();
+const cloudinaryUpload = multer({
+  storage: memoryStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'));
+    }
+  }
+});
+
+// Configure multer for local disk storage (legacy)
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
     const uploadDir = path.join(__dirname, '../../uploads/avatars');
@@ -44,11 +72,10 @@ const upload = multer({
 
 // ==================== BACKGROUND ====================
 
-router.post('/background/upload', authMiddleware, upload.single('background'), async (req, res) => {
+router.post('/background/upload', authMiddleware, cloudinaryUpload.single('background'), async (req, res) => {
   try {
     console.log('📥 Background upload request received');
     console.log('📋 Authenticated user:', req.user);
-    console.log('📋 File:', req.file ? req.file.filename : 'No file');
     
     if (!req.file) {
       console.log('❌ No file uploaded');
@@ -70,10 +97,25 @@ router.post('/background/upload', authMiddleware, upload.single('background'), a
     }
     
     console.log('✅ Uploading background for user:', userId);
-    console.log('📁 File saved as:', req.file.filename);
     
-    // Generate background URL
-    const backgroundUrl = `/uploads/avatars/${req.file.filename}`;
+    // Upload to Cloudinary for persistent storage
+    const cloudinaryResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'migx/backgrounds',
+          resource_type: 'image',
+          public_id: `bg_${userId}_${Date.now()}`
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+
+    const backgroundUrl = cloudinaryResult.secure_url;
+    console.log('☁️ Cloudinary upload successful:', backgroundUrl);
     
     // Update user background in database
     const result = await profileService.updateBackground(userId, backgroundUrl);

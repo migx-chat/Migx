@@ -71,31 +71,23 @@ export default function EditProfileScreen() {
     try {
       setUploading(true);
 
-      // Get token from user_data in AsyncStorage
-      const userDataStr = await AsyncStorage.getItem('user_data');
-      console.log('📱 Checking AsyncStorage for user_data...');
-      
-      if (!userDataStr) {
-        console.log('❌ No user_data found in AsyncStorage');
-        Alert.alert('Error', 'User not logged in. Please login again.');
-        return;
-      }
-
-      const userData = JSON.parse(userDataStr);
-      console.log('✅ user_data found:', {
-        id: userData.id,
-        username: userData.username,
-        hasToken: !!userData.token
-      });
-
-      const token = userData.token;
+      // Get token from auth_token storage key
+      const token = await AsyncStorage.getItem('auth_token');
       const deviceId = await AsyncStorage.getItem('device_id');
       
       if (!token) {
-        console.log('❌ No token found in user_data');
+        console.log('❌ No token found');
         Alert.alert('Error', 'Authentication token missing. Please login again.');
         return;
       }
+
+      // Get user data for userId
+      const userDataStr = await AsyncStorage.getItem('user_data');
+      if (!userDataStr) {
+        Alert.alert('Error', 'User not logged in. Please login again.');
+        return;
+      }
+      const userData = JSON.parse(userDataStr);
 
       console.log('🔑 Token retrieved:', `${token.substring(0, 20)}...`);
 
