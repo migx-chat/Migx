@@ -121,6 +121,14 @@ export default function FeedScreen() {
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       const token = userData?.token;
 
+      // Validasi token sebelum request
+      if (!token || token.trim() === '') {
+        console.warn('⚠️ Feed: No valid token available, skipping fetch');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
       const deviceId = await AsyncStorage.getItem('device_id');
       
       // 🔐 STEP 11: Include device_id for device binding validation
@@ -130,6 +138,15 @@ export default function FeedScreen() {
           'x-device-id': deviceId || '',
         },
       });
+
+      // Tangani 401 Unauthorized
+      if (response.status === 401) {
+        console.warn('⚠️ Feed: Authentication failed (401), stopping fetch');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -219,6 +236,13 @@ export default function FeedScreen() {
       const userDataStr = await AsyncStorage.getItem('user_data');
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       const token = userData?.token;
+
+      if (!token || token.trim() === '') {
+        Alert.alert('Error', 'Please login to create a post');
+        setPosting(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append('content', postContent);
 
@@ -280,12 +304,23 @@ export default function FeedScreen() {
       const userDataStr = await AsyncStorage.getItem('user_data');
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       const token = userData?.token;
+
+      if (!token || token.trim() === '') {
+        console.warn('⚠️ Feed: No token for like action');
+        return;
+      }
+
       const response = await fetch(API_ENDPOINTS.FEED.LIKE(postId), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
+
+      if (response.status === 401) {
+        console.warn('⚠️ Feed: Authentication failed on like');
+        return;
+      }
 
       const data = await response.json();
       if (data.success) {
@@ -315,11 +350,22 @@ export default function FeedScreen() {
       const userDataStr = await AsyncStorage.getItem('user_data');
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       const token = userData?.token;
+
+      if (!token || token.trim() === '') {
+        console.warn('⚠️ Feed: No token for fetching comments');
+        return;
+      }
+
       const response = await fetch(API_ENDPOINTS.FEED.COMMENTS(postId), {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
+
+      if (response.status === 401) {
+        console.warn('⚠️ Feed: Authentication failed on fetch comments');
+        return;
+      }
 
       const data = await response.json();
       if (data.success) {
@@ -343,6 +389,12 @@ export default function FeedScreen() {
       const userDataStr = await AsyncStorage.getItem('user_data');
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       const token = userData?.token;
+
+      if (!token || token.trim() === '') {
+        console.warn('⚠️ Feed: No token for sending comment');
+        return;
+      }
+
       const response = await fetch(API_ENDPOINTS.FEED.COMMENT(selectedPost.id), {
         method: 'POST',
         headers: {
@@ -351,6 +403,11 @@ export default function FeedScreen() {
         },
         body: JSON.stringify({ content: commentText }),
       });
+
+      if (response.status === 401) {
+        console.warn('⚠️ Feed: Authentication failed on send comment');
+        return;
+      }
 
       const data = await response.json();
       if (data.success) {

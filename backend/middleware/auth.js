@@ -6,41 +6,93 @@ const logger = require('../utils/logger');
 function authMiddleware(req, res, next) {
   const authHeader = req.headers['authorization'];
   
+  // Validasi header Authorization kosong
   if (!authHeader) {
-    logger.warn('AUTH_FAILED: Missing authorization header', { endpoint: req.path });
+    // Kurangi log spam untuk endpoint feed
+    if (req.path.includes('/feed')) {
+      console.log('[AUTH] Feed request without token');
+    } else {
+      logger.warn('AUTH_FAILED: Missing authorization header', { endpoint: req.path });
+    }
     return res.status(401).json({ 
       success: false,
-      error: 'Authentication token missing. Please login again.' 
+      error: 'Authentication token missing. Please login again.',
+      code: 'NO_TOKEN'
+    });
+  }
+
+  // Validasi format "Bearer <token>"
+  if (!authHeader.startsWith('Bearer ')) {
+    if (req.path.includes('/feed')) {
+      console.log('[AUTH] Feed request with invalid Bearer format');
+    } else {
+      logger.warn('AUTH_FAILED: Invalid Bearer format', { endpoint: req.path });
+    }
+    return res.status(401).json({ 
+      success: false,
+      error: 'Invalid authorization format. Please login again.',
+      code: 'INVALID_BEARER_FORMAT'
     });
   }
 
   const token = authHeader.split(' ')[1];
   
-  if (!token) {
-    logger.warn('AUTH_FAILED: Invalid token format', { endpoint: req.path });
+  // Validasi token tidak kosong
+  if (!token || token.trim() === '') {
+    if (req.path.includes('/feed')) {
+      console.log('[AUTH] Feed request with empty token');
+    } else {
+      logger.warn('AUTH_FAILED: Empty token', { endpoint: req.path });
+    }
     return res.status(401).json({ 
       success: false,
-      error: 'Invalid token format. Please login again.' 
+      error: 'Empty token. Please login again.',
+      code: 'EMPTY_TOKEN'
     });
   }
 
+  // Validasi format JWT (harus ada 3 bagian: header.payload.signature)
+  const tokenParts = token.split('.');
+  if (tokenParts.length !== 3) {
+    if (req.path.includes('/feed')) {
+      console.log('[AUTH] Feed request with malformed token (not JWT format)');
+    } else {
+      logger.warn('AUTH_FAILED: Malformed token format', { endpoint: req.path });
+    }
+    return res.status(401).json({ 
+      success: false,
+      error: 'Invalid token format. Please login again.',
+      code: 'INVALID_TOKEN_FORMAT'
+    });
+  }
+
+  // Hanya jika format valid, baru panggil jwt.verify()
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'migx-secret-key-2024');
     
     req.user = decoded;
-    logger.info('AUTH_SUCCESS: Authentication verified', { 
-      userId: decoded.id || decoded.userId,
-      endpoint: req.path 
-    });
+    // Kurangi log untuk feed endpoint
+    if (!req.path.includes('/feed')) {
+      logger.info('AUTH_SUCCESS: Authentication verified', { 
+        userId: decoded.id || decoded.userId,
+        endpoint: req.path 
+      });
+    }
     next();
   } catch (err) {
-    logger.warn('AUTH_FAILED: Token verification error', { 
-      error: err.message,
-      endpoint: req.path 
-    });
+    // Log sekali saja untuk feed
+    if (req.path.includes('/feed')) {
+      console.log('[AUTH] Feed token verification failed:', err.message);
+    } else {
+      logger.warn('AUTH_FAILED: Token verification error', { 
+        error: err.message,
+        endpoint: req.path 
+      });
+    }
     return res.status(401).json({ 
       success: false,
-      error: 'Invalid or expired token. Please login again.' 
+      error: 'Invalid or expired token. Please login again.',
+      code: 'TOKEN_VERIFICATION_FAILED'
     });
   }
 }
