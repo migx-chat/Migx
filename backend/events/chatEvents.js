@@ -190,7 +190,7 @@ module.exports = (io, socket) => {
             const redis = getRedisClient();
             
             // Get all rooms the user is currently in (using the set we maintain)
-            const userRooms = await redis.smembers(`user:${targetUser.id}:rooms`);
+            const userRooms = await redis.sMembers(`user:${targetUser.id}:rooms`);
             
             let chatStatus = '*';
             if (userRooms && userRooms.length > 0) {
