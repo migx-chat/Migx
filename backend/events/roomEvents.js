@@ -1,7 +1,7 @@
 const roomService = require('../services/roomService');
 const userService = require('../services/userService');
 const banService = require('../services/banService');
-const { addXp, XP_REWARDS } = require('../utils/xpLeveling');
+const { addXp, XP_REWARDS, getUserLevel } = require('../utils/xpLeveling');
 const { getPresence } = require('../utils/presence');
 const { generateMessageId } = require('../utils/idGenerator');
 const {
@@ -258,8 +258,10 @@ module.exports = (io, socket) => {
         }, 200);
 
         // MIG33-style enter message to all users in room (presence event - not saved to Redis)
-        setTimeout(() => {
-          const enterMsg = `${username} [${newUserCount}] has entered`;
+        setTimeout(async () => {
+          const userLevelData = await getUserLevel(userId);
+          const userLevel = userLevelData?.level || 1;
+          const enterMsg = `${username} [${userLevel}] has entered`;
           const enterMessage = {
             id: `presence-enter-${Date.now()}-${Math.random()}`,
             roomId,
