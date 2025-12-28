@@ -87,11 +87,11 @@ export function ViewProfileHeader({
   const { theme } = useThemeCustom();
   
   const avatarUri = avatarImage 
-    ? (avatarImage.startsWith('http') ? avatarImage : `${API_BASE_URL}${avatarImage}`)
+    ? (avatarImage.startsWith('http') ? avatarImage : `${API_BASE_URL}${avatarImage.startsWith('/') ? '' : '/'}${avatarImage}`)
     : null;
 
   const backgroundUri = backgroundImage
-    ? (backgroundImage.startsWith('http') ? backgroundImage : `${API_BASE_URL}${backgroundImage}`)
+    ? (backgroundImage.startsWith('http') ? backgroundImage : `${API_BASE_URL}${backgroundImage.startsWith('/') ? '' : '/'}${backgroundImage}`)
     : null;
 
   console.log('ViewProfileHeader - Avatar URI:', avatarUri);
