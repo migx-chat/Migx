@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useEffect, useState } from 'react';
-import { View, StyleSheet, Dimensions, StatusBar } from 'react-native';
+import { View, StyleSheet, Dimensions, StatusBar, Keyboard, Platform } from 'react-native';
 import { useRoomMessagesData } from '@/stores/useRoomTabsStore';
 import { ChatRoomContent } from './ChatRoomContent';
 import { PrivateChatHeader } from './PrivateChatHeader';
@@ -32,7 +32,27 @@ export const PrivateChatInstance = React.memo(function PrivateChatInstance({
   const insets = useSafeAreaInsets();
   const inputRef = React.useRef<PrivateChatInputRef>(null);
   const [emojiVisible, setEmojiVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const addMessage = useRoomTabsStore((state) => state.addMessage);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const keyboardShowListener = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      setEmojiVisible(false);
+    });
+
+    const keyboardHideListener = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardShowListener.remove();
+      keyboardHideListener.remove();
+    };
+  }, []);
 
   const handleSendMessage = useCallback((message: string) => {
     if (!message.trim()) return;
@@ -76,24 +96,27 @@ export const PrivateChatInstance = React.memo(function PrivateChatInstance({
         />
       </View>
 
-      {/* Input - At the bottom */}
-      <PrivateChatInput
-        ref={inputRef}
-        onSend={handleSendMessage}
-        onEmojiPress={handleEmojiPress}
-        emojiPickerVisible={emojiVisible}
-        emojiPickerHeight={emojiVisible ? EMOJI_PICKER_HEIGHT : 0}
-      />
-
-      {/* Emoji Picker - Below input, inline mode */}
-      {emojiVisible && (
-        <EmojiPicker 
-          visible={emojiVisible}
-          onClose={() => setEmojiVisible(false)}
-          onEmojiSelect={handleEmojiSelect}
-          inline={true}
+      {/* Bottom section - Input and emoji picker */}
+      <View style={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight : 0 }}>
+        {/* Input */}
+        <PrivateChatInput
+          ref={inputRef}
+          onSend={handleSendMessage}
+          onEmojiPress={handleEmojiPress}
+          emojiPickerVisible={emojiVisible}
+          emojiPickerHeight={emojiVisible ? EMOJI_PICKER_HEIGHT : 0}
         />
-      )}
+
+        {/* Emoji Picker - Below input, inline mode */}
+        {emojiVisible && (
+          <EmojiPicker 
+            visible={emojiVisible}
+            onClose={() => setEmojiVisible(false)}
+            onEmojiSelect={handleEmojiSelect}
+            inline={true}
+          />
+        )}
+      </View>
     </View>
   );
 });
