@@ -29,6 +29,10 @@ import { useRoomTabsStore, useActiveRoom, useActiveRoomId, useOpenRooms } from '
 
 const HEADER_COLOR = '#0a5229';
 
+// Module-level flag to prevent multiple socket connections across component remounts
+let globalSocketInitializing = false;
+let lastSocketUsername: string | null = null;
+
 export default function ChatRoomScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -139,13 +143,11 @@ export default function ChatRoomScreen() {
       return;
     }
 
-    console.log('🔌 [Chatroom] Checking socket initialization for:', currentUsername);
-    
     // Check if store already has a connected socket with matching username
     const currentSocket = useRoomTabsStore.getState().socket;
     
     // If socket exists with matching username and is connected, reuse it
-    if (currentSocket?.connected && (currentSocket as any).auth?.username === currentUsername) {
+    if (currentSocket?.connected && lastSocketUsername === currentUsername) {
       console.log('🔌 [Chatroom] Reusing existing socket for:', currentUsername);
       socketInitialized.current = true;
       setIsConnected(true);
@@ -153,17 +155,27 @@ export default function ChatRoomScreen() {
       return;
     }
     
+    // If another instance is already initializing socket, skip
+    if (globalSocketInitializing && lastSocketUsername === currentUsername) {
+      console.log('🔌 [Chatroom] Socket already initializing for:', currentUsername);
+      return;
+    }
+    
     // If socket exists but username doesn't match, disconnect and recreate
-    if (currentSocket && (currentSocket as any).auth?.username !== currentUsername) {
+    if (currentSocket && lastSocketUsername !== currentUsername) {
       console.log('🔌 [Chatroom] Socket username mismatch, disconnecting old socket');
       currentSocket.disconnect();
       setSocket(null);
       socketInitialized.current = false;
+      globalSocketInitializing = false;
+      lastSocketUsername = null;
     }
 
-    if (!socketInitialized.current) {
+    if (!socketInitialized.current && !globalSocketInitializing) {
       console.log('🔌 [Chatroom] Initializing fresh socket for:', currentUsername);
       socketInitialized.current = true;
+      globalSocketInitializing = true;
+      lastSocketUsername = currentUsername;
       
       const newSocket = io(`${API_BASE_URL}/chat`, {
         auth: {
@@ -180,6 +192,7 @@ export default function ChatRoomScreen() {
       });
 
       newSocket.on('connect', () => {
+        globalSocketInitializing = false;
         setIsConnected(true);
       });
 

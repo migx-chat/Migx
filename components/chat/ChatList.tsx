@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { ScrollView, StyleSheet, View, Text, ActivityIndicator } from 'react-native';
 import { useThemeCustom } from '@/theme/provider';
 import { ChatItem } from './ChatItem';
@@ -25,14 +25,34 @@ export function ChatList() {
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState<string>('');
   const socket = useRoomTabsStore((state) => state.socket);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastLoadRef = useRef<number>(0);
 
   useEffect(() => {
     loadUsername();
   }, []);
 
+  // Debounced loadRooms to prevent spam
+  const debouncedLoadRooms = useCallback(() => {
+    const now = Date.now();
+    // Minimum 2 seconds between API calls
+    if (now - lastLoadRef.current < 2000) {
+      return;
+    }
+    
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    debounceRef.current = setTimeout(() => {
+      lastLoadRef.current = Date.now();
+      loadRooms();
+    }, 300);
+  }, [username]);
+
   useEffect(() => {
     if (username) {
-      loadRooms();
+      loadRooms(); // Initial load
       
       // Listen for real-time chatlist updates
       if (socket) {
@@ -48,8 +68,11 @@ export function ChatList() {
         socket.off('chatlist:roomJoined', handleRoomJoined);
         socket.off('chatlist:roomLeft', handleRoomLeft);
       }
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
     };
-  }, [username, socket]);
+  }, [username]); // Remove socket from dependency to prevent re-runs on socket changes
 
   const loadUsername = async () => {
     try {
@@ -139,27 +162,26 @@ export function ChatList() {
     }
   };
 
-  const handleChatListUpdate = (data: any) => {
+  const handleChatListUpdate = useCallback((data: any) => {
     console.log('💬 Chat list update received:', data);
-    // Immediately reload the list to show changes
-    loadRooms();
-  };
+    // Use debounced reload to prevent spam
+    debouncedLoadRooms();
+  }, [debouncedLoadRooms]);
 
-  const handleRoomJoined = (data: any) => {
+  const handleRoomJoined = useCallback((data: any) => {
     console.log('➕ Room joined event:', data);
-    // Immediately reload to show the new room
-    loadRooms();
-  };
+    // Use debounced reload to prevent spam
+    debouncedLoadRooms();
+  }, [debouncedLoadRooms]);
 
-  const handleRoomLeft = (data: any) => {
+  const handleRoomLeft = useCallback((data: any) => {
     console.log('➖ Room left event:', data);
     // Immediately remove the room from chat list (don't wait for reload)
     setChatData((prevData) => 
       prevData.filter((chat) => chat.roomId !== `${data.roomId}`)
     );
-    // Also reload from backend to stay in sync
-    loadRooms();
-  };
+    // Don't reload - local state update is enough
+  }, []);
 
   const formatTime = (timestamp: string | number) => {
     const date = new Date(Number(timestamp));
