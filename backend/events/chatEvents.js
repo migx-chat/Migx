@@ -279,6 +279,15 @@ module.exports = (io, socket) => {
         ? sender.username_color 
         : null;
 
+      // Determine userType based on role
+      let userType = 'normal';
+      const senderRole = sender?.role?.toLowerCase();
+      if (senderRole === 'admin') userType = 'admin';
+      else if (senderRole === 'creator') userType = 'creator';
+      else if (senderRole === 'mentor') userType = 'mentor';
+      else if (senderRole === 'merchant') userType = 'merchant';
+      else if (senderRole === 'customer_service' || senderRole === 'cs') userType = 'customer_service';
+
       const messageData = {
         id: generateMessageId(),
         roomId,
@@ -288,17 +297,17 @@ module.exports = (io, socket) => {
         message,
         messageType: 'chat',
         timestamp: new Date().toISOString(),
-        userType: sender?.role === 'admin' ? 'admin' : (sender?.role === 'creator' ? 'creator' : 'normal'),
+        userType,
       };
 
-      // Check for moderator status in this room
+      // Check for moderator status in this room (overrides role if applicable)
       const roomService = require('../services/roomService');
       const isMod = await roomService.isRoomAdmin(roomId, userId);
       const room = await roomService.getRoomById(roomId);
       
       if (userId == room?.owner_id) {
         messageData.userType = 'creator';
-      } else if (isMod) {
+      } else if (isMod && userType === 'normal') {
         messageData.userType = 'moderator';
       }
 
