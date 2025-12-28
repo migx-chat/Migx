@@ -35,6 +35,7 @@ import Svg, { Path } from 'react-native-svg';
 import { SwipeableScreen } from '@/components/navigation/SwipeableScreen';
 import FeedMedia from '../components/feed/FeedMedia';
 import ImageModal from '../components/feed/ImageModal';
+import { LetterAvatar } from '@/components/ui/LetterAvatar';
 
 // ⚠️ IMPORTANT: Feed screen uses REST API ONLY - NO Socket.IO connections
 // Socket.IO is ONLY for chat rooms, managed in useRoomTabsStore
@@ -495,9 +496,7 @@ export default function FeedScreen() {
     };
 
     const avatarUri = item.avatarUrl || getAvatarUri(item.avatar_url || (item as any).avatar);
-    // Use a default avatar if URI is still empty or invalid
-    const finalAvatarUri = avatarUri && typeof avatarUri === 'string' && avatarUri !== 'null' && avatarUri !== 'undefined' && avatarUri.startsWith('http') ? avatarUri : 'https://via.placeholder.com/40';
-    console.log(`[Feed Debug] Post by ${item.username}, avatarUri: ${finalAvatarUri}`);
+    const hasValidAvatar = avatarUri && typeof avatarUri === 'string' && avatarUri !== 'null' && avatarUri !== 'undefined' && avatarUri.startsWith('http');
 
     // Get level config
     const getLevelConfig = (level: number) => {
@@ -544,12 +543,14 @@ export default function FeedScreen() {
     <View style={[styles.postCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
       <View style={styles.postHeader}>
         <View style={styles.avatarContainer}>
-          <Image
-            source={{ uri: finalAvatarUri }}
-            style={styles.avatar}
-            onLoad={() => console.log(`[Feed Debug] Avatar loaded: ${finalAvatarUri}`)}
-            onError={(e) => console.error(`[Feed Debug] Avatar load error: ${finalAvatarUri}`, e.nativeEvent.error)}
-          />
+          {hasValidAvatar ? (
+            <Image
+              source={{ uri: avatarUri }}
+              style={styles.avatar}
+            />
+          ) : (
+            <LetterAvatar name={item.username} size={40} />
+          )}
         </View>
         <View style={styles.postHeaderText}>
           <View style={styles.usernameRow}>
@@ -748,19 +749,26 @@ export default function FeedScreen() {
 
                 <FlatList
                   data={comments}
-                  renderItem={({ item }) => (
-                    <View style={styles.commentItem}>
-                      <Image
-                        source={{ uri: item.avatar_url || 'https://via.placeholder.com/30' }}
-                        style={styles.commentAvatar}
-                      />
-                      <View style={styles.commentContent}>
-                        <Text style={[styles.commentUsername, { color: theme.text }]}>{item.username}</Text>
-                        <Text style={[styles.commentText, { color: theme.text }]}>{item.content}</Text>
-                        <Text style={[styles.commentTime, { color: theme.secondary }]}>{formatTime(item.created_at)}</Text>
+                  renderItem={({ item }) => {
+                    const hasCommentAvatar = item.avatar_url && typeof item.avatar_url === 'string' && item.avatar_url.startsWith('http');
+                    return (
+                      <View style={styles.commentItem}>
+                        {hasCommentAvatar ? (
+                          <Image
+                            source={{ uri: item.avatar_url }}
+                            style={styles.commentAvatar}
+                          />
+                        ) : (
+                          <LetterAvatar name={item.username} size={30} />
+                        )}
+                        <View style={styles.commentContent}>
+                          <Text style={[styles.commentUsername, { color: theme.text }]}>{item.username}</Text>
+                          <Text style={[styles.commentText, { color: theme.text }]}>{item.content}</Text>
+                          <Text style={[styles.commentTime, { color: theme.secondary }]}>{formatTime(item.created_at)}</Text>
+                        </View>
                       </View>
-                    </View>
-                  )}
+                    );
+                  }}
                   keyExtractor={item => item.id.toString()}
                   contentContainerStyle={styles.commentsList}
                   scrollEnabled={true}
