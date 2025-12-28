@@ -32,6 +32,8 @@ const getRoleColor = (role?: string): string => {
   switch (role?.toLowerCase()) {
     case 'admin':
       return '#FF8C00';
+    case 'mentor':
+      return '#F44336';
     case 'moderator':
       return '#FFD93D';
     case 'merchant':
@@ -71,12 +73,12 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
   useEffect(() => {
     if (!visible || !roomId) return;
 
-    const handleParticipantsUpdate = (data: { roomId: string; participants: Array<{ userId: number; username: string }> }) => {
+    const handleParticipantsUpdate = (data: { roomId: string; participants: Array<{ userId: number; username: string; role?: string }> }) => {
       console.log('🔄 [Modal] Participants update received:', data);
       if (data.roomId === roomId) {
         const formattedParticipants = data.participants.map(p => ({ 
           username: p.username, 
-          role: 'user' 
+          role: (p as any).role || 'user' 
         }));
         console.log('✅ [Modal] Updating participants:', formattedParticipants);
         setParticipants(formattedParticipants);
