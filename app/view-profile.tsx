@@ -151,15 +151,28 @@ export default function ViewProfileScreen() {
   };
 
   const handleChatPress = () => {
-    if (!profileData) return;
+    if (!profileData || !currentUser) return;
     
-    // Navigate to chat tab with DM opened for this user
+    const targetUserId = profileData.user.id;
+    const targetUsername = profileData.user.username;
+    
+    // Create private message room ID (consistent format)
+    const sortedIds = [currentUser.id, targetUserId].sort((a, b) => a - b);
+    const pmRoomId = `pm_${sortedIds[0]}_${sortedIds[1]}`;
+    
+    // Open the private chat room in the store
+    const { openRoom } = useRoomTabsStore.getState();
+    openRoom(pmRoomId, targetUsername);
+    
+    // Navigate to the chatroom screen
     router.push({
-      pathname: '/(tabs)/chat',
+      pathname: '/chatroom/[id]',
       params: {
-        openDM: 'true',
-        targetUser: profileData.user.username,
-        targetUserId: profileData.user.id,
+        id: pmRoomId,
+        name: targetUsername,
+        isPrivate: 'true',
+        targetUserId: targetUserId.toString(),
+        targetUsername: targetUsername,
       },
     });
   };
