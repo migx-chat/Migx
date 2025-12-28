@@ -86,17 +86,13 @@ export function ViewProfileHeader({
 }: ViewProfileHeaderProps) {
   const { theme } = useThemeCustom();
   
-  const avatarUri = avatarImage?.startsWith('http') 
-    ? avatarImage 
-    : avatarImage 
-      ? `${API_BASE_URL}${avatarImage}` 
-      : null;
+  const avatarUri = avatarImage 
+    ? (avatarImage.startsWith('http') ? avatarImage : `${API_BASE_URL}${avatarImage}`)
+    : null;
 
-  const backgroundUri = backgroundImage?.startsWith('http')
-    ? backgroundImage
-    : backgroundImage
-      ? `${API_BASE_URL}${backgroundImage}`
-      : null;
+  const backgroundUri = backgroundImage
+    ? (backgroundImage.startsWith('http') ? backgroundImage : `${API_BASE_URL}${backgroundImage}`)
+    : null;
 
   console.log('ViewProfileHeader - Avatar URI:', avatarUri);
   console.log('ViewProfileHeader - Raw avatarImage:', avatarImage);
