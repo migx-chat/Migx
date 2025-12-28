@@ -7,8 +7,9 @@ const { query } = require('../db/db');
 router.get('/', async (req, res) => {
   try {
     const result = await query(
-      `SELECT id, title, content, created_at, updated_at
+      `SELECT id, title, content, image_url, scheduled_at, created_at, updated_at
        FROM announcements
+       WHERE scheduled_at IS NULL OR scheduled_at <= CURRENT_TIMESTAMP
        ORDER BY created_at DESC`,
       []
     );
@@ -53,7 +54,7 @@ router.get('/:id', async (req, res) => {
 // Create announcement (admin only)
 router.post('/create', async (req, res) => {
   try {
-    const { title, content, adminId } = req.body;
+    const { title, content, image_url, scheduled_at, adminId } = req.body;
 
     if (!title || !content || !adminId) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -65,15 +66,15 @@ router.post('/create', async (req, res) => {
       [adminId]
     );
 
-    if (adminResult.rows.length === 0 || adminResult.rows[0].role !== 'admin') {
+    if (adminResult.rows.length === 0 || !['admin', 'super_admin'].includes(adminResult.rows[0].role)) {
       return res.status(403).json({ error: 'Admin privileges required' });
     }
 
     const result = await query(
-      `INSERT INTO announcements (title, content)
-       VALUES ($1, $2)
-       RETURNING id, title, content, created_at`,
-      [title, content]
+      `INSERT INTO announcements (title, content, image_url, scheduled_at)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, title, content, image_url, scheduled_at, created_at`,
+      [title, content, image_url, scheduled_at]
     );
 
     res.json({
