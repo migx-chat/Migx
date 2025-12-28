@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, Modal, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { BackIcon } from '@/components/ui/SvgIcons';
 import { useThemeCustom } from '@/theme/provider';
@@ -11,8 +11,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 interface PrivateChatHeaderProps {
   username: string;
   targetUserId?: string;
+  roomId?: string;
   onBack?: () => void;
-  onMenuPress?: () => void;
+  onViewProfile?: (userId: string) => void;
+  onBlockUser?: (userId: string) => void;
+  onClearChat?: (roomId: string) => void;
+  onCloseChat?: (roomId: string) => void;
 }
 
 const ThreeDotsIcon = ({ color = '#fff', size = 24 }) => (
@@ -33,8 +37,12 @@ const AddIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string 
 export function PrivateChatHeader({ 
   username, 
   targetUserId,
+  roomId,
   onBack, 
-  onMenuPress 
+  onViewProfile,
+  onBlockUser,
+  onClearChat,
+  onCloseChat
 }: PrivateChatHeaderProps) {
   const router = useRouter();
   const { theme } = useThemeCustom();
@@ -42,6 +50,7 @@ export function PrivateChatHeader({
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState(username);
   const [followLoading, setFollowLoading] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
     fetchUserData();
@@ -151,7 +160,7 @@ export function PrivateChatHeader({
           </TouchableOpacity>
           
           <TouchableOpacity 
-            onPress={onMenuPress}
+            onPress={() => setMenuVisible(true)}
             style={styles.menuButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -159,6 +168,60 @@ export function PrivateChatHeader({
           </TouchableOpacity>
         </View>
       </View>
+
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay} 
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={[styles.menuContainer, { backgroundColor: theme.background }]}>
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                if (onViewProfile && targetUserId) onViewProfile(targetUserId);
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: theme.text }]}>View Profile</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                if (onBlockUser && targetUserId) onBlockUser(targetUserId);
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: '#FF4B4B' }]}>Block User</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                if (onClearChat && roomId) onClearChat(roomId);
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: theme.text }]}>Clear Chat</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.menuItem, styles.lastMenuItem]}
+              onPress={() => {
+                setMenuVisible(false);
+                if (onCloseChat && roomId) onCloseChat(roomId);
+              }}
+            >
+              <Text style={[styles.menuItemText, { color: theme.text }]}>Close Chat</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -237,5 +300,36 @@ const styles = StyleSheet.create({
   },
   menuButton: {
     padding: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 60,
+    paddingRight: 20,
+  },
+  menuContainer: {
+    width: 180,
+    borderRadius: 8,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  lastMenuItem: {
+    borderBottomWidth: 0,
+  },
+  menuItemText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

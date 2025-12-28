@@ -55,6 +55,7 @@ interface RoomTabsActions {
   getActiveRoomId: () => string | null;
   injectSystemMessage: (roomId: string, roomName: string, admin: string, users: string[]) => void;
   hasSystemMessage: (roomId: string) => boolean;
+  clearChat: (roomId: string) => void;
 }
 
 type RoomTabsStore = RoomTabsState & RoomTabsActions;
@@ -358,6 +359,16 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
 
   hasSystemMessage: (roomId: string) => {
     return get().systemMessageInjected.has(roomId);
+  },
+
+  clearChat: (roomId: string) => {
+    const state = get();
+    set({
+      messagesByRoom: {
+        ...state.messagesByRoom,
+        [roomId]: []
+      }
+    });
   },
 }));
 
