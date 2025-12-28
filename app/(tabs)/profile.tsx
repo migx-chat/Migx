@@ -46,6 +46,7 @@ export default function ProfileScreen() {
 
   const userRole = userData?.role || 'user';
   const isMerchant = userRole === 'merchant';
+  const isMentor = userRole === 'mentor';
 
   const handleLogout = async () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -107,6 +108,11 @@ export default function ProfileScreen() {
 
   const handleMerchantDashboard = () => {
     console.log('Merchant Dashboard pressed');
+  };
+
+  const handleMentorDashboard = () => {
+    console.log('Mentor Dashboard pressed');
+    router.push('/mentor-dashboard');
   };
 
   const handleSecurity = () => {
@@ -177,6 +183,15 @@ export default function ProfileScreen() {
                   icon={<DashboardIcon size={24} />}
                   title="Merchant Dashboard"
                   onPress={handleMerchantDashboard}
+                  showDivider={false}
+                />
+              )}
+
+              {isMentor && (
+                <ProfileMenuItem 
+                  icon={<DashboardIcon size={24} />}
+                  title="Mentor Dashboard"
+                  onPress={handleMentorDashboard}
                   showDivider={false}
                 />
               )}

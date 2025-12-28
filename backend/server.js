@@ -16,6 +16,7 @@ const roomRoutes = require('./api/room.route');
 const roomInfoRoutes = require('./api/roomInfo.route');
 const messageRoutes = require('./api/message.route');
 const creditRoutes = require('./api/credit.route');
+const mentorRoutes = require('./api/mentor.route');
 const merchantRoutes = require('./api/merchant.route');
 const notificationRoutes = require('./api/notification.route');
 const profileRouter = require('./api/profile.route');
@@ -37,6 +38,7 @@ const gameEvents = require('./events/gameEvents');
 const notificationEvents = require('./events/notificationEvents');
 const chatListEvents = require('./events/chatListEvents');
 const voucherService = require('./services/voucherService');
+const mentorService = require('./services/mentorService');
 
 const app = express();
 const server = http.createServer(app);
@@ -254,6 +256,7 @@ app.use('/api/chatroom', chatroomRoutes);
 app.use('/api/rooms', chatroomRoutes); // Add this line to handle /api/rooms/:roomId/min-level
 app.use('/api/messages', messageRoutes);
 app.use('/api/credit', creditRoutes);
+app.use('/api/mentor', mentorRoutes);
 app.use('/api/merchant', merchantRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);

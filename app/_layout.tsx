@@ -56,6 +56,7 @@ animation: "none",
 <Stack.Screen name="official-comment" />
 <Stack.Screen name="edit-profile" />
 <Stack.Screen name="leaderboard" />
+<Stack.Screen name="mentor-dashboard" />
 <Stack.Screen name="people" />
 <Stack.Screen name="+not-found" />
 </Stack>
