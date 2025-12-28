@@ -302,27 +302,17 @@ module.exports = (io, socket) => {
         userCount: newUserCount
       });
 
-      // Save user room to Redis for chat list
+      // Room is already added to user:rooms via addUserRoom() called earlier (line 165)
+      // No need to add again - just set the last message
       const redisInstance = getRedisClient();
 
-      // Clear any existing key with wrong type first
-      try {
-        const keyType = await redisInstance.type(`user:rooms:${username}`);
-        if (keyType !== 'set' && keyType !== 'none') {
-          await redisInstance.del(`user:rooms:${username}`);
-        }
-      } catch (err) {
-        console.log('Redis key type check error:', err.message);
-      }
-
-      await redisInstance.sAdd(`user:rooms:${username}`, roomId);
-
-      // Set initial last message
-      await redisInstance.hSet(`room:lastmsg:${roomId}`, {
+      // Set initial last message as JSON string (consistent format)
+      await redisInstance.set(`room:lastmsg:${roomId}`, JSON.stringify({
         message: `${username} joined`,
         username: room.name,
-        timestamp: Date.now().toString()
-      });
+        timestamp: new Date().toISOString()
+      }));
+      await redisInstance.expire(`room:lastmsg:${roomId}`, 86400); // 24 hours
 
       console.log('📤 Emitting chatlist events to user:', username);
 

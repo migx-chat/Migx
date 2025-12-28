@@ -410,14 +410,21 @@ const removeUserRoom = async (username, roomId) => {
     const redis = getRedisClient();
     const userRoomsKey = `user:rooms:${username}`;
     const rooms = await redis.sMembers(userRoomsKey);
+    const roomIdStr = roomId.toString();
 
     for (const room of rooms) {
       try {
+        // Try to parse as JSON
         const roomData = JSON.parse(room);
-        if (roomData.id === roomId.toString() || roomData.roomId === roomId.toString()) {
+        if (roomData.id === roomIdStr || roomData.roomId === roomIdStr) {
           await redis.sRem(userRoomsKey, room);
         }
-      } catch (e) {}
+      } catch (e) {
+        // If not JSON, it's a bare ID string - check and remove
+        if (room === roomIdStr) {
+          await redis.sRem(userRoomsKey, room);
+        }
+      }
     }
 
     return true;
