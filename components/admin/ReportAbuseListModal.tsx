@@ -52,7 +52,7 @@ export function ReportAbuseListModal({ visible, onClose, token }: ReportAbuseLis
 
   const handleUpdateStatus = async (reportId: number, newStatus: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/abuse/reports/${reportId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/reports/${reportId}/status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -65,6 +65,9 @@ export function ReportAbuseListModal({ visible, onClose, token }: ReportAbuseLis
         Alert.alert('Success', `Report marked as ${newStatus}`);
         setSelectedReport(null);
         fetchReports();
+      } else {
+        const errorData = await response.json();
+        Alert.alert('Error', errorData.message || 'Failed to update report');
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to update report');
@@ -274,6 +277,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     maxHeight: '80%',
+    paddingBottom: 20,
   },
   detailHeader: {
     flexDirection: 'row',
