@@ -124,11 +124,12 @@ export const createSocket = () => {
 
   console.log('🔌 Initializing new Socket.IO connection...');
   socket = io(API_BASE_URL, {
-    transports: ['polling', 'websocket'],
+    transports: ['websocket'],
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionAttempts: 5,
     timeout: 10000,
+    forceNew: true
   });
 
   socket.on('connect', () => {
@@ -168,11 +169,12 @@ export const getChatSocket = async () => {
         userId,
         username
       },
-      transports: ['polling', 'websocket'],
+      transports: ['websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
       timeout: 10000,
+      forceNew: true
     });
 
     chatSocket.on('connect', () => {
