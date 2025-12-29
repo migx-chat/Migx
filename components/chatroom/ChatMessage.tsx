@@ -64,14 +64,17 @@ export const ChatMessage = React.memo(({
       }
     }
 
+    // Priority roles always use their defined colors (ignore usernameColor)
+    if (userType === 'mentor') return roleColors.mentor;
+    if (userType === 'merchant') return roleColors.merchant;
+    if (userType === 'admin') return roleColors.admin;
+    if (userType === 'customer_service' || userType === 'cs') return roleColors.customer_service;
+    
+    // For other roles, usernameColor can override
     if (usernameColor) return usernameColor;
     if (isOwnMessage) return roleColors.own;
     if (userType === 'creator') return roleColors.creator;
-    if (userType === 'admin') return roleColors.admin;
     if (userType === 'moderator') return roleColors.moderator;
-    if (userType === 'merchant') return roleColors.merchant;
-    if (userType === 'customer_service' || userType === 'cs') return roleColors.customer_service;
-    if (userType === 'mentor') return roleColors.mentor;
     return roleColors.normal;
   };
 
