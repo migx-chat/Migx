@@ -1,6 +1,8 @@
 const { query } = require('../db/db');
 const { generateMessageId } = require('../utils/idGenerator');
 
+const MAX_MESSAGES_PER_ROOM = 242; // Limit like Miggi
+
 const saveMessage = async (roomId, userId, username, message, messageType = 'chat') => {
   try {
     const result = await query(
@@ -9,10 +11,33 @@ const saveMessage = async (roomId, userId, username, message, messageType = 'cha
        RETURNING id, room_id, user_id, username, message, message_type, created_at`,
       [roomId, userId, username, message, messageType]
     );
+    
+    // Cleanup old messages if exceeds limit (keep only latest 242)
+    await cleanupOldMessages(roomId);
+    
     return result.rows[0];
   } catch (error) {
     console.error('Error saving message:', error);
     return null;
+  }
+};
+
+// Delete old messages if room has more than MAX_MESSAGES_PER_ROOM
+const cleanupOldMessages = async (roomId) => {
+  try {
+    await query(
+      `DELETE FROM messages 
+       WHERE room_id = $1 
+       AND id NOT IN (
+         SELECT id FROM messages 
+         WHERE room_id = $1 
+         ORDER BY created_at DESC 
+         LIMIT $2
+       )`,
+      [roomId, MAX_MESSAGES_PER_ROOM]
+    );
+  } catch (error) {
+    console.error('Error cleaning up old messages:', error);
   }
 };
 
