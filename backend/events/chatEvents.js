@@ -300,15 +300,19 @@ module.exports = (io, socket) => {
         userType,
       };
 
-      // Check for moderator status in this room (overrides role if applicable)
+      // Check for moderator/owner status in this room
+      // Special roles (mentor, merchant, admin, cs) are NEVER overridden - they keep their role color
       const roomService = require('../services/roomService');
       const isMod = await roomService.isRoomAdmin(roomId, userId);
       const room = await roomService.getRoomById(roomId);
       
-      if (userId == room?.owner_id) {
-        messageData.userType = 'creator';
-      } else if (isMod && userType === 'normal') {
-        messageData.userType = 'moderator';
+      // Only override to creator/moderator if user is a normal user (no special role)
+      if (userType === 'normal') {
+        if (userId == room?.owner_id) {
+          messageData.userType = 'creator';
+        } else if (isMod) {
+          messageData.userType = 'moderator';
+        }
       }
 
       console.log('📤 Sending message with color:', username, usernameColor);
