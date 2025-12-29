@@ -8,7 +8,20 @@ const { XP_REWARDS, addXp } = require('../utils/xpLeveling');
 module.exports = (io, socket) => {
   const sendPrivateMessage = async (data) => {
     try {
-      const { fromUserId, fromUsername, toUserId, toUsername, message } = data;
+      let { fromUserId, fromUsername, toUserId, toUsername, message } = data;
+
+      console.log('📩 PM:SEND received:', { fromUserId, fromUsername, toUserId, toUsername, message: message?.substring(0, 50) });
+
+      // Allow sending by username if toUserId not provided
+      if (!toUserId && toUsername) {
+        const recipient = await userService.getUserByUsername(toUsername);
+        if (recipient) {
+          toUserId = recipient.id;
+        } else {
+          socket.emit('error', { message: 'User not found' });
+          return;
+        }
+      }
 
       if (!fromUserId || !toUserId || !message) {
         socket.emit('error', { message: 'Missing required fields' });
