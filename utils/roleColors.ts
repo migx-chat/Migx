@@ -4,8 +4,8 @@ export const roleColors = {
   admin: '#FF8C00',     // orange untuk admin
   moderator: '#FFD93D', // kuning untuk moderator
   merchant: '#A78BFA',  // ungu untuk merchant
-  customer_service: '#FF8C00', // orange untuk customer service
-  cs: '#FF8C00',        // orange untuk cs (alias)
+  customer_service: '#34D399', // hijau muda untuk customer service
+  cs: '#34D399',        // hijau muda untuk cs (alias)
   normal: '#4BA3FF',    // biru untuk user normal
   system: '#FF8C00',    // orange untuk system
   own: '#2d7a4f',       // hijau tua untuk pesan sendiri
