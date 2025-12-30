@@ -274,7 +274,7 @@ export default function ChatRoomScreen() {
         }
         
         // 🔑 Add to PM store (separate from room messages)
-        const { addPrivateMessage, openRoom: storeOpenRoom, setActiveRoomById } = useRoomTabsStore.getState();
+        const { addPrivateMessage, openRoom: storeOpenRoom, openRoomIds } = useRoomTabsStore.getState();
         
         const pmMessage: Message = {
           id: data.id,
@@ -287,9 +287,13 @@ export default function ChatRoomScreen() {
         // Add to PM storage (auto-dedup inside)
         addPrivateMessage(senderId, pmMessage);
         
-        // 🔑 AUTO-OPEN PM tab
-        const pmRoomId = `pm_${senderUsername}`;
-        storeOpenRoom(pmRoomId, senderUsername);
+        // 🔑 AUTO-OPEN PM tab using consistent format: pm_{userId}
+        const pmRoomId = `pm_${senderId}`;
+        
+        // Only open if not already open
+        if (!openRoomIds.includes(pmRoomId)) {
+          storeOpenRoom(pmRoomId, senderUsername);
+        }
         
         // Play PM sound
         const playPrivateSound = (window as any).__PLAY_PRIVATE_SOUND__;
@@ -297,14 +301,14 @@ export default function ChatRoomScreen() {
           playPrivateSound();
         }
         
-        console.log('📩 [PM] Auto-opened tab and stored PM from:', senderUsername);
+        console.log('📩 [PM] Auto-opened tab and stored PM from:', senderUsername, 'id:', senderId);
       });
 
       // 🔑 PM SENT ECHO - For sender's other tabs
       newSocket.on('pm:sent', (data: any) => {
         console.log('📩 [PM-SENT] Echo for sent message to:', data.toUsername);
         
-        const { addPrivateMessage, openRoom: storeOpenRoom } = useRoomTabsStore.getState();
+        const { addPrivateMessage, openRoom: storeOpenRoom, openRoomIds } = useRoomTabsStore.getState();
         
         const pmMessage: Message = {
           id: data.id,
@@ -317,11 +321,15 @@ export default function ChatRoomScreen() {
         // Add to PM storage
         addPrivateMessage(data.toUserId, pmMessage);
         
-        // Ensure PM tab is open
-        const pmRoomId = `pm_${data.toUsername}`;
-        storeOpenRoom(pmRoomId, data.toUsername);
+        // 🔑 Ensure PM tab is open using consistent format: pm_{userId}
+        const pmRoomId = `pm_${data.toUserId}`;
         
-        console.log('📩 [PM] Synced sent PM to:', data.toUsername);
+        // Only open if not already open
+        if (!openRoomIds.includes(pmRoomId)) {
+          storeOpenRoom(pmRoomId, data.toUsername);
+        }
+        
+        console.log('📩 [PM] Synced sent PM to:', data.toUsername, 'id:', data.toUserId);
       });
 
       // Store socket globally for MenuParticipantsModal

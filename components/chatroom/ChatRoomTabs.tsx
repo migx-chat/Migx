@@ -58,18 +58,14 @@ export function ChatRoomTabs({
           const isPrivateChat = room.roomId.startsWith('pm_');
           
           // For private chat: use room.name (which stores target username)
-          // Extract target user ID from roomId format: pm_userId1_userId2
+          // Extract target user ID from roomId format: pm_userId
           let targetUsername = '';
           let targetUserId = '';
           
           if (isPrivateChat) {
             targetUsername = room.name || '';
-            // Extract both user IDs from pm_id1_id2 format
-            const pmParts = room.roomId.replace('pm_', '').split('_');
-            if (pmParts.length === 2) {
-              // Find the ID that is NOT the current user (the other person in the chat)
-              targetUserId = pmParts.find(id => id !== currentUserId) ?? pmParts[0];
-            }
+            // Extract userId from pm_userId format
+            targetUserId = room.roomId.replace('pm_', '');
           }
           
           return (

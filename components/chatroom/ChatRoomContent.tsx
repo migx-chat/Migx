@@ -12,7 +12,7 @@ interface Message {
   isNotice?: boolean;
   isCmd?: boolean;
   isPresence?: boolean;
-  userType?: 'creator' | 'admin' | 'normal' | 'mentor' | 'merchant';
+  userType?: 'creator' | 'admin' | 'normal' | 'mentor' | 'merchant' | 'moderator';
   messageType?: string;
   hasTopMerchantBadge?: boolean;
   hasTopLikeReward?: boolean;
