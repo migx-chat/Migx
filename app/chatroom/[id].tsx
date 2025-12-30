@@ -109,12 +109,19 @@ export default function ChatRoomScreen() {
         
         (window as any).__PLAY_PRIVATE_SOUND__ = async () => {
           try {
-            if (soundRef.current) {
-              await soundRef.current.setPositionAsync(0);
-              await soundRef.current.playAsync();
+            // Only play sound if app is in foreground (active)
+            const appState = AppState.currentState;
+            if (appState !== 'active' || !soundRef.current) {
+              return;
             }
+            await soundRef.current.setPositionAsync(0);
+            await soundRef.current.playAsync();
           } catch (e) {
-            console.error('Error playing private chat sound:', e);
+            // Silently ignore audio focus errors when app is in background
+            if (e instanceof Error && e.message.includes('AudioFocus')) {
+              return;
+            }
+            console.warn('Private chat sound error:', (e as Error).message);
           }
         };
         
@@ -273,8 +280,8 @@ export default function ChatRoomScreen() {
           return;
         }
         
-        // 🔑 Add to PM store (separate from room messages)
-        const { addPrivateMessage, openRoom: storeOpenRoom, openRoomIds } = useRoomTabsStore.getState();
+        // 🔑 Add to PM store (auto-opens PM tab inside addPrivateMessage)
+        const { addPrivateMessage } = useRoomTabsStore.getState();
         
         const pmMessage: Message = {
           id: data.id,
@@ -284,31 +291,23 @@ export default function ChatRoomScreen() {
           timestamp: data.timestamp || new Date().toISOString(),
         };
 
-        // Add to PM storage (auto-dedup inside)
+        // Add to PM storage - this auto-opens the tab if it doesn't exist
         addPrivateMessage(senderId, pmMessage);
         
-        // 🔑 AUTO-OPEN PM tab using consistent format: pm_{userId}
-        const pmRoomId = `pm_${senderId}`;
-        
-        // Only open if not already open
-        if (!openRoomIds.includes(pmRoomId)) {
-          storeOpenRoom(pmRoomId, senderUsername);
-        }
-        
-        // Play PM sound
+        // Play PM sound only if app is in foreground
         const playPrivateSound = (window as any).__PLAY_PRIVATE_SOUND__;
         if (typeof playPrivateSound === 'function') {
           playPrivateSound();
         }
         
-        console.log('📩 [PM] Auto-opened tab and stored PM from:', senderUsername, 'id:', senderId);
+        console.log('📩 [PM] Stored message from:', senderUsername, 'id:', senderId);
       });
 
       // 🔑 PM SENT ECHO - For sender's other tabs
       newSocket.on('pm:sent', (data: any) => {
         console.log('📩 [PM-SENT] Echo for sent message to:', data.toUsername);
         
-        const { addPrivateMessage, openRoom: storeOpenRoom, openRoomIds } = useRoomTabsStore.getState();
+        const { addPrivateMessage } = useRoomTabsStore.getState();
         
         const pmMessage: Message = {
           id: data.id,
@@ -318,16 +317,8 @@ export default function ChatRoomScreen() {
           timestamp: data.timestamp || new Date().toISOString(),
         };
 
-        // Add to PM storage
+        // Add to PM storage - this auto-opens the tab if it doesn't exist
         addPrivateMessage(data.toUserId, pmMessage);
-        
-        // 🔑 Ensure PM tab is open using consistent format: pm_{userId}
-        const pmRoomId = `pm_${data.toUserId}`;
-        
-        // Only open if not already open
-        if (!openRoomIds.includes(pmRoomId)) {
-          storeOpenRoom(pmRoomId, data.toUsername);
-        }
         
         console.log('📩 [PM] Synced sent PM to:', data.toUsername, 'id:', data.toUserId);
       });
