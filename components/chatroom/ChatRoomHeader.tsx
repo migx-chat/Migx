@@ -24,7 +24,7 @@ export function ChatRoomHeader({
   const activeRoomId = useActiveRoomId();
   const openRooms = useOpenRooms();
   
-  const isPrivateChat = activeRoomId?.startsWith('pm_') || false;
+  const isPrivateChat = activeRoomId?.startsWith('pm_') || activeRoomId?.startsWith('private:') || false;
   const displayName = activeRoom?.name || 'Room';
   const subtitle = isPrivateChat ? 'Private Chat' : 'Chatroom';
 

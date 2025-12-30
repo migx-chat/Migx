@@ -26,6 +26,7 @@ import { VoteKickButton } from '@/components/chatroom/VoteKickButton';
 import { ChatRoomMenu } from '@/components/chatroom/ChatRoomMenu';
 import { ReportAbuseModal } from '@/components/chatroom/ReportAbuseModal';
 import { PrivateChatMenuModal } from '@/components/chatroom/PrivateChatMenuModal';
+import { GiftModal } from '@/components/chatroom/GiftModal';
 import { useRoomTabsStore, useActiveRoom, useActiveRoomId, useOpenRooms } from '@/stores/useRoomTabsStore';
 
 const HEADER_COLOR = '#0a5229';
@@ -65,6 +66,7 @@ export default function ChatRoomScreen() {
   const [participantsModalVisible, setParticipantsModalVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [privateChatMenuVisible, setPrivateChatMenuVisible] = useState(false);
+  const [pmGiftModalVisible, setPmGiftModalVisible] = useState(false);
   const [roomInfoModalVisible, setRoomInfoModalVisible] = useState(false);
   const [roomInfoData, setRoomInfoData] = useState<any>(null);
   const [reportAbuseModalVisible, setReportAbuseModalVisible] = useState(false);
@@ -588,15 +590,32 @@ export default function ChatRoomScreen() {
     router.back();
   }, [router]);
 
+  // Helper to extract other user ID from PM room ID
+  const getOtherUserIdFromPM = useCallback(() => {
+    if (!activeRoomId) return '';
+    if (activeRoomId.startsWith('pm_')) {
+      return activeRoomId.replace('pm_', '');
+    }
+    if (activeRoomId.startsWith('private:')) {
+      const parts = activeRoomId.split(':');
+      if (parts.length === 3) {
+        const id1 = parts[1];
+        const id2 = parts[2];
+        return (currentUserId === id1) ? id2 : id1;
+      }
+    }
+    return '';
+  }, [activeRoomId, currentUserId]);
+
   const handlePrivateChatViewProfile = useCallback(() => {
-    if (!activeRoomId) return;
-    const userId = activeRoomId.replace('pm_', '');
-    router.push(`/profile/${userId}`);
-  }, [activeRoomId, router]);
+    const userId = getOtherUserIdFromPM();
+    if (!userId) return;
+    router.push(`/view-profile?userId=${userId}`);
+  }, [getOtherUserIdFromPM, router]);
 
   const handlePrivateChatBlockUser = useCallback(() => {
     if (!activeRoomId || !socket) return;
-    const userId = activeRoomId.replace('pm_', '');
+    const userId = getOtherUserIdFromPM();
     Alert.alert(
       'Block User',
       'Are you sure you want to block this user? They will not be able to send you messages.',
@@ -630,7 +649,7 @@ export default function ChatRoomScreen() {
         },
       ]
     );
-  }, [activeRoomId, socket, closeRoom]);
+  }, [activeRoomId, socket, closeRoom, getOtherUserIdFromPM]);
 
   const handlePrivateChatClearChat = useCallback(() => {
     if (!activeRoomId) return;
@@ -655,6 +674,41 @@ export default function ChatRoomScreen() {
     if (!activeRoomId) return;
     closeRoom(activeRoomId);
   }, [activeRoomId, closeRoom]);
+
+  const handlePrivateChatSendGift = useCallback(() => {
+    setPmGiftModalVisible(true);
+  }, []);
+
+  const handlePmGiftSend = useCallback(async (gift: { name: string; price: number; image: any }) => {
+    const userId = getOtherUserIdFromPM();
+    if (!userId || !socket) return;
+    
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/api/profile/gift`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          toUserId: userId,
+          giftId: gift.name,
+          amount: gift.price,
+        }),
+      });
+      
+      if (response.ok) {
+        Alert.alert('Success', `Gift "${gift.name}" sent successfully!`);
+      } else {
+        const data = await response.json();
+        Alert.alert('Error', data.error || 'Failed to send gift');
+      }
+    } catch (error) {
+      console.error('Error sending gift:', error);
+      Alert.alert('Error', 'Failed to send gift');
+    }
+  }, [getOtherUserIdFromPM, socket]);
 
   const renderVoteButton = useCallback(() => {
     if (!activeVote) return null;
@@ -754,9 +808,16 @@ export default function ChatRoomScreen() {
         onClose={() => setPrivateChatMenuVisible(false)}
         onViewProfile={handlePrivateChatViewProfile}
         onBlockUser={handlePrivateChatBlockUser}
+        onSendGift={handlePrivateChatSendGift}
         onClearChat={handlePrivateChatClearChat}
         onCloseChat={handlePrivateChatCloseChat}
         username={activeRoom?.name}
+      />
+
+      <GiftModal
+        visible={pmGiftModalVisible}
+        onClose={() => setPmGiftModalVisible(false)}
+        onSendGift={handlePmGiftSend}
       />
     </View>
   );

@@ -17,6 +17,7 @@ interface PrivateChatMenuModalProps {
   onClose: () => void;
   onViewProfile: () => void;
   onBlockUser: () => void;
+  onSendGift: () => void;
   onClearChat: () => void;
   onCloseChat: () => void;
   username?: string;
@@ -27,6 +28,7 @@ export function PrivateChatMenuModal({
   onClose,
   onViewProfile,
   onBlockUser,
+  onSendGift,
   onClearChat,
   onCloseChat,
   username,
@@ -36,6 +38,7 @@ export function PrivateChatMenuModal({
   const menuItems = [
     { label: 'View Profile', onPress: onViewProfile, icon: '👤' },
     { label: 'Block User', onPress: onBlockUser, icon: '🚫', danger: true },
+    { label: 'Send Gift', onPress: onSendGift, icon: '🎁' },
     { label: 'Clear Chat', onPress: onClearChat, icon: '🗑️' },
     { label: 'Close Chat', onPress: onCloseChat, icon: '✕' },
   ];
