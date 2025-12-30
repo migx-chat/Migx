@@ -158,6 +158,7 @@ export function ChatList() {
             name: dm.username,
             username: dm.username,
             userId: dm.userId,
+            avatar: dm.avatar,
             message: dm.lastMessage?.message,
             time: dm.lastMessage?.timestamp 
               ? formatTime(dm.lastMessage.timestamp) 

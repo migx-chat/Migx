@@ -18,12 +18,22 @@ interface ChatItemProps {
 }
 
 const UserAvatar = ({ avatar, isOnline, theme }: { avatar?: string; isOnline?: boolean; theme: any }) => {
+  const hasValidAvatar = avatar && typeof avatar === 'string' && avatar.startsWith('http');
+  
   return (
     <View style={styles.avatarContainer}>
-      <Image
-        source={require('../../assets/icons/ic_chat.png')}
-        style={{ width: 50, height: 50, borderRadius: 25 }}
-      />
+      {hasValidAvatar ? (
+        <Image
+          source={{ uri: avatar }}
+          style={{ width: 50, height: 50, borderRadius: 25 }}
+          defaultSource={require('../../assets/icons/ic_chat.png')}
+        />
+      ) : (
+        <Image
+          source={require('../../assets/icons/ic_chat.png')}
+          style={{ width: 50, height: 50, borderRadius: 25 }}
+        />
+      )}
       {isOnline && <View style={[styles.onlineIndicator, { borderColor: theme.background }]} />}
     </View>
   );

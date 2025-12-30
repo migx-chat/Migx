@@ -123,9 +123,27 @@ router.get('/list/:username', async (req, res) => {
           
           if (lastMsgData) {
             const lastMsg = JSON.parse(lastMsgData);
+            
+            // Fetch user avatar from database
+            let avatarUrl = null;
+            try {
+              const { getPool } = require('../db');
+              const pool = getPool();
+              const result = await pool.query(
+                'SELECT avatar FROM users WHERE username = $1',
+                [targetUsername]
+              );
+              if (result.rows.length > 0 && result.rows[0].avatar) {
+                avatarUrl = result.rows[0].avatar;
+              }
+            } catch (dbErr) {
+              // Skip avatar fetch error
+            }
+            
             dmsMap.set(targetUsername, {
               userId: targetUsername,
               username: targetUsername,
+              avatar: avatarUrl,
               lastMessage: {
                 message: lastMsg.message,
                 timestamp: lastMsg.timestamp || Date.now()
