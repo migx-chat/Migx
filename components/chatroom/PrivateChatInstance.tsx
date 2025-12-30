@@ -26,13 +26,36 @@ export const PrivateChatInstance = React.memo(function PrivateChatInstance({
   bottomPadding,
   isActive,
 }: PrivateChatInstanceProps) {
-  // 🔑 Extract userId from roomId if targetUserId not provided
+  // Get current user ID from store
+  const currentUserId = useRoomTabsStore((state) => state.currentUserId);
+  
+  // 🔑 Extract the OTHER user's ID from roomId
   const userId = useMemo(() => {
-    if (targetUserId) return targetUserId;
-    // Extract from roomId format: pm_123
-    const match = roomId.match(/^pm_(\d+)$/);
-    return match ? match[1] : '';
-  }, [roomId, targetUserId]);
+    // Old format: pm_123
+    if (roomId.startsWith('pm_')) {
+      const match = roomId.match(/^pm_(\d+)$/);
+      return match ? match[1] : '';
+    }
+    
+    // New format: private:minId:maxId
+    if (roomId.startsWith('private:')) {
+      const parts = roomId.split(':');
+      if (parts.length === 3) {
+        const id1 = parts[1];
+        const id2 = parts[2];
+        const myId = currentUserId;
+        // Return the OTHER user's ID (the one that's not me)
+        return (myId === id1) ? id2 : id1;
+      }
+    }
+    
+    // Fallback to targetUserId if provided
+    if (targetUserId && !targetUserId.includes(':')) {
+      return targetUserId;
+    }
+    
+    return '';
+  }, [roomId, targetUserId, currentUserId]);
   
   // 🔑 Use PM store instead of room messages
   const messages = usePrivateMessagesData(userId);

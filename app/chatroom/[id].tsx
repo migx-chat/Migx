@@ -142,7 +142,7 @@ export default function ChatRoomScreen() {
   }, []);
 
   const currentActiveRoomId = activeRoomId || roomId;
-  const isPrivateChat = currentActiveRoomId?.startsWith('pm_') || false;
+  const isPrivateChat = currentActiveRoomId?.startsWith('pm_') || currentActiveRoomId?.startsWith('private:') || false;
 
   useEffect(() => {
     if (socket?.connected && !isConnected) {
@@ -404,6 +404,45 @@ export default function ChatRoomScreen() {
     if (!socket || !message.trim() || !currentUserId) return;
     
     console.log("MESSAGE SEND", currentActiveRoomId, message.trim());
+    
+    // Check if this is a PM conversation (starts with "private:")
+    if (currentActiveRoomId.startsWith('private:')) {
+      // Extract the other user's ID from the conversation ID (private:minId:maxId)
+      const parts = currentActiveRoomId.split(':');
+      if (parts.length === 3) {
+        const id1 = parseInt(parts[1], 10);
+        const id2 = parseInt(parts[2], 10);
+        const myId = parseInt(currentUserId, 10);
+        const toUserId = (myId === id1) ? id2 : id1;
+        
+        // Get the other user's username from the room name
+        const roomData = useRoomTabsStore.getState().openRoomsById[currentActiveRoomId];
+        const toUsername = roomData?.name || `User ${toUserId}`;
+        
+        console.log("📩 PM SEND to:", toUsername, "userId:", toUserId);
+        socket.emit('pm:send', {
+          fromUserId: currentUserId,
+          fromUsername: currentUsername,
+          toUserId: toUserId.toString(),
+          toUsername: toUsername,
+          message: message.trim(),
+        });
+        
+        // Add message to local store immediately for instant display
+        const { addPrivateMessage } = useRoomTabsStore.getState();
+        const localMessage = {
+          id: `local_${Date.now()}`,
+          username: 'You',
+          message: message.trim(),
+          isOwnMessage: true,
+          timestamp: new Date().toISOString(),
+        };
+        addPrivateMessage(toUserId.toString(), localMessage);
+      }
+      return;
+    }
+    
+    // Regular room message
     socket.emit('chat:message', {
       roomId: currentActiveRoomId,
       userId: currentUserId,

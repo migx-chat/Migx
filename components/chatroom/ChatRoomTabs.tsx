@@ -55,17 +55,29 @@ export function ChatRoomTabs({
         offscreenPageLimit={1}
       >
         {openRooms.map((room, index) => {
-          const isPrivateChat = room.roomId.startsWith('pm_');
+          // Support both old pm_ format and new private:minId:maxId format
+          const isPrivateChat = room.roomId.startsWith('pm_') || room.roomId.startsWith('private:');
           
           // For private chat: use room.name (which stores target username)
-          // Extract target user ID from roomId format: pm_userId
+          // Extract target user ID from roomId format: pm_userId or private:minId:maxId
           let targetUsername = '';
           let targetUserId = '';
           
           if (isPrivateChat) {
             targetUsername = room.name || '';
-            // Extract userId from pm_userId format
-            targetUserId = room.roomId.replace('pm_', '');
+            
+            if (room.roomId.startsWith('pm_')) {
+              // Old format: pm_userId
+              targetUserId = room.roomId.replace('pm_', '');
+            } else if (room.roomId.startsWith('private:')) {
+              // New format: private:minId:maxId - extract the "other" user ID
+              const parts = room.roomId.split(':');
+              if (parts.length === 3) {
+                // We need to figure out which ID is the "other" user
+                // For now, we'll pass both IDs and let PrivateChatInstance handle it
+                targetUserId = `${parts[1]}:${parts[2]}`;
+              }
+            }
           }
           
           return (
