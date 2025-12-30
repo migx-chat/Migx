@@ -29,6 +29,7 @@ interface RoomTabsState {
   openRoomIds: string[];
   activeIndex: number;
   messagesByRoom: Record<string, Message[]>;
+  privateMessages: Record<string, Message[]>; // 🔑 PM storage
   socket: Socket | null;
   currentUsername: string;
   currentUserId: string;
@@ -42,6 +43,7 @@ interface RoomTabsActions {
   setActiveIndex: (index: number) => void;
   setActiveRoomById: (roomId: string) => void;
   addMessage: (roomId: string, message: Message) => void;
+  addPrivateMessage: (userId: string, message: Message) => void; // Add action for PM
   prependHistoryMessages: (roomId: string, messages: Message[]) => void;
   markUnread: (roomId: string) => void;
   clearUnread: (roomId: string) => void;
@@ -57,6 +59,7 @@ interface RoomTabsActions {
   injectSystemMessage: (roomId: string, roomName: string, admin: string, users: string[]) => void;
   hasSystemMessage: (roomId: string) => boolean;
   clearChat: (roomId: string) => void;
+  clearPrivateMessages: (userId: string) => void; // Add action for clearing PMs
 }
 
 type RoomTabsStore = RoomTabsState & RoomTabsActions;
@@ -66,15 +69,16 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
   openRoomIds: [],
   activeIndex: 0,
   messagesByRoom: {},
+  privateMessages: {}, // 🔑 PM storage
   socket: null,
   currentUsername: '',
   currentUserId: '',
-  joinedRoomIds: new Set(),
-  systemMessageInjected: new Set(),
+  joinedRoomIds: new Set<string>(),
+  systemMessageInjected: new Set<string>(),
 
   openRoom: (roomId: string, name: string) => {
     const state = get();
-    
+
     const existingIndex = state.openRoomIds.indexOf(roomId);
     if (existingIndex >= 0) {
       set({ activeIndex: existingIndex });
@@ -83,7 +87,7 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
 
     const newRoom: OpenRoom = { roomId, name, unread: 0 };
     const newOpenRoomIds = [...state.openRoomIds, roomId];
-    
+
     set({
       openRoomsById: { ...state.openRoomsById, [roomId]: newRoom },
       openRoomIds: newOpenRoomIds,
@@ -94,26 +98,26 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
 
   closeRoom: (roomId: string) => {
     const state = get();
-    
+
     console.log('🚪 [closeRoom] START - Closing room:', roomId);
     console.log('🚪 [closeRoom] Before - openRoomIds:', state.openRoomIds);
     console.log('🚪 [closeRoom] Before - activeIndex:', state.activeIndex);
-    
+
     if (!state.openRoomIds.includes(roomId)) {
       console.warn('🚪 [closeRoom] Room not found in openRoomIds, skipping:', roomId);
       return;
     }
-    
+
     const newOpenRoomsById = { ...state.openRoomsById };
     delete newOpenRoomsById[roomId];
-    
+
     const closingIndex = state.openRoomIds.indexOf(roomId);
     const newOpenRoomIds = state.openRoomIds.filter(id => id !== roomId);
     const newMessagesByRoom = { ...state.messagesByRoom };
     delete newMessagesByRoom[roomId];
-    
+
     let newActiveIndex = state.activeIndex;
-    
+
     if (closingIndex < state.activeIndex) {
       newActiveIndex = state.activeIndex - 1;
     } else if (closingIndex === state.activeIndex) {
@@ -121,24 +125,24 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
         newActiveIndex = Math.max(0, closingIndex - 1);
       }
     }
-    
+
     if (newOpenRoomIds.length === 0) {
       newActiveIndex = 0;
     } else {
       newActiveIndex = Math.min(Math.max(0, newActiveIndex), newOpenRoomIds.length - 1);
     }
-    
+
     const newJoinedRoomIds = new Set(state.joinedRoomIds);
     newJoinedRoomIds.delete(roomId);
-    
+
     const newSystemMessageInjected = new Set(state.systemMessageInjected);
     newSystemMessageInjected.delete(roomId);
-    
+
     console.log('🚪 [closeRoom] Closing tab at index:', closingIndex);
     console.log('🚪 [closeRoom] After - newOpenRoomIds:', newOpenRoomIds);
     console.log('🚪 [closeRoom] After - newActiveIndex:', newActiveIndex);
     console.log('🚪 [closeRoom] Remaining tabs:', newOpenRoomIds.length);
-    
+
     set({
       openRoomsById: newOpenRoomsById,
       openRoomIds: newOpenRoomIds,
@@ -147,7 +151,7 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
       joinedRoomIds: newJoinedRoomIds,
       systemMessageInjected: newSystemMessageInjected,
     });
-    
+
     console.log('🚪 [closeRoom] DONE - State updated');
   },
 
@@ -155,12 +159,12 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
     const state = get();
     if (index < 0 || index >= state.openRoomIds.length) return;
     if (index === state.activeIndex) return;
-    
+
     const roomId = state.openRoomIds[index];
     const room = state.openRoomsById[roomId];
-    
+
     console.log("ACTIVE ROOM CHANGED", roomId);
-    
+
     if (room && room.unread > 0) {
       set({
         activeIndex: index,
@@ -184,12 +188,12 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
 
   addMessage: (roomId: string, message: Message) => {
     const state = get();
-    
+
     const existingMessages = state.messagesByRoom[roomId] || [];
     if (existingMessages.some(m => m.id === message.id)) {
       return;
     }
-    
+
     // Map incoming message type field to isCmd/isNotice flags
     let processedMessage = { ...message };
     if ((message as any).type === 'cmd') {
@@ -197,11 +201,11 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
     } else if ((message as any).type === 'notice') {
       processedMessage.isNotice = true;
     }
-    
+
     const newMessages = [...existingMessages, processedMessage];
     const activeRoomId = state.openRoomIds[state.activeIndex];
     const isActiveRoom = activeRoomId === roomId;
-    
+
     // Play sound for incoming private messages or PMs
     if (!processedMessage.isOwnMessage && (roomId.startsWith('pm_') || roomId.startsWith('direct_'))) {
        const playPrivateSound = (window as any).__PLAY_PRIVATE_SOUND__;
@@ -218,31 +222,90 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
         [roomId]: { ...room, unread: room.unread + 1 },
       };
     }
-    
+
     set({
       messagesByRoom: { ...state.messagesByRoom, [roomId]: newMessages },
       openRoomsById: newOpenRoomsById,
     });
   },
 
+  addPrivateMessage: (userId: string, message: Message) => {
+    const state = get();
+    const existingMessages = state.privateMessages[userId] || [];
+    if (existingMessages.some(m => m.id === message.id)) {
+      return;
+    }
+
+    // Map incoming message type field to isCmd/isNotice flags
+    let processedMessage = { ...message };
+    if ((message as any).type === 'cmd') {
+      processedMessage.isCmd = true;
+    } else if ((message as any).type === 'notice') {
+      processedMessage.isNotice = true;
+    }
+
+    const newMessages = [...existingMessages, processedMessage];
+    // This logic assumes PMs are always marked with 'pm_' prefix and the userId is extracted from it.
+    // If PMs are handled differently, this part needs adjustment.
+    const pmRoomId = `pm_${userId}`;
+    const activeRoomId = state.openRoomIds[state.activeIndex];
+    const isActiveRoom = activeRoomId === pmRoomId;
+
+    // Play sound for incoming private messages
+    if (!processedMessage.isOwnMessage) {
+       const playPrivateSound = (window as any).__PLAY_PRIVATE_SOUND__;
+       if (typeof playPrivateSound === 'function') {
+         playPrivateSound();
+       }
+    }
+
+    let newOpenRoomsById = state.openRoomsById;
+    // If the PM tab is not open or not active, mark it as unread.
+    if (!state.openRoomsById[pmRoomId] && !processedMessage.isOwnMessage) {
+      const newRoom: OpenRoom = { roomId: pmRoomId, name: message.username || `PM with ${message.fromUsername}`, unread: 1 };
+      const newOpenRoomIds = [...state.openRoomIds, pmRoomId];
+      newOpenRoomsById = {
+        ...state.openRoomsById,
+        [pmRoomId]: newRoom,
+      };
+      set({
+        openRoomsById: newOpenRoomsById,
+        openRoomIds: newOpenRoomIds,
+        activeIndex: newOpenRoomIds.length - 1,
+      });
+    } else if (state.openRoomsById[pmRoomId] && !isActiveRoom && !processedMessage.isOwnMessage) {
+      const room = state.openRoomsById[pmRoomId];
+      newOpenRoomsById = {
+        ...state.openRoomsById,
+        [pmRoomId]: { ...room, unread: room.unread + 1 },
+      };
+    }
+
+    set({
+      privateMessages: { ...state.privateMessages, [userId]: newMessages },
+      openRoomsById: newOpenRoomsById,
+    });
+  },
+
+
   // Add history messages at the beginning (from database)
   prependHistoryMessages: (roomId: string, messages: Message[]) => {
     const state = get();
     const existingMessages = state.messagesByRoom[roomId] || [];
-    
+
     // Filter out messages that already exist (by ID)
     const existingIds = new Set(existingMessages.map(m => m.id));
     const newHistoryMessages = messages.filter(m => !existingIds.has(m.id));
-    
+
     if (newHistoryMessages.length === 0) return;
-    
+
     console.log(`📜 Prepending ${newHistoryMessages.length} history messages to room ${roomId}`);
-    
+
     // Prepend history messages (they come from DB in chronological order)
     set({
-      messagesByRoom: { 
-        ...state.messagesByRoom, 
-        [roomId]: [...newHistoryMessages, ...existingMessages] 
+      messagesByRoom: {
+        ...state.messagesByRoom,
+        [roomId]: [...newHistoryMessages, ...existingMessages]
       },
     });
   },
@@ -252,7 +315,7 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
     const room = state.openRoomsById[roomId];
     const activeRoomId = state.openRoomIds[state.activeIndex];
     if (!room || activeRoomId === roomId) return;
-    
+
     set({
       openRoomsById: {
         ...state.openRoomsById,
@@ -265,7 +328,7 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
     const state = get();
     const room = state.openRoomsById[roomId];
     if (!room) return;
-    
+
     set({
       openRoomsById: {
         ...state.openRoomsById,
@@ -280,8 +343,9 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
       openRoomIds: [],
       activeIndex: 0,
       messagesByRoom: {},
-      joinedRoomIds: new Set(),
-      systemMessageInjected: new Set(),
+      privateMessages: {},
+      joinedRoomIds: new Set<string>(),
+      systemMessageInjected: new Set<string>(),
     });
   },
 
@@ -297,7 +361,7 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
     const state = get();
     const room = state.openRoomsById[roomId];
     if (!room) return;
-    
+
     set({
       openRoomsById: {
         ...state.openRoomsById,
@@ -340,12 +404,12 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
   injectSystemMessage: (roomId: string, roomName: string, admin: string, users: string[]) => {
     const state = get();
     if (state.systemMessageInjected.has(roomId)) return;
-    
+
     console.log("SYSTEM MESSAGE INJECTED", roomId);
-    
+
     const timestamp = new Date().toISOString();
     const userList = users.length > 0 ? users.join(', ') : 'No users online';
-    
+
     const systemMessages: Message[] = [
       {
         id: `sys-welcome-${roomId}-${Date.now()}`,
@@ -369,11 +433,11 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
         timestamp,
       },
     ];
-    
+
     const existingMessages = state.messagesByRoom[roomId] || [];
     const newSystemMessageInjected = new Set(state.systemMessageInjected);
     newSystemMessageInjected.add(roomId);
-    
+
     set({
       messagesByRoom: { ...state.messagesByRoom, [roomId]: [...systemMessages, ...existingMessages] },
       systemMessageInjected: newSystemMessageInjected,
@@ -393,6 +457,15 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
       }
     });
   },
+
+  clearPrivateMessages: (userId: string) => {
+    set({
+      privateMessages: {
+        ...get().privateMessages,
+        [userId]: []
+      }
+    });
+  },
 }));
 
 export const useActiveIndex = () => useRoomTabsStore(state => state.activeIndex);
@@ -405,7 +478,7 @@ export const useActiveRoom = (): OpenRoom | null => {
   const activeIndex = useRoomTabsStore(state => state.activeIndex);
   const openRoomIds = useRoomTabsStore(state => state.openRoomIds);
   const openRoomsById = useRoomTabsStore(state => state.openRoomsById);
-  
+
   if (openRoomIds.length === 0) return null;
   const activeRoomId = openRoomIds[activeIndex];
   return openRoomsById[activeRoomId] || null;
@@ -414,7 +487,7 @@ export const useActiveRoom = (): OpenRoom | null => {
 export const useActiveRoomId = (): string | null => {
   const activeIndex = useRoomTabsStore(state => state.activeIndex);
   const openRoomIds = useRoomTabsStore(state => state.openRoomIds);
-  
+
   if (openRoomIds.length === 0) return null;
   return openRoomIds[activeIndex] || null;
 };
@@ -422,7 +495,7 @@ export const useActiveRoomId = (): string | null => {
 export const useOpenRooms = (): OpenRoom[] => {
   const openRoomIds = useRoomTabsStore(state => state.openRoomIds);
   const openRoomsById = useRoomTabsStore(state => state.openRoomsById);
-  
+
   const rooms: OpenRoom[] = [];
   for (let i = 0; i < openRoomIds.length; i++) {
     const room = openRoomsById[openRoomIds[i]];
@@ -435,10 +508,14 @@ export const useRoomMessagesData = (roomId: string): Message[] => {
   return useRoomTabsStore(state => state.messagesByRoom[roomId] || []);
 };
 
+export const usePrivateMessagesData = (userId: string): Message[] => {
+  return useRoomTabsStore(state => state.privateMessages[userId] || []);
+};
+
 export const useRoomTabsData = () => {
   const openRoomIds = useRoomTabsStore(state => state.openRoomIds);
   const openRoomsById = useRoomTabsStore(state => state.openRoomsById);
   const activeIndex = useRoomTabsStore(state => state.activeIndex);
-  
+
   return { openRoomIds, openRoomsById, activeIndex };
 };

@@ -29,8 +29,12 @@ export const PrivateChatInstance = React.memo(function PrivateChatInstance({
   bottomPadding,
   isActive,
 }: PrivateChatInstanceProps) {
-  const messagesData = useRoomMessagesData(roomId);
-  const messages = useMemo(() => messagesData || [], [messagesData]);
+  // 🔑 Use PM store instead of room messages
+  const getPrivateMessages = useRoomTabsStore((state) => state.getPrivateMessages);
+  const messages = useMemo(() => {
+    if (!targetUserId) return [];
+    return getPrivateMessages(targetUserId);
+  }, [targetUserId, getPrivateMessages]);
   const { theme } = useThemeCustom();
   const insets = useSafeAreaInsets();
   const inputRef = React.useRef<PrivateChatInputRef>(null);
@@ -80,26 +84,25 @@ export const PrivateChatInstance = React.memo(function PrivateChatInstance({
     }
     const currentUser = JSON.parse(userDataStr);
     
-    // Send PM via socket
+    if (!targetUserId) {
+      Alert.alert('Error', 'Invalid recipient');
+      return;
+    }
+
+    const clientMsgId = `pm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Send PM via socket (server will broadcast to all tabs)
     socket.emit('pm:send', {
       fromUserId: currentUser.id,
       fromUsername: currentUser.username,
+      toUserId: targetUserId,
       toUsername: targetUsername,
-      message: message.trim()
+      message: message.trim(),
+      clientMsgId
     });
     
-    // Add to local store for immediate display
-    const newMessage = {
-      id: `msg_${Date.now()}`,
-      username: 'You',
-      message: message.trim(),
-      isOwnMessage: true,
-      timestamp: new Date().toISOString(),
-    };
-    
-    addMessage(roomId, newMessage);
-    console.log('📤 PM sent to:', targetUsername);
-  }, [roomId, addMessage, targetUsername]);
+    console.log('📤 PM sent to:', targetUsername, '| ID:', clientMsgId);
+  }, [targetUsername, targetUserId]);
 
   const handleEmojiPress = useCallback(() => {
     setEmojiVisible(!emojiVisible);

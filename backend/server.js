@@ -433,6 +433,10 @@ chatNamespace.on('connection', (socket) => {
   
   console.log(`✅ Client connected: ${socket.id} | User: ${username} (ID: ${userId})`);
 
+  // 🔑 JOIN USER CHANNEL - For multi-tab PM delivery
+  socket.join(`user:${userId}`);
+  console.log(`🔑 User ${username} joined channel: user:${userId}`);
+
   // Store socket session in Redis for PM delivery
   setSession(username, socket.id).catch(err => {
     console.warn(`⚠️ Could not set session for ${username}:`, err.message);

@@ -8,7 +8,7 @@ const { XP_REWARDS, addXp } = require('../utils/xpLeveling');
 module.exports = (io, socket) => {
   const sendPrivateMessage = async (data) => {
     try {
-      let { fromUserId, fromUsername, toUserId, toUsername, message } = data;
+      let { fromUserId, fromUsername, toUserId, toUsername, message, clientMsgId } = data;
 
       console.log('📩 PM:SEND received:', { fromUserId, fromUsername, toUserId, toUsername, message: message?.substring(0, 50) });
 
@@ -98,12 +98,13 @@ module.exports = (io, socket) => {
       await addXp(fromUserId, XP_REWARDS.SEND_MESSAGE, 'send_pm', io);
 
       const messageData = {
-        id: generateMessageId(),
+        id: clientMsgId || generateMessageId(), // 🔑 Use client ID for dedup
         fromUserId,
         toUserId,
         fromUsername,
         toUsername: recipientUsername,
         message,
+        messageType: 'pm', // 🔑 PM identifier
         timestamp: new Date().toISOString(),
         isRead: false
       };
@@ -113,16 +114,12 @@ module.exports = (io, socket) => {
       await addUserDM(fromUsername, recipientUsername);
       await addUserDM(recipientUsername, fromUsername);
 
-      const toSocketId = await getSession(recipientUsername);
-      console.log(`📩 PM from ${fromUsername} to ${recipientUsername} - Socket ID: ${toSocketId || 'OFFLINE'}`);
-      if (toSocketId) {
-        io.to(toSocketId).emit('pm:receive', messageData);
-        console.log(`📩 PM delivered to socket: ${toSocketId}`);
-      } else {
-        console.log(`📩 PM recipient ${recipientUsername} is offline`);
-      }
+      // 🔑 EMIT TO USER CHANNEL - ALL TABS receive PM
+      io.to(`user:${toUserId}`).emit('pm:receive', messageData);
+      console.log(`📩 PM delivered to ALL tabs of user:${toUserId} (${recipientUsername})`);
 
-      socket.emit('pm:sent', messageData);
+      // Echo back to sender's all tabs
+      io.to(`user:${fromUserId}`).emit('pm:sent', messageData);
 
       io.to(`user:${recipientUsername}`).emit('chatlist:update', {
         type: 'dm',

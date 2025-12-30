@@ -234,34 +234,36 @@ export default function ChatRoomScreen() {
         }
       });
 
-      // Handle incoming private messages - auto-open PM tab
+      // 🔑 GLOBAL PM LISTENER - Multi-tab support
       newSocket.on('pm:receive', (data: any) => {
-        console.log('📩 [PM] Received private message:', data);
+        console.log('📩 [PM-RECEIVE] Message from:', data.fromUsername, '| Type:', data.messageType);
         
-        const senderUsername = data.fromUsername || data.from?.username;
-        const senderId = data.fromUserId || data.from?.userId;
+        const senderUsername = data.fromUsername;
+        const senderId = data.fromUserId;
         const message = data.message;
         
-        if (!senderUsername || !message) {
+        if (!senderUsername || !message || data.messageType !== 'pm') {
           console.warn('📩 [PM] Invalid PM data received');
           return;
         }
         
-        // Create PM room ID
-        const pmRoomId = `pm_${senderUsername}`;
+        // 🔑 Add to PM store (separate from room messages)
+        const { addPrivateMessage, openRoom: storeOpenRoom, setActiveRoomById } = useRoomTabsStore.getState();
         
-        // Open PM tab (if not already open)
-        const { openRoom: storeOpenRoom, addMessage } = useRoomTabsStore.getState();
-        storeOpenRoom(pmRoomId, senderUsername);
-        
-        // Add message to the PM tab
-        addMessage(pmRoomId, {
-          id: data.id || `pm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        const pmMessage: Message = {
+          id: data.id,
           username: senderUsername,
           message: message,
           isOwnMessage: false,
           timestamp: data.timestamp || new Date().toISOString(),
-        });
+        };
+
+        // Add to PM storage (auto-dedup inside)
+        addPrivateMessage(senderId, pmMessage);
+        
+        // 🔑 AUTO-OPEN PM tab
+        const pmRoomId = `pm_${senderUsername}`;
+        storeOpenRoom(pmRoomId, senderUsername);
         
         // Play PM sound
         const playPrivateSound = (window as any).__PLAY_PRIVATE_SOUND__;
@@ -269,7 +271,31 @@ export default function ChatRoomScreen() {
           playPrivateSound();
         }
         
-        console.log('📩 [PM] Opened tab and added message for:', senderUsername);
+        console.log('📩 [PM] Auto-opened tab and stored PM from:', senderUsername);
+      });
+
+      // 🔑 PM SENT ECHO - For sender's other tabs
+      newSocket.on('pm:sent', (data: any) => {
+        console.log('📩 [PM-SENT] Echo for sent message to:', data.toUsername);
+        
+        const { addPrivateMessage, openRoom: storeOpenRoom } = useRoomTabsStore.getState();
+        
+        const pmMessage: Message = {
+          id: data.id,
+          username: 'You',
+          message: data.message,
+          isOwnMessage: true,
+          timestamp: data.timestamp || new Date().toISOString(),
+        };
+
+        // Add to PM storage
+        addPrivateMessage(data.toUserId, pmMessage);
+        
+        // Ensure PM tab is open
+        const pmRoomId = `pm_${data.toUsername}`;
+        storeOpenRoom(pmRoomId, data.toUsername);
+        
+        console.log('📩 [PM] Synced sent PM to:', data.toUsername);
       });
 
       // Store socket globally for MenuParticipantsModal
