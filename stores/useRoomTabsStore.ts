@@ -1,6 +1,23 @@
 import { create } from 'zustand';
 import { Socket } from 'socket.io-client';
 
+// Helper function to build stable conversation ID that handles both numeric and string IDs
+export function buildConversationId(selfId: string, otherId: string): string {
+  const selfNum = parseInt(selfId, 10);
+  const otherNum = parseInt(otherId, 10);
+  
+  // If both are valid numbers, use numeric comparison
+  if (!isNaN(selfNum) && !isNaN(otherNum)) {
+    const minId = Math.min(selfNum, otherNum);
+    const maxId = Math.max(selfNum, otherNum);
+    return `private:${minId}:${maxId}`;
+  }
+  
+  // Fallback to lexical ordering for string IDs
+  const ids = [selfId.toString(), otherId.toString()].sort();
+  return `private:${ids[0]}:${ids[1]}`;
+}
+
 export interface Message {
   id: string;
   username: string;
@@ -246,12 +263,8 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
 
     const newMessages = [...existingMessages, processedMessage];
     
-    // Use stable conversation ID format: private:<minId>:<maxId>
-    const numericUserId = parseInt(userId, 10);
-    const numericCurrentId = parseInt(state.currentUserId, 10);
-    const minId = Math.min(numericCurrentId, numericUserId);
-    const maxId = Math.max(numericCurrentId, numericUserId);
-    const conversationId = `private:${minId}:${maxId}`;
+    // Use stable conversation ID with helper function
+    const conversationId = buildConversationId(state.currentUserId, userId);
     
     const activeRoomId = state.openRoomIds[state.activeIndex];
     const isActiveRoom = activeRoomId === conversationId;
@@ -267,19 +280,29 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
     let newOpenRoomsById = state.openRoomsById;
     let newOpenRoomIds = state.openRoomIds;
     
-    // ✅ IMPORTANT: Do NOT auto-open new tabs for incoming PMs
-    // Only append message if conversation is already open, otherwise just store in privateMessages
-    if (state.openRoomsById[conversationId]) {
-      // Conversation tab exists - mark as unread if not active
-      if (!isActiveRoom && !processedMessage.isOwnMessage) {
-        const room = state.openRoomsById[conversationId];
-        newOpenRoomsById = {
-          ...state.openRoomsById,
-          [conversationId]: { ...room, unread: room.unread + 1 },
-        };
-      }
+    // ✅ Create tab if not exists (but DON'T switch activeIndex)
+    if (!state.openRoomsById[conversationId]) {
+      // Create new tab with unread indicator
+      const displayName = message.username || (message as any).fromUsername || `User ${userId}`;
+      const newRoom: OpenRoom = { 
+        roomId: conversationId, 
+        name: displayName, 
+        unread: processedMessage.isOwnMessage ? 0 : 1 
+      };
+      newOpenRoomIds = [...state.openRoomIds, conversationId];
+      newOpenRoomsById = {
+        ...state.openRoomsById,
+        [conversationId]: newRoom,
+      };
+      console.log('🔓 Created PM tab:', conversationId, 'for:', displayName, '(no focus switch)');
+    } else if (!isActiveRoom && !processedMessage.isOwnMessage) {
+      // Tab exists but not active - increment unread count
+      const room = state.openRoomsById[conversationId];
+      newOpenRoomsById = {
+        ...state.openRoomsById,
+        [conversationId]: { ...room, unread: room.unread + 1 },
+      };
     }
-    // If conversation doesn't exist, just store message - don't open tab
 
     set({
       privateMessages: { ...state.privateMessages, [userId]: newMessages },
