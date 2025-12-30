@@ -89,7 +89,7 @@ export default function ChatRoomScreen() {
         });
 
         const { sound } = await Audio.Sound.createAsync(
-          { uri: require('@/assets/sound/privatechat.mp3') },
+          require('@/assets/sound/privatechat.mp3'),
           { shouldPlay: false }
         );
         soundRef.current = sound;
