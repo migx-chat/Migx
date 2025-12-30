@@ -508,12 +508,13 @@ export const useOpenRooms = (): OpenRoom[] => {
   return rooms;
 };
 
-export const useRoomMessagesData = (roomId: string): Message[] => {
-  return useRoomTabsStore(state => state.messagesByRoom[roomId] || []);
-};
+const EMPTY_MESSAGES: Message[] = [];
 
+export const useRoomMessagesData = (roomId: string): Message[] => {
+  return useRoomTabsStore(state => state.messagesByRoom[roomId] ?? EMPTY_MESSAGES);
+};
 export const usePrivateMessagesData = (userId: string): Message[] => {
-  return useRoomTabsStore(state => state.privateMessages[userId] || []);
+  return useRoomTabsStore(state => state.privateMessages[userId] ?? EMPTY_MESSAGES);
 };
 
 export const useRoomTabsData = () => {
