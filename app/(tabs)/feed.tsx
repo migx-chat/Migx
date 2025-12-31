@@ -585,12 +585,12 @@ export default function FeedScreen() {
       <View style={styles.postActions}>
         <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
           <ThumbUpIcon color={item.is_liked ? '#2196F3' : theme.secondary} size={20} filled={item.is_liked} />
-          <Text style={[styles.actionText, { color: item.is_liked ? '#2196F3' : theme.secondary }]}>{item.likes_count}</Text>
+          <Text style={[styles.actionText, { color: item.is_liked ? '#2196F3' : theme.secondary }]}>{item.likes_count ?? 0}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton} onPress={() => handleComment(item)}>
           <CommentIcon color={theme.secondary} size={20} />
-          <Text style={[styles.actionText, { color: theme.secondary }]}>{item.comments_count}</Text>
+          <Text style={[styles.actionText, { color: theme.secondary }]}>{item.comments_count ?? 0}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton} onPress={() => handleShare(item)}>
