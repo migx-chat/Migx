@@ -115,28 +115,28 @@ const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
   admin: {
     label: 'ADMIN',
     color: '#FF8C42',
-    bgColor: '#1B5E20',
+    bgColor: '',
     textColor: '#FFFFFF',
     abbreviation: 'A'
   },
   care_service: {
     label: 'CS',
-    color: '#4A90E2',
-    bgColor: '#1B5E20',
+    color: '#4CAF50',
+    bgColor: '',
     textColor: '#FFFFFF',
     abbreviation: 'CS'
   },
   mentor: {
     label: 'MENTOR',
     color: '#E74C3C',
-    bgColor: '#1B5E20',
+    bgColor: '',
     textColor: '#FFFFFF',
     abbreviation: 'MT'
   },
   merchant: {
     label: 'MERCHANT',
     color: '#9B59B6',
-    bgColor: '#1B5E20',
+    bgColor: '',
     textColor: '#FFFFFF',
     abbreviation: 'M'
   }
@@ -187,7 +187,7 @@ export default function PeoplePage() {
 
     return (
       <TouchableOpacity 
-        style={styles.userItem}
+        style={[styles.userItem, { backgroundColor: theme.card }]}
         activeOpacity={0.7}
         onPress={() => router.push(`/view-profile?userId=${item.id}`)}
       >
@@ -197,7 +197,7 @@ export default function PeoplePage() {
             style={styles.userAvatarImage}
           />
         ) : (
-          <View style={[styles.userAvatar, { backgroundColor: theme.primary }]}>
+          <View style={[styles.userAvatar, { backgroundColor: config.color }]}>
             <Text style={[styles.userAvatarText, { color: '#fff' }]}>
               {item.username.charAt(0).toUpperCase()}
             </Text>
@@ -205,7 +205,7 @@ export default function PeoplePage() {
         )}
         <View style={styles.userInfo}>
           <View style={styles.userNameRow}>
-            <Text style={styles.userNameBlack} numberOfLines={1}>
+            <Text style={[styles.userName, { color: config.color }]} numberOfLines={1}>
               {item.username}
             </Text>
             {item.gender && (
@@ -245,7 +245,7 @@ export default function PeoplePage() {
           style={[
             styles.roleHeader,
             {
-              backgroundColor: config.bgColor,
+              backgroundColor: theme.card,
               borderColor: theme.border,
             }
           ]}
@@ -487,7 +487,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 12,
-    backgroundColor: '#D3D3D3',
     borderRadius: 10,
     marginBottom: 6,
   },
