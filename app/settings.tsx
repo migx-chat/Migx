@@ -68,6 +68,14 @@ export default function SettingsScreen() {
               onPress={() => router.push('/security')}
               theme={theme}
             />
+            
+            <SettingsItem
+              icon="notifications-outline"
+              title="Notification"
+              subtitle="Sounds, Vibrate"
+              onPress={() => router.push('/notification')}
+              theme={theme}
+            />
           </View>
         </View>
       </SafeAreaView>
