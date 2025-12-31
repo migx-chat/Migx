@@ -454,6 +454,22 @@ module.exports = (io, socket) => {
       };
 
       io.to(`room:${roomId}`).emit('chat:message', leftMessage);
+
+      // Send updated "Currently users in the room" message after user leaves
+      const currentUsersAfterLeave = await getRoomPresenceUsers(roomId);
+      if (currentUsersAfterLeave.length > 0) {
+        const updatedUserListString = currentUsersAfterLeave.join(', ');
+        const updatedUsersMessage = {
+          id: `users-update-${Date.now()}-${Math.random()}`,
+          roomId,
+          username: room.name,
+          message: `Currently users in the room: ${updatedUserListString}`,
+          timestamp: new Date().toISOString(),
+          type: 'presence',
+          messageType: 'presence'
+        };
+        io.to(`room:${roomId}`).emit('chat:message', updatedUsersMessage);
+      }
       // Note: Presence events are NOT saved to Redis - they are realtime only
 
       io.to(`room:${roomId}`).emit('room:user:left', {
