@@ -18,6 +18,7 @@ interface ChatData {
   roomId?: string;
   userId?: string;
   avatar?: string;
+  hasUnread?: boolean;
 }
 
 export function ChatList() {
@@ -27,6 +28,8 @@ export function ChatList() {
   const [username, setUsername] = useState<string>('');
   const socket = useRoomTabsStore((state) => state.socket);
   const privateMessages = useRoomTabsStore((state) => state.privateMessages);
+  const unreadPmCounts = useRoomTabsStore((state) => state.unreadPmCounts);
+  const openRoomIds = useRoomTabsStore((state) => state.openRoomIds);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastLoadRef = useRef<number>(0);
 
@@ -263,16 +266,34 @@ export function ChatList() {
   // Handle private message updates
   const handlePrivateMessageUpdate = useCallback((data: any) => {
     console.log('📩 PM update:', data.fromUsername);
+    
+    // Increment unread count for this PM sender
+    const { incrementUnreadPm, currentUserId } = useRoomTabsStore.getState();
+    if (data.fromUserId && data.fromUserId !== currentUserId) {
+      incrementUnreadPm(data.fromUserId);
+    }
+    
     setChatData((prevData) => {
       const pmExists = prevData.some((chat) => chat.userId === data.fromUserId);
       if (pmExists) {
         return prevData.map((chat) =>
           chat.userId === data.fromUserId
-            ? { ...chat, message: `${data.fromUsername}: ${data.message}`, time: formatTime(Date.now()) }
+            ? { ...chat, message: `${data.fromUsername}: ${data.message}`, time: formatTime(Date.now()), hasUnread: true }
             : chat
         );
+      } else {
+        // Add new PM entry with unread indicator
+        return [...prevData, {
+          type: 'pm' as const,
+          name: data.fromUsername,
+          username: data.fromUsername,
+          userId: data.fromUserId,
+          message: data.message,
+          time: formatTime(Date.now()),
+          isOnline: true,
+          hasUnread: true,
+        }];
       }
-      return prevData;
     });
   }, []);
 
@@ -347,9 +368,19 @@ export function ChatList() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {chatData.map((chat, index) => (
-          <ChatItem key={`${chat.type}-${chat.name}-${index}`} {...chat} />
-        ))}
+        {chatData.map((chat, index) => {
+          // Check unread status from store for PM items
+          const hasUnread = chat.type === 'pm' && chat.userId 
+            ? (unreadPmCounts[chat.userId] || 0) > 0 || chat.hasUnread
+            : false;
+          return (
+            <ChatItem 
+              key={`${chat.type}-${chat.name}-${index}`} 
+              {...chat} 
+              hasUnread={hasUnread}
+            />
+          );
+        })}
         <View style={styles.spacer} />
       </ScrollView>
     </View>

@@ -47,6 +47,7 @@ interface RoomTabsState {
   activeIndex: number;
   messagesByRoom: Record<string, Message[]>;
   privateMessages: Record<string, Message[]>; // 🔑 PM storage
+  unreadPmCounts: Record<string, number>; // Track unread PMs by userId when not in chatroom
   socket: Socket | null;
   currentUsername: string;
   currentUserId: string;
@@ -77,6 +78,9 @@ interface RoomTabsActions {
   hasSystemMessage: (roomId: string) => boolean;
   clearChat: (roomId: string) => void;
   clearPrivateMessages: (userId: string) => void; // Add action for clearing PMs
+  incrementUnreadPm: (userId: string) => void;
+  clearUnreadPm: (userId: string) => void;
+  getUnreadPmCount: (userId: string) => number;
 }
 
 type RoomTabsStore = RoomTabsState & RoomTabsActions;
@@ -87,6 +91,7 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
   activeIndex: 0,
   messagesByRoom: {},
   privateMessages: {}, // 🔑 PM storage
+  unreadPmCounts: {}, // Track unread PMs by userId
   socket: null,
   currentUsername: '',
   currentUserId: '',
@@ -489,6 +494,26 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
         [userId]: []
       }
     });
+  },
+
+  incrementUnreadPm: (userId: string) => {
+    const state = get();
+    set({
+      unreadPmCounts: {
+        ...state.unreadPmCounts,
+        [userId]: (state.unreadPmCounts[userId] || 0) + 1
+      }
+    });
+  },
+
+  clearUnreadPm: (userId: string) => {
+    const state = get();
+    const { [userId]: _, ...rest } = state.unreadPmCounts;
+    set({ unreadPmCounts: rest });
+  },
+
+  getUnreadPmCount: (userId: string) => {
+    return get().unreadPmCounts[userId] || 0;
   },
 }));
 

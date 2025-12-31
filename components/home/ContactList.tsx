@@ -1,9 +1,11 @@
 import React, { forwardRef, useImperativeHandle } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 import { useThemeCustom } from '@/theme/provider';
 import { ContactItem } from './ContactItem';
 import { API_ENDPOINTS } from '@/utils/api';
+import { useRoomTabsStore, buildConversationId } from '@/stores/useRoomTabsStore';
 
 const API_BASE_URL = Platform.OS === 'web'
   ? 'https://d1a7ddfc-5415-44f9-92c0-a278e94f8f08-00-1i8qhqy6zm7hx.sisko.replit.dev'
@@ -12,6 +14,7 @@ const API_BASE_URL = Platform.OS === 'web'
 type PresenceStatus = 'online' | 'away' | 'busy' | 'offline';
 
 interface Contact {
+  id: string;
   name: string;
   status: string;
   presence: PresenceStatus;
@@ -21,6 +24,7 @@ interface Contact {
 
 const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }>((props, ref) => {
   const { theme } = useThemeCustom();
+  const router = useRouter();
   const [onlineFriends, setOnlineFriends] = React.useState<Contact[]>([]);
   const [mig33Contacts, setMig33Contacts] = React.useState<Contact[]>([]);
   const [onlineCollapsed, setOnlineCollapsed] = React.useState(false);
@@ -58,6 +62,7 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
           }
           const presence = user.presence_status || 'offline';
           return {
+            id: String(user.id),
             name: user.username,
             status: user.status_message || '',
             presence: presence as PresenceStatus,
@@ -99,6 +104,7 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
             }
             const presence = user.presence_status || 'offline';
             return {
+              id: String(user.id),
               name: user.username,
               status: user.status_message || '',
               presence: presence as PresenceStatus,
@@ -117,8 +123,18 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
   };
 
   const handleContactPress = (contact: Contact) => {
-    // Placeholder for handling contact press event
-    console.log(`Contact ${contact.name} pressed`);
+    // Navigate to private chat with this contact
+    const { currentUserId } = useRoomTabsStore.getState();
+    const conversationId = buildConversationId(currentUserId, contact.id);
+    
+    router.push({
+      pathname: '/chatroom/[id]',
+      params: { 
+        id: conversationId, 
+        name: contact.name,
+        type: 'pm',
+      },
+    });
   };
 
   const updateStatusMessage = async (contactName: string, newStatus: string) => {

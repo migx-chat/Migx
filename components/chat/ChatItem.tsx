@@ -16,6 +16,7 @@ interface ChatItemProps {
   roomId?: string;
   userId?: string;
   username?: string;
+  hasUnread?: boolean;
 }
 
 const UserAvatar = ({ avatar, isOnline, theme }: { avatar?: string; isOnline?: boolean; theme: any }) => {
@@ -49,7 +50,7 @@ const RoomIcon = ({ size = 60, theme }: { size?: number; theme: any }) => (
   </View>
 );
 
-export function ChatItem({ type, name, message, time, isOnline, avatar, tags, roomId, userId, username }: ChatItemProps) {
+export function ChatItem({ type, name, message, time, isOnline, avatar, tags, roomId, userId, username, hasUnread }: ChatItemProps) {
   const router = useRouter();
   const { theme } = useThemeCustom();
 
@@ -57,7 +58,10 @@ export function ChatItem({ type, name, message, time, isOnline, avatar, tags, ro
     // Handle PM navigation
     if (type === 'pm' && userId) {
       // Get current user ID from store to create stable conversation ID
-      const { currentUserId } = useRoomTabsStore.getState();
+      const { currentUserId, clearUnreadPm } = useRoomTabsStore.getState();
+      
+      // Clear unread indicator for this PM
+      clearUnreadPm(userId);
       
       // Use helper function for stable conversation ID
       const conversationId = buildConversationId(currentUserId, userId);
@@ -94,6 +98,7 @@ export function ChatItem({ type, name, message, time, isOnline, avatar, tags, ro
         <View style={styles.contentSection}>
           <View style={styles.nameRow}>
             <Text style={[styles.name, { color: theme.primary }]}>{name}</Text>
+            {hasUnread && <View style={styles.unreadDot} />}
             {tags && tags.length > 0 && (
               <View style={styles.tagsContainer}>
                 {tags.map((tag, index) => (
@@ -167,6 +172,12 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  unreadDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FF0000',
   },
   tagsContainer: {
     flexDirection: 'row',
