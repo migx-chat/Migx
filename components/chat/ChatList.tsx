@@ -151,33 +151,42 @@ export function ChatList() {
           }
         });
         
-        // Add DMs from API
+        // Add DMs from API (exclude own account)
         data.dms?.forEach((dm: any) => {
-          formattedData.push({
-            type: 'pm',
-            name: dm.username,
-            username: dm.username,
-            userId: dm.userId,
-            avatar: dm.avatar,
-            message: dm.lastMessage?.message,
-            time: dm.lastMessage?.timestamp 
-              ? formatTime(dm.lastMessage.timestamp) 
-              : undefined,
-            isOnline: dm.isOnline || false,
-          });
+          if (dm.username && dm.username.toLowerCase() !== username.toLowerCase()) {
+            formattedData.push({
+              type: 'pm',
+              name: dm.username,
+              username: dm.username,
+              userId: dm.userId,
+              avatar: dm.avatar,
+              message: dm.lastMessage?.message,
+              time: dm.lastMessage?.timestamp 
+                ? formatTime(dm.lastMessage.timestamp) 
+                : undefined,
+              isOnline: dm.isOnline || false,
+            });
+          }
         });
         
-        // Add PMs from store (for new PMs not yet saved to Redis)
-        Object.entries(privateMessages).forEach(([userId, messages]) => {
+        // Add PMs from store (for new PMs not yet saved to Redis, exclude own account)
+        Object.entries(privateMessages).forEach(([oderId, messages]) => {
           if (messages && messages.length > 0) {
-            const pmExists = formattedData.some(chat => chat.userId === userId);
+            const lastMsg = messages[messages.length - 1];
+            const pmUsername = lastMsg.username || `User ${oderId}`;
+            
+            // Skip if this is the user's own account
+            if (pmUsername.toLowerCase() === username.toLowerCase()) {
+              return;
+            }
+            
+            const pmExists = formattedData.some(chat => chat.userId === oderId);
             if (!pmExists) {
-              const lastMsg = messages[messages.length - 1];
               formattedData.push({
                 type: 'pm',
-                name: lastMsg.username || `User ${userId}`,
-                username: lastMsg.username || `User ${userId}`,
-                userId,
+                name: pmUsername,
+                username: pmUsername,
+                userId: oderId,
                 message: lastMsg.message,
                 time: lastMsg.timestamp ? formatTime(lastMsg.timestamp) : formatTime(Date.now()),
                 isOnline: true,
@@ -267,7 +276,7 @@ export function ChatList() {
     });
   }, []);
 
-  // Merge private messages into chatData (update existing or add new)
+  // Merge private messages into chatData (update existing or add new, exclude own account)
   const updateChatDataWithPrivateMessages = useCallback(() => {
     setChatData((prevData) => {
       const updatedData = [...prevData];
@@ -275,14 +284,21 @@ export function ChatList() {
       Object.entries(privateMessages).forEach(([oderId, messages]) => {
         if (messages && messages.length > 0) {
           const lastMsg = messages[messages.length - 1];
+          const pmUsername = lastMsg.username || `User ${oderId}`;
+          
+          // Skip if this is the user's own account
+          if (pmUsername.toLowerCase() === username.toLowerCase()) {
+            return;
+          }
+          
           const existingIndex = updatedData.findIndex((chat) => 
-            chat.type === 'pm' && (chat.userId === oderId || chat.username === lastMsg.username)
+            chat.type === 'pm' && (chat.userId === oderId || chat.username === pmUsername)
           );
           
           const pmData: ChatData = {
             type: 'pm',
-            name: lastMsg.username || `User ${oderId}`,
-            username: lastMsg.username || `User ${oderId}`,
+            name: pmUsername,
+            username: pmUsername,
             userId: oderId,
             message: lastMsg.message,
             time: formatTime(lastMsg.timestamp || Date.now()),
@@ -299,7 +315,7 @@ export function ChatList() {
       
       return updatedData;
     });
-  }, [privateMessages]);
+  }, [privateMessages, username]);
 
   const formatTime = (timestamp: string | number | undefined) => {
     if (!timestamp) return '';
