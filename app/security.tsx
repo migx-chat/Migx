@@ -225,28 +225,6 @@ export default function SecurityScreen() {
     }
   };
 
-  const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await AsyncStorage.removeItem('user_data');
-              router.replace('/login');
-            } catch (error) {
-              console.error('Logout error:', error);
-            }
-          }
-        }
-      ]
-    );
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <SafeAreaView style={styles.safeArea}>
@@ -402,13 +380,7 @@ export default function SecurityScreen() {
             )}
           </View>
 
-          {/* Logout Section */}
-          <View style={[styles.section, { backgroundColor: theme.card }]}>
-            <TouchableOpacity style={[styles.logoutButton, { backgroundColor: '#EF4444' }]} onPress={handleLogout}>
-              <Text style={styles.buttonText}>Logout</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
+                  </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -492,10 +464,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  logoutButton: {
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
   },
 });
