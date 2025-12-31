@@ -4,6 +4,7 @@ const { getUserSocket, getPresence, getSession } = require('../utils/presence');
 const { generateMessageId } = require('../utils/idGenerator');
 const { checkGlobalRateLimit } = require('../utils/floodControl');
 const { XP_REWARDS, addXp } = require('../utils/xpLeveling');
+const { MIG33_CMD } = require('../utils/cmdMapping');
 
 module.exports = (io, socket) => {
   const sendPrivateMessage = async (data) => {
@@ -40,6 +41,110 @@ module.exports = (io, socket) => {
           type: 'warning'
         });
         return;
+      }
+
+      // Handle commands in PM
+      if (message.startsWith('/')) {
+        const parts = message.slice(1).split(' ');
+        const cmdKey = parts[0].toLowerCase();
+
+        // Handle /me command
+        if (cmdKey === 'me') {
+          const actionText = parts.slice(1).join(' ');
+          const formatted = actionText ? `** ${fromUsername} ${actionText} **` : `** ${fromUsername} **`;
+          
+          const cmdMessage = {
+            id: clientMsgId || generateMessageId(),
+            fromUserId,
+            toUserId,
+            fromUsername,
+            toUsername,
+            message: formatted,
+            messageType: 'cmdMe',
+            type: 'cmdMe',
+            timestamp: new Date().toISOString(),
+            isRead: false
+          };
+
+          io.to(`user:${toUserId}`).emit('pm:receive', cmdMessage);
+          io.to(`user:${fromUserId}`).emit('pm:sent', cmdMessage);
+          return;
+        }
+
+        // Handle /gift command
+        if (cmdKey === 'gift') {
+          const giftName = parts[1];
+          if (!giftName) {
+            socket.emit('system:message', {
+              message: `Usage: /gift <giftname>`,
+              type: 'warning'
+            });
+            return;
+          }
+
+          const cmdMessage = {
+            id: clientMsgId || generateMessageId(),
+            fromUserId,
+            toUserId,
+            fromUsername,
+            toUsername,
+            message: `** ${fromUsername} sent [${giftName}] to ${toUsername} **`,
+            messageType: 'cmdGift',
+            type: 'cmdGift',
+            timestamp: new Date().toISOString(),
+            isRead: false
+          };
+
+          io.to(`user:${toUserId}`).emit('pm:receive', cmdMessage);
+          io.to(`user:${fromUserId}`).emit('pm:sent', cmdMessage);
+          return;
+        }
+
+        // Handle /roll command
+        if (cmdKey === 'roll') {
+          const rollResult = Math.floor(Math.random() * 100) + 1;
+          const formatted = `** ${fromUsername} rolls ${rollResult} **`;
+
+          const cmdMessage = {
+            id: clientMsgId || generateMessageId(),
+            fromUserId,
+            toUserId,
+            fromUsername,
+            toUsername,
+            message: formatted,
+            messageType: 'cmdRoll',
+            type: 'cmdRoll',
+            timestamp: new Date().toISOString(),
+            isRead: false
+          };
+
+          io.to(`user:${toUserId}`).emit('pm:receive', cmdMessage);
+          io.to(`user:${fromUserId}`).emit('pm:sent', cmdMessage);
+          return;
+        }
+
+        // Handle other MIG33 commands (without target - in PM, target is always the other user)
+        const cmd = MIG33_CMD[cmdKey];
+        if (cmd) {
+          const text = cmd.requiresTarget ? cmd.message(fromUsername, toUsername) : cmd.message(fromUsername);
+          
+          const cmdMessage = {
+            id: clientMsgId || generateMessageId(),
+            fromUserId,
+            toUserId,
+            fromUsername,
+            toUsername,
+            message: `** ${text} **`,
+            messageType: 'cmd',
+            type: 'cmd',
+            timestamp: new Date().toISOString(),
+            isRead: false
+          };
+
+          io.to(`user:${toUserId}`).emit('pm:receive', cmdMessage);
+          io.to(`user:${fromUserId}`).emit('pm:sent', cmdMessage);
+          return;
+        }
       }
 
       let recipientUsername = toUsername;
