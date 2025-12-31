@@ -121,7 +121,7 @@ export function ProfileMenuModal({ visible, onClose, userData }: ProfileMenuModa
 
   const handleSettings = () => {
     onClose();
-    router.push('/security');
+    router.push('/settings');
   };
 
   const handleAdminPanel = () => {
