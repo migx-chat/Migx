@@ -84,6 +84,14 @@ export default function SettingsScreen() {
               onPress={() => router.push('/privacy')}
               theme={theme}
             />
+            
+            <SettingsItem
+              icon="information-circle-outline"
+              title="About"
+              subtitle="Policy, Terms, Version"
+              onPress={() => router.push('/about')}
+              theme={theme}
+            />
           </View>
         </View>
       </SafeAreaView>
