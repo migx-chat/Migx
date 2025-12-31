@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { useThemeCustom } from '@/theme/provider';
 import { router, usePathname } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { 
   AccountIcon, 
   CommentIcon as OfficialCommentIcon, 
@@ -16,6 +18,7 @@ import {
 } from '@/components/profile/ProfileIcons';
 import { ModeToggle } from '@/components/profile/ModeToggle';
 import API_BASE_URL from '@/utils/api';
+import { useSocket } from '@/hooks/useSocket';
 
 const EditIcon = ({ size = 20, color = '#fff' }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -33,6 +36,7 @@ interface ProfileMenuModalProps {
 export function ProfileMenuModal({ visible, onClose, userData }: ProfileMenuModalProps) {
   const { theme } = useThemeCustom();
   const pathname = usePathname();
+  const { socket } = useSocket();
 
   // Auto close modal saat route berubah
   useEffect(() => {
@@ -119,6 +123,38 @@ export function ProfileMenuModal({ visible, onClose, userData }: ProfileMenuModa
     router.push('/admin-panel');
   };
 
+  const handleLogout = async () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            onClose();
+            if (socket) {
+              socket.emit('logout');
+              socket.disconnect();
+            }
+            const allKeys = await AsyncStorage.getAllKeys();
+            const sessionKeys = allKeys.filter(key => 
+              key !== 'saved_username' && 
+              key !== 'saved_password' && 
+              key !== 'remember_me'
+            );
+            if (sessionKeys.length > 0) {
+              await AsyncStorage.multiRemove(sessionKeys);
+            }
+            router.replace('/login');
+          } catch (error) {
+            console.error('Logout error:', error);
+            Alert.alert('Error', 'Failed to logout properly');
+          }
+        }
+      }
+    ]);
+  };
+
   return (
     <Modal
       visible={visible}
@@ -201,6 +237,14 @@ export function ProfileMenuModal({ visible, onClose, userData }: ProfileMenuModa
             />
 
             <ModeToggle />
+
+            <MenuItem 
+              icon={<Ionicons name="log-out-outline" size={24} color="#FF3B30" />}
+              title="Logout"
+              onPress={handleLogout}
+              theme={theme}
+              showDivider={isMerchant || isSuperAdmin}
+            />
 
             {isMerchant && (
               <MenuItem 
