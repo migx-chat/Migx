@@ -182,8 +182,24 @@ export default function PeoplePage() {
     setExpandedRole(expandedRole === role ? null : role);
   };
 
+  const getRoleBadge = (role: UserRole) => {
+    switch(role) {
+      case 'admin':
+        return require('@/assets/badge role/ic_admin.png');
+      case 'care_service':
+        return require('@/assets/badge role/badge_cs.png');
+      case 'mentor':
+        return require('@/assets/badge role/ic_mentor.png');
+      case 'merchant':
+        return require('@/assets/badge role/ic_merchant.png');
+      default:
+        return null;
+    }
+  };
+
   const renderUserItemFixed = ({ item }: { item: User }) => {
     const config = ROLE_CONFIGS[item.role];
+    const roleBadge = getRoleBadge(item.role);
 
     return (
       <TouchableOpacity 
@@ -208,6 +224,23 @@ export default function PeoplePage() {
             <Text style={[styles.userName, { color: config.color }]} numberOfLines={1}>
               {item.username}
             </Text>
+            {item.level && (
+              <View style={styles.levelBadgeInline}>
+                <Image 
+                  source={getLevelConfig(item.level).icon}
+                  style={styles.levelIconSmall}
+                />
+                <Text style={styles.levelNumberSmall}>
+                  {item.level}
+                </Text>
+              </View>
+            )}
+            {roleBadge && (
+              <Image 
+                source={roleBadge}
+                style={styles.roleBadgeIcon}
+              />
+            )}
             {item.gender && (
               <View style={styles.genderIcon}>
                 {item.gender === 'male' ? (
@@ -218,17 +251,6 @@ export default function PeoplePage() {
               </View>
             )}
           </View>
-          {item.level && (
-            <View style={styles.levelBadgeContainer}>
-              <Image 
-                source={getLevelConfig(item.level).icon}
-                style={styles.eggIcon}
-              />
-              <Text style={styles.levelNumberOverlay}>
-                {item.level}
-              </Text>
-            </View>
-          )}
         </View>
       </TouchableOpacity>
     );
@@ -538,28 +560,32 @@ const styles = StyleSheet.create({
   genderIcon: {
     marginLeft: 4,
   },
-  levelBadgeContainer: {
+  levelBadgeInline: {
     position: 'relative',
-    width: 20,
-    height: 20,
-    marginTop: 4,
-    alignSelf: 'flex-start',
+    width: 18,
+    height: 18,
+    marginLeft: 6,
   },
-  eggIcon: {
-    width: 20,
-    height: 20,
+  levelIconSmall: {
+    width: 18,
+    height: 18,
   },
-  levelNumberOverlay: {
+  levelNumberSmall: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
     color: '#000',
     textAlign: 'center',
     textAlignVertical: 'center',
+  },
+  roleBadgeIcon: {
+    width: 18,
+    height: 18,
+    marginLeft: 6,
   },
   emptyContainer: {
     padding: 20,
