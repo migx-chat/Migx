@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 
 import { useThemeCustom } from '@/theme/provider';
-import { HomeIcon, ChatIcon, RoomIcon, ProfileIcon, FeedIcon } from '@/components/ui/SvgIcons';
+import { HomeIcon, ChatIcon, RoomIcon, FeedIcon } from '@/components/ui/SvgIcons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 50;
@@ -206,7 +206,6 @@ export default function TabLayout() {
       <Tabs.Screen name="chat" options={{ title: 'Chat' }} />
       <Tabs.Screen name="feed" options={{ title: 'Feed' }} />
       <Tabs.Screen name="room" options={{ title: 'Room' }} />
-      <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
