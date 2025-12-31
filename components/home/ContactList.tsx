@@ -118,10 +118,26 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
     }
   };
 
-  const handleContactPress = (contact: Contact) => {
-    // Navigate to private chat with this contact
-    const { currentUserId } = useRoomTabsStore.getState();
-    const conversationId = buildConversationId(currentUserId, contact.id);
+  const handleContactPress = async (contact: Contact) => {
+    // Get current user ID from store or AsyncStorage
+    let myUserId = useRoomTabsStore.getState().currentUserId;
+    
+    if (!myUserId) {
+      const userDataStr = await AsyncStorage.getItem('user_data');
+      if (userDataStr) {
+        const userData = JSON.parse(userDataStr);
+        myUserId = String(userData.id);
+        // Also update the store for future use
+        useRoomTabsStore.getState().setUserInfo(userData.username, myUserId);
+      }
+    }
+    
+    if (!myUserId) {
+      console.error('Cannot navigate to PM: current user ID not found');
+      return;
+    }
+    
+    const conversationId = buildConversationId(myUserId, contact.id);
     
     router.push({
       pathname: '/chatroom/[id]',
