@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeCustom } from '@/theme/provider';
@@ -16,30 +16,23 @@ const StatsIcon = ({ size = 20, color = '#4A90E2' }: { size?: number; color?: st
 );
 
 export function ChatHeader() {
-  const { theme } = useThemeCustom();
+  const { theme, scaleSize } = useThemeCustom();
   const insets = useSafeAreaInsets();
   const { socket } = useSocket();
   const [stats, setStats] = useState({
     users: 0,
     rooms: 0
   });
-  const roomStatsRef = useRef<Map<string, number>>(new Map());
 
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch(API_ENDPOINTS.ROOM.LIST);
+      const response = await fetch(API_ENDPOINTS.STATS.GLOBAL);
       const data = await response.json();
 
-      if (data.success) {
-        let totalUsers = 0;
-        roomStatsRef.current.clear();
-        data.rooms.forEach((room: any) => {
-          roomStatsRef.current.set(room.id, room.user_count || 0);
-          totalUsers += room.user_count || 0;
-        });
+      if (data.success && data.stats) {
         setStats({
-          users: totalUsers,
-          rooms: data.rooms.length
+          users: data.stats.totalUsers || 0,
+          rooms: data.stats.totalRooms || 0
         });
       }
     } catch (error) {
@@ -54,49 +47,34 @@ export function ChatHeader() {
   useEffect(() => {
     if (!socket) return;
 
-    const handleRoomsUpdateCount = (data: { roomId: string; userCount: number }) => {
-      const { roomId, userCount } = data;
-      roomStatsRef.current.set(roomId, userCount);
-      
-      let totalUsers = 0;
-      roomStatsRef.current.forEach((count) => {
-        totalUsers += count;
-      });
-      
-      setStats(prev => ({
-        ...prev,
-        users: totalUsers
-      }));
-    };
-
     const handleRoomsUpdate = (data: { room: any; action: string }) => {
       if (data.action === 'created') {
-        roomStatsRef.current.set(data.room.id, 0);
         setStats(prev => ({
           ...prev,
-          rooms: roomStatsRef.current.size
+          rooms: prev.rooms + 1
         }));
       } else if (data.action === 'deleted') {
-        roomStatsRef.current.delete(data.room.id);
-        let totalUsers = 0;
-        roomStatsRef.current.forEach((count) => {
-          totalUsers += count;
-        });
-        setStats({
-          users: totalUsers,
-          rooms: roomStatsRef.current.size
-        });
+        setStats(prev => ({
+          ...prev,
+          rooms: prev.rooms > 0 ? prev.rooms - 1 : 0
+        }));
       }
     };
 
-    socket.on('rooms:updateCount', handleRoomsUpdateCount);
     socket.on('rooms:update', handleRoomsUpdate);
 
     return () => {
-      socket.off('rooms:updateCount', handleRoomsUpdateCount);
       socket.off('rooms:update', handleRoomsUpdate);
     };
   }, [socket]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchStats();
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, [fetchStats]);
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -114,8 +92,8 @@ export function ChatHeader() {
         style={[styles.header, { paddingTop: insets.top + 8 }]}
       >
         <View style={styles.statsBar}>
-          <StatsIcon size={18} color="#FFFFFF" />
-          <Text style={[styles.statsText, { color: '#FFFFFF' }]}>
+          <StatsIcon size={scaleSize(18)} color="#FFFFFF" />
+          <Text style={[styles.statsText, { color: '#FFFFFF', fontSize: scaleSize(14) }]}>
             {formatNumber(stats.users)} User  {formatNumber(stats.rooms)} Rooms
           </Text>
         </View>

@@ -111,6 +111,9 @@ export const API_ENDPOINTS = {
   NOTIFICATION: {
     LIST: `${API_BASE_URL}/api/notifications`,
   },
+  STATS: {
+    GLOBAL: `${API_BASE_URL}/api/stats/global`,
+  },
 };
 
 export const createSocket = () => {

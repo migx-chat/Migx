@@ -246,6 +246,25 @@ app.get('/api', (req, res) => {
   });
 });
 
+app.get('/api/stats/global', async (req, res) => {
+  try {
+    const db = require('./db/db');
+    const totalUsersResult = await db.query('SELECT COUNT(*) as count FROM users');
+    const totalRoomsResult = await db.query('SELECT COUNT(*) as count FROM rooms');
+    
+    res.json({
+      success: true,
+      stats: {
+        totalUsers: parseInt(totalUsersResult.rows[0].count),
+        totalRooms: parseInt(totalRoomsResult.rows[0].count)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching global stats:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch stats' });
+  }
+});
+
 const chatRoutes = require('./api/chat.route');
 const chatroomRoutes = require('./api/chatroom.route');
 

@@ -22,7 +22,7 @@ interface ChatData {
 }
 
 export function ChatList() {
-  const { theme } = useThemeCustom();
+  const { theme, scaleSize } = useThemeCustom();
   const [chatData, setChatData] = useState<ChatData[]>([]);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState<string>('');
@@ -472,7 +472,7 @@ export function ChatList() {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyText, { color: theme.secondary }]}>
+          <Text style={[styles.emptyText, { color: theme.secondary, fontSize: scaleSize(14) }]}>
             No chats yet. Join a room to start chatting!
           </Text>
         </View>
