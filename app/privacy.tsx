@@ -8,7 +8,9 @@ import {
   Platform,
   StatusBar,
   ScrollView,
-  Modal
+  Modal,
+  FlatList,
+  Image
 } from 'react-native';
 import { router } from 'expo-router';
 import { useThemeCustom } from '@/theme/provider';
@@ -72,6 +74,9 @@ export default function PrivacyScreen() {
   const [blockListCount, setBlockListCount] = useState(0);
   const [privateChatModalVisible, setPrivateChatModalVisible] = useState(false);
   const [profilePrivacyModalVisible, setProfilePrivacyModalVisible] = useState(false);
+  const [blockedUsersModalVisible, setBlockedUsersModalVisible] = useState(false);
+  const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+  const [loadingBlocked, setLoadingBlocked] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -198,6 +203,42 @@ export default function PrivacyScreen() {
     }
   };
 
+  const fetchBlockedUsers = async () => {
+    if (!userId || !token) return;
+    setLoadingBlocked(true);
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/profile/blocks`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setBlockedUsers(response.data);
+      setBlockListCount(response.data.length);
+    } catch (error) {
+      console.error('Error fetching blocked users:', error);
+    } finally {
+      setLoadingBlocked(false);
+    }
+  };
+
+  const handleUnblock = async (targetId: number) => {
+    if (!token) return;
+    try {
+      await axios.post(
+        `${API_BASE_URL}/api/profile/unblock`,
+        { targetId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      // Refresh list
+      fetchBlockedUsers();
+    } catch (error) {
+      console.error('Error unblocking user:', error);
+    }
+  };
+
+  const openBlockList = () => {
+    setBlockedUsersModalVisible(true);
+    fetchBlockedUsers();
+  };
+
   const iconColor = theme.primary;
 
   return (
@@ -260,7 +301,7 @@ export default function PrivacyScreen() {
 
           <TouchableOpacity 
             style={[styles.menuItem, { borderBottomColor: theme.border }]}
-            onPress={() => {}}
+            onPress={openBlockList}
             activeOpacity={0.7}
           >
             <View style={styles.iconContainer}>
@@ -273,6 +314,61 @@ export default function PrivacyScreen() {
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
+
+      <Modal
+        visible={blockedUsersModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setBlockedUsersModalVisible(false)}
+      >
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+          <SafeAreaView style={styles.safeArea}>
+            <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+              <TouchableOpacity onPress={() => setBlockedUsersModalVisible(false)} style={styles.backButton}>
+                <Text style={[styles.backText, { color: theme.primary }]}>← Kembali</Text>
+              </TouchableOpacity>
+              <Text style={[styles.headerTitle, { color: theme.text }]}>Block lists</Text>
+              <View style={styles.placeholder} />
+            </View>
+
+            {loadingBlocked ? (
+              <View style={styles.centerContainer}>
+                <Text style={{ color: theme.text }}>Loading...</Text>
+              </View>
+            ) : blockedUsers.length === 0 ? (
+              <View style={styles.centerContainer}>
+                <Text style={{ color: theme.secondary }}>Tidak ada user yang diblokir</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={blockedUsers}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <View style={[styles.blockedItem, { borderBottomColor: theme.border }]}>
+                    <View style={styles.blockedUserInfo}>
+                      <View style={[styles.avatarPlaceholder, { backgroundColor: theme.border }]}>
+                        {item.avatar ? (
+                          <Image source={{ uri: item.avatar }} style={styles.avatarImage} />
+                        ) : (
+                          <Text style={{ color: theme.secondary }}>{item.username?.[0]?.toUpperCase()}</Text>
+                        )}
+                      </View>
+                      <Text style={[styles.blockedUsername, { color: theme.text }]}>{item.username}</Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={[styles.unblockButton, { borderColor: theme.primary }]}
+                      onPress={() => handleUnblock(item.id)}
+                    >
+                      <Text style={{ color: theme.primary }}>Buka Blokir</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+                contentContainerStyle={styles.blockedListContent}
+              />
+            )}
+          </SafeAreaView>
+        </View>
+      </Modal>
 
       <Modal
         visible={privateChatModalVisible}
@@ -473,5 +569,47 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  blockedListContent: {
+    paddingHorizontal: 16,
+  },
+  blockedItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+  },
+  blockedUserInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  blockedUsername: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  unblockButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    borderWidth: 1,
   },
 });

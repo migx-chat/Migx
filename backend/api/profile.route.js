@@ -635,6 +635,29 @@ router.put('/privacy/:userId', authMiddleware, async (req, res) => {
   }
 });
 
+router.get('/blocks', authMiddleware, async (req, res) => {
+  try {
+    const blockedUsers = await profileService.getBlockedUsers(req.user.id);
+    res.json(blockedUsers);
+  } catch (error) {
+    console.error('Get blocks error:', error);
+    res.status(500).json({ error: 'Failed to get blocked users' });
+  }
+});
+
+router.post('/unblock', authMiddleware, async (req, res) => {
+  try {
+    const { targetId } = req.body;
+    if (!targetId) return res.status(400).json({ error: 'Target ID required' });
+    
+    await profileService.unblockUser(req.user.id, targetId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Unblock error:', error);
+    res.status(500).json({ error: 'Failed to unblock user' });
+  }
+});
+
 // ==================== STATS ====================
 
 router.get('/stats/:userId', async (req, res) => {
