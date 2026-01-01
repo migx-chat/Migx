@@ -94,6 +94,45 @@ export function ChatList() {
     }
   }, [privateMessages]);
 
+  // Update chatlist when openRoomIds change (user joins/leaves rooms)
+  useEffect(() => {
+    if (username && openRoomIds.length >= 0) {
+      updateChatDataWithRooms();
+    }
+  }, [openRoomIds, username]);
+
+  const updateChatDataWithRooms = () => {
+    const { openRoomsById } = useRoomTabsStore.getState();
+    
+    setChatData((prevData) => {
+      // Get existing rooms from prevData
+      const existingRoomIds = new Set(prevData.filter(c => c.type === 'room').map(c => c.roomId));
+      
+      // Add rooms from store that are not private chats
+      const roomsToAdd: ChatData[] = [];
+      openRoomIds.forEach((roomId: string) => {
+        if (!roomId.startsWith('private:') && !roomId.startsWith('pm_') && !existingRoomIds.has(roomId)) {
+          const room = openRoomsById[roomId];
+          if (room) {
+            roomsToAdd.push({
+              type: 'room',
+              name: room.name,
+              roomId: roomId,
+              message: 'In this room',
+              time: formatTime(Date.now()),
+            });
+          }
+        }
+      });
+      
+      // Remove rooms that are no longer in openRoomIds
+      const currentRoomSet = new Set(openRoomIds.filter((id: string) => !id.startsWith('private:') && !id.startsWith('pm_')));
+      const filteredData = prevData.filter(c => c.type !== 'room' || (c.roomId && currentRoomSet.has(c.roomId)));
+      
+      return [...roomsToAdd, ...filteredData];
+    });
+  };
+
   const loadUsername = async () => {
     try {
       // Try to get username from user_data JSON first
