@@ -601,6 +601,36 @@ router.post('/follow/reject', async (req, res) => {
   }
 });
 
+// ==================== PRIVACY SETTINGS ====================
+
+router.get('/privacy/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const settings = await profileService.getPrivacySettings(userId);
+    res.json(settings);
+  } catch (error) {
+    console.error('Get privacy settings error:', error);
+    res.status(500).json({ error: 'Failed to get privacy settings' });
+  }
+});
+
+router.put('/privacy/:userId', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { allowPrivateChat } = req.body;
+    
+    if (req.user.id !== parseInt(userId)) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const result = await profileService.updatePrivacySettings(userId, { allowPrivateChat });
+    res.json(result);
+  } catch (error) {
+    console.error('Update privacy settings error:', error);
+    res.status(500).json({ error: 'Failed to update privacy settings' });
+  }
+});
+
 // ==================== STATS ====================
 
 router.get('/stats/:userId', async (req, res) => {

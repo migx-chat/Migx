@@ -157,6 +157,17 @@ module.exports = (io, socket) => {
         recipientUsername = recipient.username;
       }
 
+      // Check privacy settings - does recipient allow PM from this sender?
+      const profileService = require('../services/profileService');
+      const canSendPM = await profileService.canSendPrivateMessage(fromUserId, toUserId);
+      if (!canSendPM.allowed) {
+        socket.emit('pm:blocked', {
+          message: canSendPM.reason || 'User does not accept private messages from you',
+          toUsername: recipientUsername || toUsername
+        });
+        return;
+      }
+
       // Check if sender blocked by recipient using Redis cache (efficient)
       const { getRedisClient } = require('../redis');
       const redis = getRedisClient();

@@ -14,6 +14,8 @@ import { router } from 'expo-router';
 import { useThemeCustom } from '@/theme/provider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
+import axios from 'axios';
+import API_BASE_URL from '@/utils/api';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 0;
 
@@ -62,6 +64,8 @@ const RadioButton = ({ selected, color }: { selected: boolean; color: string }) 
 
 export default function PrivacyScreen() {
   const { theme } = useThemeCustom();
+  const [userId, setUserId] = useState<number | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [allowPrivateChat, setAllowPrivateChat] = useState('Everyone');
   const [profilePrivacy, setProfilePrivacy] = useState('Everyone');
   const [allowShareLocation, setAllowShareLocation] = useState(false);
@@ -74,10 +78,28 @@ export default function PrivacyScreen() {
 
   const loadSettings = async () => {
     try {
+      const userDataStr = await AsyncStorage.getItem('userData');
+      const tokenStr = await AsyncStorage.getItem('token');
+      
+      if (userDataStr) {
+        const userData = JSON.parse(userDataStr);
+        setUserId(userData.id);
+        setToken(tokenStr);
+        
+        try {
+          const response = await axios.get(`${API_BASE_URL}/api/profile/privacy/${userData.id}`);
+          const backendValue = response.data.allowPrivateChat;
+          const displayValue = backendValue === 'only_friends' ? 'Only Friends' : 'Everyone';
+          setAllowPrivateChat(displayValue);
+        } catch (err) {
+          console.log('Using local settings');
+        }
+      }
+      
       const settings = await AsyncStorage.getItem('privacy_settings');
       if (settings) {
         const parsed = JSON.parse(settings);
-        setAllowPrivateChat(parsed.allowPrivateChat ?? 'Everyone');
+        if (!userId) setAllowPrivateChat(parsed.allowPrivateChat ?? 'Everyone');
         setProfilePrivacy(parsed.profilePrivacy ?? 'Everyone');
         setAllowShareLocation(parsed.allowShareLocation ?? false);
       }
@@ -112,10 +134,23 @@ export default function PrivacyScreen() {
     saveSettings({ allowShareLocation: newValue });
   };
 
-  const selectPrivateChatOption = (option: string) => {
+  const selectPrivateChatOption = async (option: string) => {
     setAllowPrivateChat(option);
     saveSettings({ allowPrivateChat: option });
     setPrivateChatModalVisible(false);
+    
+    if (userId && token) {
+      try {
+        const backendValue = option === 'Only Friends' ? 'only_friends' : 'everyone';
+        await axios.put(
+          `${API_BASE_URL}/api/profile/privacy/${userId}`,
+          { allowPrivateChat: backendValue },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (err) {
+        console.error('Error saving to backend:', err);
+      }
+    }
   };
 
   const iconColor = theme.primary;

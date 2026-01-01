@@ -376,6 +376,68 @@ const updateBackground = async (userId, backgroundUrl) => {
   }
 };
 
+// ==================== PRIVACY SETTINGS ====================
+
+const getPrivacySettings = async (userId) => {
+  try {
+    const result = await query(
+      'SELECT allow_private_chat FROM users WHERE id = $1',
+      [userId]
+    );
+    if (result.rows.length === 0) {
+      return { allowPrivateChat: 'everyone' };
+    }
+    return { 
+      allowPrivateChat: result.rows[0].allow_private_chat || 'everyone' 
+    };
+  } catch (error) {
+    console.error('Error getting privacy settings:', error);
+    return { allowPrivateChat: 'everyone' };
+  }
+};
+
+const updatePrivacySettings = async (userId, settings) => {
+  try {
+    const { allowPrivateChat } = settings;
+    const validOptions = ['everyone', 'only_friends'];
+    const value = validOptions.includes(allowPrivateChat) ? allowPrivateChat : 'everyone';
+    
+    await query(
+      'UPDATE users SET allow_private_chat = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [value, userId]
+    );
+    return { success: true, allowPrivateChat: value };
+  } catch (error) {
+    console.error('Error updating privacy settings:', error);
+    return { success: false, error: 'Failed to update' };
+  }
+};
+
+const canSendPrivateMessage = async (senderId, recipientId) => {
+  try {
+    const settings = await getPrivacySettings(recipientId);
+    
+    if (settings.allowPrivateChat === 'everyone') {
+      return { allowed: true };
+    }
+    
+    if (settings.allowPrivateChat === 'only_friends') {
+      const isFriend = await isFollowing(recipientId, senderId);
+      const isMutual = await isFollowing(senderId, recipientId);
+      
+      if (isFriend || isMutual) {
+        return { allowed: true };
+      }
+      return { allowed: false, reason: 'User only accepts private messages from friends' };
+    }
+    
+    return { allowed: true };
+  } catch (error) {
+    console.error('Error checking PM permission:', error);
+    return { allowed: true };
+  }
+};
+
 module.exports = {
   // Posts
   createPost,
@@ -407,5 +469,10 @@ module.exports = {
   // Avatar & Background
   updateAvatar,
   deleteAvatar,
-  updateBackground
+  updateBackground,
+  
+  // Privacy
+  getPrivacySettings,
+  updatePrivacySettings,
+  canSendPrivateMessage
 };
