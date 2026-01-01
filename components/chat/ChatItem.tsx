@@ -50,9 +50,18 @@ const RoomIcon = ({ size = 60, theme }: { size?: number; theme: any }) => (
   </View>
 );
 
+const formatMessagePreview = (msg: string | undefined): string => {
+  if (!msg) return '';
+  if (msg.includes('[img]') && msg.includes('[/img]')) {
+    return '📷 Image';
+  }
+  return msg;
+};
+
 export function ChatItem({ type, name, message, time, isOnline, avatar, tags, roomId, userId, username, hasUnread }: ChatItemProps) {
   const router = useRouter();
   const { theme } = useThemeCustom();
+  const displayMessage = formatMessagePreview(message);
 
   const handlePress = () => {
     // Handle PM navigation
@@ -109,7 +118,7 @@ export function ChatItem({ type, name, message, time, isOnline, avatar, tags, ro
               </View>
             )}
           </View>
-          {message && <Text style={[styles.message, { color: theme.secondary }]} numberOfLines={1}>{message}</Text>}
+          {displayMessage && <Text style={[styles.message, { color: theme.secondary }]} numberOfLines={1}>{displayMessage}</Text>}
         </View>
       </View>
       {time && <Text style={[styles.time, { color: theme.secondary }]}>{time}</Text>}

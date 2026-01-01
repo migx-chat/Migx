@@ -304,16 +304,23 @@ export function ChatList() {
       if (pmExists) {
         return prevData.map((chat) =>
           chat.userId === data.fromUserId
-            ? { ...chat, message: `${data.fromUsername}: ${data.message}`, time: formatTime(Date.now()), hasUnread: true }
+            ? { 
+                ...chat, 
+                message: data.message, 
+                time: formatTime(Date.now()), 
+                hasUnread: true,
+                avatar: data.fromAvatar || chat.avatar
+              }
             : chat
         );
       } else {
-        // Add new PM entry with unread indicator
+        // Add new PM entry with unread indicator and avatar
         return [...prevData, {
           type: 'pm' as const,
           name: data.fromUsername,
           username: data.fromUsername,
           userId: data.fromUserId,
+          avatar: data.fromAvatar,
           message: data.message,
           time: formatTime(Date.now()),
           isOnline: true,

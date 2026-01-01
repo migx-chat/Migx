@@ -206,9 +206,10 @@ module.exports = (io, socket) => {
       
       await addXp(fromUserId, XP_REWARDS.SEND_MESSAGE, 'send_pm', io);
 
-      // Get sender's role for username color
+      // Get sender's role and avatar for username color and display
       const senderUser = await userService.getUserById(fromUserId);
       const fromRole = senderUser?.role || 'user';
+      const fromAvatar = senderUser?.avatar || null;
 
       const messageData = {
         id: savedMessage?.id || clientMsgId || generateMessageId(),
@@ -219,6 +220,7 @@ module.exports = (io, socket) => {
         message,
         messageType: 'pm',
         fromRole,
+        fromAvatar,
         timestamp: savedMessage?.created_at || new Date().toISOString(),
         isRead: false
       };
