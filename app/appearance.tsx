@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, StatusBar, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, StatusBar, ScrollView, Modal, FlatList } from 'react-native';
 import { router } from 'expo-router';
 import { useThemeCustom } from '@/theme/provider';
 import Svg, { Path, Circle } from 'react-native-svg';
@@ -22,9 +22,27 @@ const PaletteIcon = ({ size = 24, color = '#00bcd4' }: { size?: number; color?: 
   </Svg>
 );
 
+const fontSizes = Array.from({ length: 14 }, (_, i) => i + 12);
+
 export default function AppearanceScreen() {
-  const { theme } = useThemeCustom();
+  const { theme, fontSize, setFontSize } = useThemeCustom();
+  const [modalVisible, setModalVisible] = useState(false);
   const iconColor = theme.primary;
+
+  const renderFontSizeItem = ({ item }: { item: number }) => (
+    <TouchableOpacity 
+      style={styles.modalItem}
+      onPress={() => {
+        setFontSize(item);
+        setModalVisible(false);
+      }}
+    >
+      <View style={[styles.radioButton, { borderColor: theme.secondary }]}>
+        {fontSize === item && <View style={[styles.radioButtonInner, { backgroundColor: theme.primary }]} />}
+      </View>
+      <Text style={[styles.modalItemText, { color: theme.text, fontSize: item }]}>{item}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -40,7 +58,7 @@ export default function AppearanceScreen() {
         <ScrollView style={styles.content}>
           <TouchableOpacity 
             style={[styles.menuItem, { borderBottomColor: theme.border }]}
-            onPress={() => {}}
+            onPress={() => setModalVisible(true)}
             activeOpacity={0.7}
           >
             <View style={styles.iconContainer}>
@@ -48,7 +66,7 @@ export default function AppearanceScreen() {
             </View>
             <View style={styles.menuContent}>
               <Text style={[styles.menuTitle, { color: theme.text }]}>Font Size</Text>
-              <Text style={[styles.menuSubtitle, { color: theme.secondary }]}>Adjust the text size in chat</Text>
+              <Text style={[styles.menuSubtitle, { color: theme.secondary }]}>Current: {fontSize}</Text>
             </View>
           </TouchableOpacity>
 
@@ -66,6 +84,37 @@ export default function AppearanceScreen() {
             </View>
           </TouchableOpacity>
         </ScrollView>
+
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <TouchableOpacity 
+            style={styles.modalOverlay} 
+            activeOpacity={1} 
+            onPress={() => setModalVisible(false)}
+          >
+            <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Font Size</Text>
+              
+              <FlatList
+                data={fontSizes}
+                renderItem={renderFontSizeItem}
+                keyExtractor={(item) => item.toString()}
+                style={styles.modalList}
+              />
+
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={[styles.cancelButtonText, { color: theme.primary }]}>BATALKAN</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </SafeAreaView>
     </View>
   );
@@ -127,5 +176,62 @@ const styles = StyleSheet.create({
   menuSubtitle: {
     fontSize: 13,
     marginTop: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 4,
+    padding: 24,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  modalList: {
+    marginBottom: 20,
+  },
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  radioButtonInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  modalItemText: {
+    fontWeight: '400',
+  },
+  cancelButton: {
+    alignSelf: 'flex-end',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });

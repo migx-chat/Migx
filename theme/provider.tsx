@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LightTheme, DarkTheme, ThemeType, ThemeMode } from './index';
 
 const THEME_STORAGE_KEY = '@app_theme_mode';
+const FONT_SIZE_STORAGE_KEY = '@app_font_size';
 
 // Storage abstraction that works on web and mobile
 const storage = {
@@ -26,8 +27,10 @@ interface ThemeContextType {
   theme: ThemeType;
   mode: ThemeMode;
   isDark: boolean;
+  fontSize: number;
   toggleTheme: () => void;
   setThemeMode: (mode: ThemeMode) => void;
+  setFontSize: (size: number) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -39,20 +42,32 @@ interface ThemeProviderProps {
 export function ThemeProviderCustom({ children }: ThemeProviderProps) {
   const systemColorScheme = useColorScheme();
   const [mode, setMode] = useState<ThemeMode>('system');
+  const [fontSize, setFontSizeState] = useState<number>(16);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    loadThemeMode();
+    loadSettings();
   }, []);
 
-  const loadThemeMode = async () => {
+  const loadSettings = async () => {
     try {
-      const savedMode = await storage.getItem(THEME_STORAGE_KEY); // Gunakan 'storage'
+      const [savedMode, savedFontSize] = await Promise.all([
+        storage.getItem(THEME_STORAGE_KEY),
+        storage.getItem(FONT_SIZE_STORAGE_KEY)
+      ]);
+
       if (savedMode && ['light', 'dark', 'system'].includes(savedMode)) {
         setMode(savedMode as ThemeMode);
       }
+      
+      if (savedFontSize) {
+        const size = parseInt(savedFontSize, 10);
+        if (!isNaN(size)) {
+          setFontSizeState(size);
+        }
+      }
     } catch (error) {
-      console.log('Error loading theme mode:', error);
+      console.log('Error loading settings:', error);
     } finally {
       setIsLoaded(true);
     }
@@ -60,9 +75,17 @@ export function ThemeProviderCustom({ children }: ThemeProviderProps) {
 
   const saveThemeMode = async (newMode: ThemeMode) => {
     try {
-      await storage.setItem(THEME_STORAGE_KEY, newMode); // Gunakan 'storage'
+      await storage.setItem(THEME_STORAGE_KEY, newMode);
     } catch (error) {
       console.log('Error saving theme mode:', error);
+    }
+  };
+
+  const saveFontSize = async (size: number) => {
+    try {
+      await storage.setItem(FONT_SIZE_STORAGE_KEY, size.toString());
+    } catch (error) {
+      console.log('Error saving font size:', error);
     }
   };
 
@@ -91,12 +114,19 @@ export function ThemeProviderCustom({ children }: ThemeProviderProps) {
     saveThemeMode(newMode);
   }, []);
 
+  const setFontSize = useCallback((size: number) => {
+    setFontSizeState(size);
+    saveFontSize(size);
+  }, []);
+
   const value: ThemeContextType = {
     theme: getActiveTheme(),
     mode,
     isDark: isDark(),
+    fontSize,
     toggleTheme,
     setThemeMode,
+    setFontSize,
   };
 
   if (!isLoaded) {
