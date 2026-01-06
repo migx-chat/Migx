@@ -113,6 +113,47 @@ module.exports = (io, socket) => {
         socket.emit('error', { message: 'Room not found' });
         return;
       }
+      
+      // Check minimum level requirement (skip for owner and moderators)
+      if (room.min_level && room.min_level > 1) {
+        const { getUserLevel } = require('../utils/xpLeveling');
+        const userLevelData = await getUserLevel(userId);
+        const userLevel = userLevelData?.level || 1;
+        
+        // Check if user is owner
+        const isOwner = room.owner_id == userId || room.created_by == userId;
+        
+        // Check if user is moderator
+        let isModerator = false;
+        try {
+          const db = require('../db/db');
+          const modCheck = await db.query(
+            'SELECT 1 FROM room_moderators WHERE room_id = $1 AND user_id = $2',
+            [roomId, userId]
+          );
+          isModerator = modCheck.rows.length > 0;
+        } catch (modErr) {
+          console.log('Moderator check error:', modErr.message);
+        }
+        
+        // Block entry if below minimum level and not owner/moderator
+        if (!isOwner && !isModerator && userLevel < room.min_level) {
+          socket.emit('system:message', {
+            roomId,
+            message: `Unable to join chat room. Minimum level is ${room.min_level}. Your level: ${userLevel}`,
+            timestamp: new Date().toISOString(),
+            type: 'error'
+          });
+          socket.emit('room:join:rejected', {
+            roomId,
+            reason: `Minimum level required: ${room.min_level}`,
+            type: 'level_required',
+            minLevel: room.min_level,
+            userLevel: userLevel
+          });
+          return;
+        }
+      }
 
       // Check room capacity using Redis presence
       const currentUserCount = await getRoomUserCount(roomId);
