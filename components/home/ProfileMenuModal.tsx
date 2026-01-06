@@ -6,6 +6,7 @@ import { useThemeCustom } from '@/theme/provider';
 import { router, usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { useRoomTabsStore } from '@/stores/useRoomTabsStore';
 import { 
   AccountIcon, 
   CommentIcon as OfficialCommentIcon, 
@@ -142,6 +143,13 @@ export function ProfileMenuModal({ visible, onClose, userData }: ProfileMenuModa
               socket.emit('logout');
               socket.disconnect();
             }
+            
+            // Clear Zustand store state to prevent old user data from persisting
+            const { clearAllRooms, setUserInfo, setSocket } = useRoomTabsStore.getState();
+            clearAllRooms();
+            setUserInfo('', '');
+            setSocket(null);
+            
             const allKeys = await AsyncStorage.getAllKeys();
             const sessionKeys = allKeys.filter(key => 
               key !== 'saved_username' && 
