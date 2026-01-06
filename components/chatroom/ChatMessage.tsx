@@ -147,7 +147,6 @@ export const ChatMessage = React.memo(({
     if (isSystem) return '#FF8C00';
     if (isPresence) return '#FF8C00';
     
-    // Pink Reward Logic (Chatroom)
     if (hasTopLikeReward && topLikeRewardExpiry) {
       const expiry = new Date(topLikeRewardExpiry);
       if (expiry > new Date()) {
@@ -157,13 +156,11 @@ export const ChatMessage = React.memo(({
       }
     }
 
-    // Priority roles always use their defined colors (ignore usernameColor)
     if (userType === 'mentor') return roleColors.mentor;
     if (userType === 'merchant') return roleColors.merchant;
     if (userType === 'admin') return roleColors.admin;
     if (userType === 'customer_service' || userType === 'cs') return roleColors.customer_service;
     
-    // For other roles, usernameColor can override
     if (usernameColor) return usernameColor;
     if (isOwnMessage) return roleColors.own;
     if (userType === 'creator') return roleColors.creator;
@@ -189,7 +186,6 @@ export const ChatMessage = React.memo(({
     );
   }
 
-  // Check if message is a command (from prop or messageType)
   const isCommandMessage = isCmd || 
     messageType === 'cmd' || 
     messageType === 'cmdMe' || 
@@ -201,9 +197,7 @@ export const ChatMessage = React.memo(({
     messageType === 'modRemoval';
 
   if (isCommandMessage) {
-    // All commands use brown color
     const textColor = '#8B6F47';
-    
     return (
       <View style={styles.messageContainer}>
         <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: textColor }]}>
@@ -232,15 +226,12 @@ export const ChatMessage = React.memo(({
     );
   }
 
-  const parsedMessage = parseEmojiMessage(message);
-  const hasOnlyText = parsedMessage.every(item => item.type === 'text');
-
-  if (hasOnlyText) {
+  if (isPresence) {
     return (
       <View style={styles.messageContainer}>
         <Text style={[styles.messageWrapper, dynamicStyles.messageWrapper]}>
           <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }]}>
-            {username}{hasTopMerchantBadge && <BadgeTop1 />}{isPresence && <RoleBadge userType={userType} />}:{' '}
+            {username}{hasTopMerchantBadge && <BadgeTop1 />} <RoleBadge userType={userType} />:{' '}
           </Text>
           <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }]}>
             {message}
@@ -250,11 +241,13 @@ export const ChatMessage = React.memo(({
     );
   }
 
+  const parsedMessage = parseEmojiMessage(message);
+
   return (
     <View style={styles.messageContainer}>
       <Text style={[styles.messageWrapper, dynamicStyles.messageWrapper]}>
         <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }]}>
-          {username}{hasTopMerchantBadge && <BadgeTop1 />}{isPresence && <RoleBadge userType={userType} />}:{' '}
+          {username}{hasTopMerchantBadge && <BadgeTop1 />}:{' '}
         </Text>
         {parsedMessage.map((item, index) => {
           if (item.type === 'emoji') {
