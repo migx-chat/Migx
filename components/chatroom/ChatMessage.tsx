@@ -33,17 +33,19 @@ const BadgeTop1 = () => (
 );
 
 const RoleBadge = ({ userType }: { userType?: string }) => {
+  const badgeStyle = { width: 16, height: 16, marginLeft: 2, marginRight: 2, marginBottom: -3 };
+  
   if (userType === 'admin') {
-    return <Image source={require('@/assets/badge role/ic_admin.png')} style={{ width: 16, height: 16, marginLeft: 4 }} resizeMode="contain" />;
+    return <Image source={require('@/assets/badge role/ic_admin.png')} style={badgeStyle} resizeMode="contain" />;
   }
   if (userType === 'mentor') {
-    return <Image source={require('@/assets/badge role/ic_mentor.png')} style={{ width: 16, height: 16, marginLeft: 4 }} resizeMode="contain" />;
+    return <Image source={require('@/assets/badge role/ic_mentor.png')} style={badgeStyle} resizeMode="contain" />;
   }
   if (userType === 'merchant') {
-    return <Image source={require('@/assets/badge role/ic_merchant.png')} style={{ width: 16, height: 16, marginLeft: 4 }} resizeMode="contain" />;
+    return <Image source={require('@/assets/badge role/ic_merchant.png')} style={badgeStyle} resizeMode="contain" />;
   }
   if (userType === 'customer_service' || userType === 'cs') {
-    return <Image source={require('@/assets/badge role/badge_cs.png')} style={{ width: 16, height: 16, marginLeft: 4 }} resizeMode="contain" />;
+    return <Image source={require('@/assets/badge role/badge_cs.png')} style={badgeStyle} resizeMode="contain" />;
   }
   return null;
 };
