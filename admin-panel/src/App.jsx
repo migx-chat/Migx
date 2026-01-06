@@ -77,7 +77,13 @@ function LoginPage({ onLogin }) {
         }
       );
 
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        throw new Error('Server error. Please try again.');
+      }
 
       if (!response.ok) {
         throw new Error(data.message || 'Login failed');
@@ -179,9 +185,15 @@ function LoginPage({ onLogin }) {
         .form-group input {
           width: 100%;
           padding: 12px;
-          border: 1px solid #ddd;
+          border: 1px solid #555;
           border-radius: 4px;
           font-size: 14px;
+          background: #444;
+          color: white;
+        }
+
+        .form-group input::placeholder {
+          color: #aaa;
         }
 
         .error-message {
