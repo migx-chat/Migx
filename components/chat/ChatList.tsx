@@ -53,7 +53,7 @@ export function ChatList() {
       lastLoadRef.current = Date.now();
       loadRooms();
     }, 300);
-  }, [username]);
+  }, [username, privateMessages]); // Added privateMessages to dependencies
 
   useEffect(() => {
     if (username) {
@@ -98,6 +98,8 @@ export function ChatList() {
   useEffect(() => {
     if (username && openRoomIds.length >= 0) {
       updateChatDataWithRooms();
+      // Also trigger a PM sync when rooms change (as a closeRoom call affects both)
+      updateChatDataWithPrivateMessages();
     }
   }, [openRoomIds, username]);
 
@@ -391,8 +393,13 @@ export function ChatList() {
   // Always find OTHER user's name, never show current user's name
   const updateChatDataWithPrivateMessages = useCallback(() => {
     setChatData((prevData) => {
-      const updatedData = [...prevData];
       const { openRoomsById } = useRoomTabsStore.getState();
+      
+      // Filter out PMs that are no longer in privateMessages state
+      let updatedData = prevData.filter(chat => {
+        if (chat.type !== 'pm') return true;
+        return privateMessages[chat.userId || ''] !== undefined;
+      });
       
       Object.entries(privateMessages).forEach(([oderId, messages]) => {
         if (messages && messages.length > 0) {
