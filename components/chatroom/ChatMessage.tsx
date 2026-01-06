@@ -32,9 +32,8 @@ const BadgeTop1 = () => (
   />
 );
 
-const RoleBadge = ({ userType, fontSize = 13 }: { userType?: string; fontSize?: number }) => {
-  const badgeSize = Math.round(fontSize * 1.4);
-  const badgeStyle = { width: badgeSize, height: badgeSize, marginHorizontal: 2 };
+const RoleBadge = ({ userType }: { userType?: string }) => {
+  const badgeStyle = { width: 20, height: 20, marginHorizontal: 2 };
   
   if (userType === 'admin') {
     return <Image source={require('@/assets/badge role/ic_admin.png')} style={badgeStyle} resizeMode="contain" />;
@@ -244,7 +243,7 @@ export const ChatMessage = React.memo(({
           <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }]}>
             {beforeBadge}
           </Text>
-          <RoleBadge userType={userType} fontSize={13} />
+          <RoleBadge userType={userType} />
           <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }]}>
             {afterBadge}
           </Text>
