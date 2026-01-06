@@ -232,6 +232,45 @@ router.get('/users', superAdminMiddleware, async (req, res) => {
   }
 });
 
+// Search user by username (exact match or partial)
+router.get('/users/search/:username', superAdminMiddleware, async (req, res) => {
+  try {
+    const searchUsername = req.params.username?.trim();
+    
+    if (!searchUsername) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+
+    // First try exact match (case insensitive)
+    let result = await db.query(
+      'SELECT * FROM users WHERE LOWER(username) = LOWER($1)',
+      [searchUsername]
+    );
+
+    // If no exact match, try partial match
+    if (result.rows.length === 0) {
+      result = await db.query(
+        'SELECT * FROM users WHERE LOWER(username) LIKE LOWER($1) LIMIT 10',
+        [`%${searchUsername}%`]
+      );
+    }
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Return single user for exact match, array for partial matches
+    if (result.rows.length === 1) {
+      res.json({ user: result.rows[0] });
+    } else {
+      res.json({ users: result.rows });
+    }
+  } catch (error) {
+    console.error('Error searching user:', error);
+    res.status(500).json({ error: 'Failed to search user' });
+  }
+});
+
 // Ban user
 router.patch('/users/:id/ban', superAdminMiddleware, async (req, res) => {
   try {

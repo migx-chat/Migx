@@ -69,7 +69,7 @@ export default function UserManagementScreen() {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/users/search/${encodeURIComponent(username.trim())}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'x-device-id': deviceId || '',
@@ -78,7 +78,8 @@ export default function UserManagementScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        const user = data.users?.find((u: any) => u.username.toLowerCase().includes(username.toLowerCase()));
+        // If single user returned, use it directly
+        const user = data.user || (data.users && data.users[0]);
 
         if (user) {
           setSelectedUser(user);
@@ -89,7 +90,10 @@ export default function UserManagementScreen() {
           setSelectedRole(null);
         }
       } else {
-        Alert.alert('Error', 'Failed to fetch users');
+        const errorData = await response.json().catch(() => ({}));
+        Alert.alert('Error', errorData.error || 'User not found');
+        setSelectedUser(null);
+        setSelectedRole(null);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to search user');
@@ -163,8 +167,8 @@ export default function UserManagementScreen() {
         return;
       }
 
-      // First, fetch user to get their ID
-      const getUserResponse = await fetch(`${API_BASE_URL}/api/admin/users`, {
+      // Search for user by username
+      const getUserResponse = await fetch(`${API_BASE_URL}/api/admin/users/search/${encodeURIComponent(pwdUsername.trim())}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'x-device-id': deviceId || '',
@@ -172,13 +176,14 @@ export default function UserManagementScreen() {
       });
 
       if (!getUserResponse.ok) {
-        Alert.alert('Error', 'Failed to fetch user');
+        const errorData = await getUserResponse.json().catch(() => ({}));
+        Alert.alert('Error', errorData.error || 'User not found');
         setPwdLoading(false);
         return;
       }
 
       const userData_res = await getUserResponse.json();
-      const user = userData_res.users?.find((u: any) => u.username.toLowerCase().includes(pwdUsername.toLowerCase()));
+      const user = userData_res.user || (userData_res.users && userData_res.users[0]);
 
       if (!user) {
         Alert.alert('Error', 'User not found');
@@ -234,8 +239,8 @@ export default function UserManagementScreen() {
         return;
       }
 
-      // First, fetch user to get their ID
-      const getUserResponse = await fetch(`${API_BASE_URL}/api/admin/users`, {
+      // Search for user by username
+      const getUserResponse = await fetch(`${API_BASE_URL}/api/admin/users/search/${encodeURIComponent(emailUsername.trim())}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'x-device-id': deviceId || '',
@@ -243,13 +248,14 @@ export default function UserManagementScreen() {
       });
 
       if (!getUserResponse.ok) {
-        Alert.alert('Error', 'Failed to fetch user');
+        const errorData = await getUserResponse.json().catch(() => ({}));
+        Alert.alert('Error', errorData.error || 'User not found');
         setEmailLoading(false);
         return;
       }
 
       const userData_res = await getUserResponse.json();
-      const user = userData_res.users?.find((u: any) => u.username.toLowerCase().includes(emailUsername.toLowerCase()));
+      const user = userData_res.user || (userData_res.users && userData_res.users[0]);
 
       if (!user) {
         Alert.alert('Error', 'User not found');
@@ -304,8 +310,8 @@ export default function UserManagementScreen() {
         return;
       }
 
-      // First, fetch user to get their ID
-      const getUserResponse = await fetch(`${API_BASE_URL}/api/admin/users`, {
+      // Search for user by username
+      const getUserResponse = await fetch(`${API_BASE_URL}/api/admin/users/search/${encodeURIComponent(pinUsername.trim())}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'x-device-id': deviceId || '',
@@ -313,13 +319,14 @@ export default function UserManagementScreen() {
       });
 
       if (!getUserResponse.ok) {
-        Alert.alert('Error', 'Failed to fetch user');
+        const errorData = await getUserResponse.json().catch(() => ({}));
+        Alert.alert('Error', errorData.error || 'User not found');
         setPinLoading(false);
         return;
       }
 
       const userData_res = await getUserResponse.json();
-      const user = userData_res.users?.find((u: any) => u.username.toLowerCase().includes(pinUsername.toLowerCase()));
+      const user = userData_res.user || (userData_res.users && userData_res.users[0]);
 
       if (!user) {
         Alert.alert('Error', 'User not found');
