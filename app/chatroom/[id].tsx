@@ -28,6 +28,7 @@ import { ReportAbuseModal } from '@/components/chatroom/ReportAbuseModal';
 import { PrivateChatMenuModal } from '@/components/chatroom/PrivateChatMenuModal';
 import { GiftModal } from '@/components/chatroom/GiftModal';
 import { CmdList } from '@/components/chatroom/CmdList';
+import { HeaderOptionsMenu } from '@/components/chatroom/HeaderOptionsMenu';
 import { useRoomTabsStore, useActiveRoom, useActiveRoomId, useOpenRooms } from '@/stores/useRoomTabsStore';
 
 const HEADER_COLOR = '#0a5229';
@@ -70,6 +71,7 @@ export default function ChatRoomScreen() {
   const [privateChatMenuVisible, setPrivateChatMenuVisible] = useState(false);
   const [pmGiftModalVisible, setPmGiftModalVisible] = useState(false);
   const [roomGiftModalVisible, setRoomGiftModalVisible] = useState(false);
+  const [headerOptionsVisible, setHeaderOptionsVisible] = useState(false);
   const [roomInfoModalVisible, setRoomInfoModalVisible] = useState(false);
   const [roomInfoData, setRoomInfoData] = useState<any>(null);
   const [reportAbuseModalVisible, setReportAbuseModalVisible] = useState(false);
@@ -833,7 +835,7 @@ export default function ChatRoomScreen() {
       {/* Header - Untuk semua tabs termasuk private chat */}
       <ChatRoomHeader
         onBack={handleHeaderBack}
-        onMenuPress={() => setMenuVisible(true)}
+        onMenuPress={() => setHeaderOptionsVisible(true)}
         onPrivateChatMenuPress={() => setPrivateChatMenuVisible(true)}
       />
 
@@ -929,6 +931,17 @@ export default function ChatRoomScreen() {
         onSendGift={(gift) => {
           setRoomGiftModalVisible(false);
           setParticipantsModalVisible(true);
+        }}
+      />
+
+      <HeaderOptionsMenu
+        visible={headerOptionsVisible}
+        onClose={() => setHeaderOptionsVisible(false)}
+        onStore={() => {
+          router.push('/store');
+        }}
+        onChangeBackground={() => {
+          Alert.alert('Coming Soon', 'Change Background feature is coming soon!');
         }}
       />
 
