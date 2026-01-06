@@ -127,7 +127,7 @@ async function sendPasswordChangeOtp(email, username, otp) {
   }
 
   try {
-    console.log('Sending password change OTP to:', email);
+    console.log('Sending email change OTP to:', email);
     
     const mailOptions = {
       from: `"MIGX Community" <${FROM_ADDRESS}>`,
@@ -153,7 +153,7 @@ async function sendPasswordChangeOtp(email, username, otp) {
     };
 
     const result = await transporter.sendMail(mailOptions);
-    console.log('Password change OTP sent successfully:', result.messageId);
+    console.log('Email change OTP sent successfully:', result.messageId);
     return { success: true, data: result };
   } catch (error) {
     console.error('Error sending email change OTP:', error);
@@ -161,8 +161,52 @@ async function sendPasswordChangeOtp(email, username, otp) {
   }
 }
 
+async function sendForgotPasswordOtp(email, username, otp) {
+  const transporter = createTransporter();
+  
+  if (!transporter) {
+    console.error('Failed to create email transporter - missing GMAIL_APP_PASSWORD');
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  try {
+    console.log('Sending forgot password OTP to:', email);
+    
+    const mailOptions = {
+      from: `"MIGX Community" <${FROM_ADDRESS}>`,
+      to: email,
+      subject: 'MIGX Password Reset Request',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+          <div style="background: linear-gradient(135deg, #082919 0%, #00936A 100%); padding: 30px; border-radius: 10px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Password Reset Request</h1>
+          </div>
+          <div style="background-color: white; padding: 30px; border-radius: 10px; margin-top: 20px;">
+            <h2 style="color: #00936A;">Hi ${username},</h2>
+            <p>You requested to reset your password.</p>
+            <p>Your verification code is:</p>
+            <h1 style="letter-spacing: 8px; color: #00936A; text-align: center; font-size: 48px; margin: 30px 0;">${otp}</h1>
+            <p style="color: #666;">This code will expire in <strong>10 minutes</strong>.</p>
+            <p style="color: #666; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+              If you didn't request this reset, please ignore this email or secure your account immediately.
+            </p>
+          </div>
+        </div>
+      `
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Forgot password OTP sent successfully:', result.messageId);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error sending forgot password OTP:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 module.exports = {
   sendOtpEmail,
   sendActivationEmail,
-  sendPasswordChangeOtp
+  sendPasswordChangeOtp,
+  sendForgotPasswordOtp
 };

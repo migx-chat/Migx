@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const userService = require('../services/userService');
 const { getUserLevel } = require('../utils/xpLeveling');
 const crypto = require('crypto');
-const { sendOtpEmail, sendActivationEmail, sendPasswordChangeOtp } = require('../utils/emailService');
+const { sendOtpEmail, sendActivationEmail, sendPasswordChangeOtp, sendForgotPasswordOtp } = require('../utils/emailService');
 const streakService = require('../services/streakService');
 const logger = require('../utils/logger');
 const sessionService = require('../services/sessionService');
@@ -726,8 +726,8 @@ router.post('/forgot-password', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Failed to generate OTP' });
     }
 
-    // Send OTP email
-    const emailResult = await sendPasswordChangeOtp(user.email, user.username, otp);
+    // Send OTP email with dedicated forgot password template
+    const emailResult = await sendForgotPasswordOtp(user.email, user.username, otp);
     if (!emailResult.success) {
       return res.status(500).json({ success: false, error: 'Failed to send OTP email' });
     }
