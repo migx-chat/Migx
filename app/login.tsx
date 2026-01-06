@@ -129,8 +129,16 @@ export default function LoginScreen() {
           role: data.user.role,
           statusMessage: data.user.statusMessage,
           credits: data.user.credits,
-          status: data.user.status
+          status: data.user.status,
+          invisible: invisible && data.user.role === 'admin' ? true : false
         };
+        
+        // Store invisible mode separately for easy access
+        if (invisible && data.user.role === 'admin') {
+          await AsyncStorage.setItem('invisible_mode', 'true');
+        } else {
+          await AsyncStorage.removeItem('invisible_mode');
+        }
         
         console.log('💾 Storing user_data for user:', userDataToStore.username);
         await AsyncStorage.setItem('user_data', JSON.stringify(userDataToStore));

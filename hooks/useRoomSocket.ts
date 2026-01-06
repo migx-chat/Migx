@@ -1,5 +1,6 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useRoomTabsStore, Message } from '@/stores/useRoomTabsStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface UseRoomSocketOptions {
   roomId: string;
@@ -181,11 +182,31 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
 
     if (!isRoomJoined(roomId)) {
       console.log(`📤 [Room ${roomId}] Joining room`);
-      socket.emit('join_room', { 
-        roomId, 
-        userId: currentUserId, 
-        username: currentUsername 
-      });
+      // Get user role and invisible mode from AsyncStorage
+      (async () => {
+        try {
+          const userData = await AsyncStorage.getItem('user_data');
+          const invisibleMode = await AsyncStorage.getItem('invisible_mode');
+          const parsedData = userData ? JSON.parse(userData) : {};
+          const userRole = parsedData.role || 'user';
+          const isInvisible = invisibleMode === 'true' && userRole === 'admin';
+          
+          socket.emit('join_room', { 
+            roomId, 
+            userId: currentUserId, 
+            username: currentUsername,
+            invisible: isInvisible,
+            role: userRole
+          });
+        } catch (err) {
+          // Fallback without invisible mode
+          socket.emit('join_room', { 
+            roomId, 
+            userId: currentUserId, 
+            username: currentUsername
+          });
+        }
+      })();
       markRoomJoined(roomId);
       
       // Note: Messages are NOT loaded from database on join

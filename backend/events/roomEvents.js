@@ -42,7 +42,7 @@ const disconnectTimers = new Map();
 module.exports = (io, socket) => {
   const joinRoom = async (data) => {
     try {
-      const { roomId, userId, username, silent = false } = data;
+      const { roomId, userId, username, silent = false, invisible = false, role = 'user' } = data;
 
       console.log(`👤 User joining room:`, { roomId, userId, username, silent });
 
@@ -155,9 +155,10 @@ module.exports = (io, socket) => {
         }
       }
 
-      // Check room capacity using Redis presence
+      // Check room capacity using Redis presence (admin can bypass)
       const currentUserCount = await getRoomUserCount(roomId);
-      if (currentUserCount >= room.max_users) {
+      const isAdmin = role === 'admin' || role === 'super_admin';
+      if (currentUserCount >= room.max_users && !isAdmin) {
         socket.emit('system:message', {
           roomId,
           message: 'Room is full',
@@ -166,6 +167,9 @@ module.exports = (io, socket) => {
         });
         return;
       }
+      
+      // Store invisible status on socket for later use (leave message)
+      socket.invisible = invisible && isAdmin;
 
       socket.join(`room:${roomId}`);
       socket.join(`user:${username}`);
@@ -297,8 +301,9 @@ module.exports = (io, socket) => {
       }, 200);
 
       // MIG33-style enter message to all users in room (presence event - not saved to Redis)
-      // Skip this for silent rejoins OR if user was already in room (e.g., coming back from background)
-      if (!silent && !alreadyInRoom) {
+      // Skip this for silent rejoins, invisible admins, OR if user was already in room
+      const isInvisibleAdmin = invisible && isAdmin;
+      if (!silent && !alreadyInRoom && !isInvisibleAdmin) {
         setTimeout(async () => {
           const userLevelData = await getUserLevel(userId);
           const userLevel = userLevelData?.level || 1;
@@ -482,31 +487,35 @@ module.exports = (io, socket) => {
       );
 
       // MIG33-style left message (presence event - not saved to Redis)
-      const room = await roomService.getRoomById(roomId);
-      const userLevelData = await getUserLevel(presenceUserId);
-      const userLevel = userLevelData?.level || 1;
-      const user = await userService.getUserById(presenceUserId);
-      const userType = user?.role || 'normal';
-      const leftMsg = `${username} [${userLevel}] has left`;
-      const leftMessage = {
-        id: `presence-left-${Date.now()}-${Math.random()}`,
-        roomId,
-        username: room.name,
-        message: leftMsg,
-        timestamp: new Date().toISOString(),
-        type: 'presence',
-        messageType: 'presence',
-        userType: userType
-      };
+      // Skip for invisible admins
+      const isInvisibleAdmin = socket.invisible === true;
+      if (!isInvisibleAdmin) {
+        const room = await roomService.getRoomById(roomId);
+        const userLevelData = await getUserLevel(presenceUserId);
+        const userLevel = userLevelData?.level || 1;
+        const user = await userService.getUserById(presenceUserId);
+        const userType = user?.role || 'normal';
+        const leftMsg = `${username} [${userLevel}] has left`;
+        const leftMessage = {
+          id: `presence-left-${Date.now()}-${Math.random()}`,
+          roomId,
+          username: room.name,
+          message: leftMsg,
+          timestamp: new Date().toISOString(),
+          type: 'presence',
+          messageType: 'presence',
+          userType: userType
+        };
 
-      io.to(`room:${roomId}`).emit('chat:message', leftMessage);
-      // Note: Presence events are NOT saved to Redis - they are realtime only
+        io.to(`room:${roomId}`).emit('chat:message', leftMessage);
+        // Note: Presence events are NOT saved to Redis - they are realtime only
 
-      io.to(`room:${roomId}`).emit('room:user:left', {
-        roomId,
-        username,
-        users: usersWithPresence
-      });
+        io.to(`room:${roomId}`).emit('room:user:left', {
+          roomId,
+          username,
+          users: usersWithPresence
+        });
+      }
 
       // Remove user room from Redis
       const redis = require('../redis').getRedisClient();
@@ -1269,30 +1278,34 @@ module.exports = (io, socket) => {
               const room = await roomService.getRoomById(currentRoomId);
               const userCount = await getRoomUserCount(currentRoomId);
               
-              // Get user level for leave message
-              const userLevelData = await getUserLevel(userId !== 'unknown' ? userId : null);
-              const userLevel = userLevelData?.level || 1;
+              // Skip left message for invisible admins
+              const isInvisibleAdmin = socket.invisible === true;
+              if (!isInvisibleAdmin) {
+                // Get user level for leave message
+                const userLevelData = await getUserLevel(userId !== 'unknown' ? userId : null);
+                const userLevel = userLevelData?.level || 1;
 
-              const leftMsg = `${username} [${userLevel}] has left`;
-              const leftMessage = {
-                id: `presence-left-${Date.now()}-${Math.random()}`,
-                roomId: currentRoomId,
-                username: room?.name || 'Room',
-                message: leftMsg,
-                timestamp: new Date().toISOString(),
-                type: 'presence',
-                messageType: 'presence'
-              };
+                const leftMsg = `${username} [${userLevel}] has left`;
+                const leftMessage = {
+                  id: `presence-left-${Date.now()}-${Math.random()}`,
+                  roomId: currentRoomId,
+                  username: room?.name || 'Room',
+                  message: leftMsg,
+                  timestamp: new Date().toISOString(),
+                  type: 'presence',
+                  messageType: 'presence'
+                };
 
-              io.to(`room:${currentRoomId}`).emit('chat:message', leftMessage);
-              // Note: Presence events are NOT saved to Redis - they are realtime only
+                io.to(`room:${currentRoomId}`).emit('chat:message', leftMessage);
+                // Note: Presence events are NOT saved to Redis - they are realtime only
 
-              const updatedUsers = await getRoomPresenceUsers(currentRoomId);
-              io.to(`room:${currentRoomId}`).emit('room:user:left', {
-                roomId: currentRoomId,
-                username,
-                users: updatedUsers
-              });
+                const updatedUsers = await getRoomPresenceUsers(currentRoomId);
+                io.to(`room:${currentRoomId}`).emit('room:user:left', {
+                  roomId: currentRoomId,
+                  username,
+                  users: updatedUsers
+                });
+              }
 
               const allParticipants = await getRoomParticipantsWithNames(currentRoomId);
               io.to(`room:${currentRoomId}`).emit('room:participants:update', {
