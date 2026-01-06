@@ -32,8 +32,9 @@ const BadgeTop1 = () => (
   />
 );
 
-const RoleBadge = ({ userType }: { userType?: string }) => {
-  const badgeStyle = { width: 18, height: 18, marginLeft: 2, marginRight: 2, marginBottom: -5 };
+const RoleBadge = ({ userType, fontSize = 13 }: { userType?: string; fontSize?: number }) => {
+  const badgeSize = Math.round(fontSize * 1.4);
+  const badgeStyle = { width: badgeSize, height: badgeSize, marginHorizontal: 2 };
   
   if (userType === 'admin') {
     return <Image source={require('@/assets/badge role/ic_admin.png')} style={badgeStyle} resizeMode="contain" />;
@@ -236,32 +237,28 @@ export const ChatMessage = React.memo(({
       const afterBadge = levelMatch[2];
       
       return (
-        <View style={styles.messageContainer}>
-          <Text style={[styles.messageWrapper, dynamicStyles.messageWrapper]}>
-            <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }]}>
-              {username}:{' '}
-            </Text>
-            <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }]}>
-              {beforeBadge}
-            </Text>
-            <RoleBadge userType={userType} />
-            <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }]}>
-              {afterBadge}
-            </Text>
+        <View style={styles.presenceRow}>
+          <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }]}>
+            {username}:{' '}
+          </Text>
+          <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }]}>
+            {beforeBadge}
+          </Text>
+          <RoleBadge userType={userType} fontSize={13} />
+          <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }]}>
+            {afterBadge}
           </Text>
         </View>
       );
     }
     
     return (
-      <View style={styles.messageContainer}>
-        <Text style={[styles.messageWrapper, dynamicStyles.messageWrapper]}>
-          <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }]}>
-            {username}:{' '}
-          </Text>
-          <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }]}>
-            {message}
-          </Text>
+      <View style={styles.presenceRow}>
+        <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }]}>
+          {username}:{' '}
+        </Text>
+        <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }]}>
+          {message}
         </Text>
       </View>
     );
@@ -305,6 +302,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginRight: 50,
     flexDirection: 'row',
+  },
+  presenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    paddingVertical: 1,
+    paddingHorizontal: 12,
+    marginRight: 50,
   },
   messageWrapper: {
     fontSize: 13,
