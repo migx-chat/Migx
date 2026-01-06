@@ -69,6 +69,7 @@ export default function ChatRoomScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [privateChatMenuVisible, setPrivateChatMenuVisible] = useState(false);
   const [pmGiftModalVisible, setPmGiftModalVisible] = useState(false);
+  const [roomGiftModalVisible, setRoomGiftModalVisible] = useState(false);
   const [roomInfoModalVisible, setRoomInfoModalVisible] = useState(false);
   const [roomInfoData, setRoomInfoData] = useState<any>(null);
   const [reportAbuseModalVisible, setReportAbuseModalVisible] = useState(false);
@@ -667,6 +668,11 @@ export default function ChatRoomScreen() {
       setCmdListVisible(true);
       return;
     }
+
+    if (trimmedAction === 'send-gift') {
+      setRoomGiftModalVisible(true);
+      return;
+    }
   }, [handleOpenRoomInfo, currentUsername, currentActiveRoomId, handleLeaveRoom]);
 
   const handleOpenParticipants = () => setParticipantsModalVisible(!participantsModalVisible);
@@ -915,6 +921,15 @@ export default function ChatRoomScreen() {
         visible={pmGiftModalVisible}
         onClose={() => setPmGiftModalVisible(false)}
         onSendGift={handlePmGiftSend}
+      />
+
+      <GiftModal
+        visible={roomGiftModalVisible}
+        onClose={() => setRoomGiftModalVisible(false)}
+        onSendGift={(gift) => {
+          setRoomGiftModalVisible(false);
+          setParticipantsModalVisible(true);
+        }}
       />
 
       <CmdList
