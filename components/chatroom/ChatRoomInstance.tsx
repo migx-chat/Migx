@@ -25,7 +25,10 @@ export const ChatRoomInstance = React.memo(function ChatRoomInstance({
 }: ChatRoomInstanceProps) {
   const messagesData = useRoomMessagesData(roomId);
   const messages = useMemo(() => messagesData || [], [messagesData]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // If room already has messages, it means we're already connected - skip loading
+  const alreadyJoined = messagesData && messagesData.length > 0;
+  const [isLoading, setIsLoading] = useState(!alreadyJoined);
 
   const handleRoomJoined = useCallback((data: any) => {
     setIsLoading(false);
@@ -40,7 +43,8 @@ export const ChatRoomInstance = React.memo(function ChatRoomInstance({
     onUsersUpdated: handleUsersUpdated,
   });
 
-  if (isLoading) {
+  // Don't show loading if room is already joined (has messages)
+  if (isLoading && !alreadyJoined) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0a5229" />
