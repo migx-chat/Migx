@@ -36,7 +36,7 @@ const handleUpload = (req, res, next) => {
 };
 
 // Normalize feed item with proper defaults
-const normalizeFeedItem = async (feedData, feedId, redis) => {
+const normalizeFeedItem = async (feedData, feedId, redis, currentUserId = null) => {
   if (!feedData) return null;
 
   try {
@@ -57,9 +57,22 @@ const normalizeFeedItem = async (feedData, feedId, redis) => {
     );
     const level = levelResult.rows[0]?.level || 1;
 
-    // Get like count from Redis
-    const likeKey = `feed:${feedId}:likes`;
-    const likesCount = await redis.get(likeKey);
+    // Get like count from PostgreSQL (persistent)
+    const likesResult = await query(
+      'SELECT COUNT(*) as count FROM redis_feed_likes WHERE post_id = $1',
+      [feedId]
+    );
+    const likesCount = parseInt(likesResult.rows[0]?.count || 0);
+    
+    // Check if current user liked this post
+    let isLiked = false;
+    if (currentUserId) {
+      const userLikeResult = await query(
+        'SELECT id FROM redis_feed_likes WHERE post_id = $1 AND user_id = $2',
+        [feedId, currentUserId]
+      );
+      isLiked = userLikeResult.rows.length > 0;
+    }
 
     // Get comments count from Redis
     const commentsKey = `feed:${feedId}:comments`;
@@ -89,9 +102,9 @@ const normalizeFeedItem = async (feedData, feedId, redis) => {
       mediaType: feed.mediaType ?? null,
       mediaUrl: feed.image_url ?? null,
       image_url: feed.image_url ?? null,
-      likes_count: Number(likesCount ?? 0),
+      likes_count: likesCount,
       comments_count: commentsArray.length ?? 0,
-      is_liked: false,
+      is_liked: isLiked,
       created_at: feed.created_at ?? feed.createdAt ?? new Date().toISOString(),
       avatarUrl: avatarUrl,
       avatar_url: avatarUrl,
@@ -109,11 +122,12 @@ const normalizeFeedItem = async (feedData, feedId, redis) => {
   }
 };
 
-// Get feed posts from Redis (Ephemeral storage)
+// Get feed posts from Redis (Ephemeral storage) with PostgreSQL likes
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const redis = getRedisClient();
     const feedKey = 'feed:global';
+    const currentUserId = req.user.id;
 
     // Get all items from Redis list
     const feedItems = await redis.lRange(feedKey, 0, 49);
@@ -130,7 +144,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
     const posts = feedItems.map(item => JSON.parse(item));
     
-    // Refresh role AND level data from database for each post
+    // Refresh role, level, and likes data from database for each post
     const { query } = require('../db/db');
     const postsWithFreshData = await Promise.all(posts.map(async (post) => {
       try {
@@ -148,6 +162,20 @@ router.get('/', authMiddleware, async (req, res) => {
         );
         const userLevel = levelResult.rows[0]?.level || 1;
         
+        // Get likes count from PostgreSQL
+        const likesResult = await query(
+          'SELECT COUNT(*) as count FROM redis_feed_likes WHERE post_id = $1',
+          [post.id]
+        );
+        const likesCount = parseInt(likesResult.rows[0]?.count || 0);
+        
+        // Check if current user liked this post
+        const userLikeResult = await query(
+          'SELECT id FROM redis_feed_likes WHERE post_id = $1 AND user_id = $2',
+          [post.id, currentUserId]
+        );
+        const isLiked = userLikeResult.rows.length > 0;
+        
         if (user) {
           post.role = user.role || 'user';
           post.level = userLevel;
@@ -158,6 +186,11 @@ router.get('/', authMiddleware, async (req, res) => {
         } else {
           post.level = userLevel;
         }
+        
+        // Update likes data from PostgreSQL
+        post.likes_count = likesCount;
+        post.is_liked = isLiked;
+        
         return post;
       } catch (e) {
         console.error(`Error refreshing user data for post:`, e.message);
@@ -282,29 +315,55 @@ router.post('/create', authMiddleware, handleUpload, async (req, res) => {
   }
 });
 
-// Like/Unlike post (Redis only)
+// Like/Unlike post (PostgreSQL for persistence)
 router.post('/:feedId/like', authMiddleware, async (req, res) => {
   try {
     const { feedId } = req.params;
     const userId = req.user.id;
-    const redis = getRedisClient();
+    const { query } = require('../db/db');
     
-    // In Redis list-based feed, we don't have an easy way to update count inside the JSON string
-    // without O(N) operations. For this ephemeral implementation, we'll just track likes
-    // in separate keys.
-    const likeKey = `feed:${feedId}:likes`;
-    const userLikeKey = `feed:${feedId}:likes:${userId}`;
+    // Check if user already liked this post
+    const existingLike = await query(
+      'SELECT id FROM redis_feed_likes WHERE post_id = $1 AND user_id = $2',
+      [feedId, userId]
+    );
 
-    const isLiked = await redis.exists(userLikeKey);
-
-    if (isLiked) {
-      await redis.del(userLikeKey);
-      await redis.decr(likeKey);
-      res.json({ success: true, action: 'unliked' });
+    if (existingLike.rows.length > 0) {
+      // Unlike - remove from database
+      await query(
+        'DELETE FROM redis_feed_likes WHERE post_id = $1 AND user_id = $2',
+        [feedId, userId]
+      );
+      
+      // Get updated count
+      const countResult = await query(
+        'SELECT COUNT(*) as count FROM redis_feed_likes WHERE post_id = $1',
+        [feedId]
+      );
+      
+      res.json({ 
+        success: true, 
+        action: 'unliked',
+        likes_count: parseInt(countResult.rows[0].count)
+      });
     } else {
-      await redis.set(userLikeKey, '1', { EX: 86400 });
-      await redis.incr(likeKey);
-      res.json({ success: true, action: 'liked' });
+      // Like - add to database
+      await query(
+        'INSERT INTO redis_feed_likes (post_id, user_id) VALUES ($1, $2) ON CONFLICT (post_id, user_id) DO NOTHING',
+        [feedId, userId]
+      );
+      
+      // Get updated count
+      const countResult = await query(
+        'SELECT COUNT(*) as count FROM redis_feed_likes WHERE post_id = $1',
+        [feedId]
+      );
+      
+      res.json({ 
+        success: true, 
+        action: 'liked',
+        likes_count: parseInt(countResult.rows[0].count)
+      });
     }
   } catch (error) {
     console.error('❌ Error toggling like:', error);
@@ -402,13 +461,14 @@ router.post('/:feedId/comment', authMiddleware, async (req, res) => {
   }
 });
 
-// Delete post (Redis only)
+// Delete post (Redis + PostgreSQL cleanup)
 router.delete('/:feedId', authMiddleware, async (req, res) => {
   try {
     const { feedId } = req.params;
     const userId = req.user.id;
     const redis = getRedisClient();
     const feedKey = 'feed:global';
+    const { query } = require('../db/db');
 
     // Get list, find item, check ownership, and remove
     const items = await redis.lRange(feedKey, 0, -1);
@@ -421,6 +481,10 @@ router.delete('/:feedId', authMiddleware, async (req, res) => {
       await redis.lRem(feedKey, 1, itemToRemove);
       await redis.del(`feed:${feedId}:likes`);
       await redis.del(`feed:${feedId}:comments`);
+      
+      // Also delete likes from PostgreSQL
+      await query('DELETE FROM redis_feed_likes WHERE post_id = $1', [feedId]);
+      
       return res.json({ success: true, message: 'Post deleted' });
     }
 
