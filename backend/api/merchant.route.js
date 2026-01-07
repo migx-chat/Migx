@@ -182,4 +182,63 @@ router.get('/user/:userId', async (req, res) => {
   }
 });
 
+router.get('/dashboard/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await merchantService.getMerchantDashboard(userId);
+    
+    if (!result.success) {
+      return res.status(404).json({ error: result.error });
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Get merchant dashboard error:', error);
+    res.status(500).json({ error: 'Failed to get dashboard' });
+  }
+});
+
+router.get('/commissions/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+    
+    const result = await merchantService.getTaggedUserCommissions(
+      userId,
+      parseInt(limit),
+      parseInt(offset)
+    );
+    
+    if (!result.success) {
+      return res.status(404).json({ error: result.error });
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Get commissions error:', error);
+    res.status(500).json({ error: 'Failed to get commissions' });
+  }
+});
+
+router.get('/recharge-history/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { months = 6 } = req.query;
+    
+    const result = await merchantService.getMonthlyRechargeHistory(
+      userId,
+      parseInt(months)
+    );
+    
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Get recharge history error:', error);
+    res.status(500).json({ error: 'Failed to get recharge history' });
+  }
+});
+
 module.exports = router;

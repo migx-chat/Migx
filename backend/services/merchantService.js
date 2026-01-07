@@ -266,6 +266,134 @@ const getAllMerchants = async (activeOnly = true, limit = 50) => {
   }
 };
 
+const getMerchantDashboard = async (userId) => {
+  try {
+    const merchantResult = await query(
+      `SELECT m.*, u.username, u.avatar
+       FROM merchants m
+       JOIN users u ON m.user_id = u.id
+       WHERE m.user_id = $1`,
+      [userId]
+    );
+    
+    if (merchantResult.rows.length === 0) {
+      return { success: false, error: 'Merchant not found' };
+    }
+    
+    const merchant = merchantResult.rows[0];
+    const merchantId = merchant.id;
+    
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    
+    const monthlyRechargeResult = await query(
+      `SELECT COALESCE(SUM(amount), 0) as total_recharge
+       FROM credit_logs
+       WHERE to_user_id = $1
+       AND transaction_type = 'topup'
+       AND created_at >= $2 AND created_at <= $3`,
+      [userId, startOfMonth, endOfMonth]
+    );
+    
+    const totalRechargeThisMonth = parseInt(monthlyRechargeResult.rows[0]?.total_recharge || 0);
+    
+    return {
+      success: true,
+      dashboard: {
+        merchantId: merchant.id,
+        username: merchant.username,
+        avatar: merchant.avatar,
+        commissionRate: merchant.commission_rate,
+        totalIncome: parseInt(merchant.total_income || 0),
+        active: merchant.active,
+        createdAt: merchant.created_at,
+        expiredAt: merchant.expired_at,
+        totalRechargeThisMonth
+      }
+    };
+  } catch (error) {
+    console.error('Error getting merchant dashboard:', error);
+    return { success: false, error: 'Failed to get dashboard' };
+  }
+};
+
+const getTaggedUserCommissions = async (userId, limit = 50, offset = 0) => {
+  try {
+    const merchantResult = await query(
+      'SELECT id FROM merchants WHERE user_id = $1',
+      [userId]
+    );
+    
+    if (merchantResult.rows.length === 0) {
+      return { success: false, error: 'Merchant not found' };
+    }
+    
+    const merchantId = merchantResult.rows[0].id;
+    
+    const commissionsResult = await query(
+      `SELECT msl.*, u.avatar as user_avatar
+       FROM merchant_spend_logs msl
+       LEFT JOIN users u ON msl.user_id = u.id
+       WHERE msl.merchant_id = $1
+       ORDER BY msl.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [merchantId, limit, offset]
+    );
+    
+    const totalResult = await query(
+      `SELECT COUNT(*) as count, COALESCE(SUM(commission_amount), 0) as total_commission
+       FROM merchant_spend_logs
+       WHERE merchant_id = $1`,
+      [merchantId]
+    );
+    
+    return {
+      success: true,
+      commissions: commissionsResult.rows,
+      totalCount: parseInt(totalResult.rows[0]?.count || 0),
+      totalCommission: parseInt(totalResult.rows[0]?.total_commission || 0)
+    };
+  } catch (error) {
+    console.error('Error getting tagged user commissions:', error);
+    return { success: false, error: 'Failed to get commissions' };
+  }
+};
+
+const getMonthlyRechargeHistory = async (userId, months = 6) => {
+  try {
+    const history = [];
+    const now = new Date();
+    
+    for (let i = 0; i < months; i++) {
+      const targetMonth = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const startOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1);
+      const endOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0, 23, 59, 59);
+      
+      const result = await query(
+        `SELECT COALESCE(SUM(amount), 0) as total
+         FROM credit_logs
+         WHERE to_user_id = $1
+         AND transaction_type = 'topup'
+         AND created_at >= $2 AND created_at <= $3`,
+        [userId, startOfMonth, endOfMonth]
+      );
+      
+      history.push({
+        month: targetMonth.toLocaleString('default', { month: 'short', year: 'numeric' }),
+        year: targetMonth.getFullYear(),
+        monthNum: targetMonth.getMonth() + 1,
+        total: parseInt(result.rows[0]?.total || 0)
+      });
+    }
+    
+    return { success: true, history };
+  } catch (error) {
+    console.error('Error getting monthly recharge history:', error);
+    return { success: false, error: 'Failed to get history' };
+  }
+};
+
 const withdrawMerchantEarnings = async (merchantId, amount) => {
   const dbClient = await getClient();
   
@@ -320,5 +448,8 @@ module.exports = {
   getMerchantSpendLogs,
   getMerchantProfile,
   getAllMerchants,
-  withdrawMerchantEarnings
+  withdrawMerchantEarnings,
+  getMerchantDashboard,
+  getTaggedUserCommissions,
+  getMonthlyRechargeHistory
 };
