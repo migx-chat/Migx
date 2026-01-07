@@ -47,10 +47,6 @@ const playGame = async (userId, username, gameType, betAmount, choice, merchantI
       return { success: false, error: deductResult.error };
     }
     
-    if (merchantId) {
-      await merchantService.recordGameSpend(merchantId, userId, username, gameType, betAmount);
-    }
-    
     let gameResult;
     switch (gameType) {
       case GAME_TYPES.COIN_FLIP:
@@ -77,6 +73,10 @@ const playGame = async (userId, username, gameType, betAmount, choice, merchantI
     
     if (rewardAmount > 0) {
       await creditService.addCredits(userId, rewardAmount, 'reward', `Won ${gameType}`);
+      
+      if (merchantId) {
+        await merchantService.recordTaggedUserWin(merchantId, userId, username, gameType, rewardAmount);
+      }
     }
     
     await query(

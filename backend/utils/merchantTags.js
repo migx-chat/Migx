@@ -5,9 +5,14 @@ const MERCHANT_DAILY_KEY = (merchantId, date) => `merchant:${merchantId}:daily:$
 const MERCHANT_STATS_KEY = (merchantId) => `merchant:${merchantId}:stats`;
 
 const DEFAULT_COMMISSION_RATE = 30;
+const TAGGED_USER_WIN_COMMISSION_RATE = 10;
 
 const calculateCommission = (spendAmount, commissionRate = DEFAULT_COMMISSION_RATE) => {
   return Math.floor(spendAmount * (commissionRate / 100));
+};
+
+const calculateTaggedUserWinCommission = (winAmount) => {
+  return Math.floor(winAmount * (TAGGED_USER_WIN_COMMISSION_RATE / 100));
 };
 
 const addMerchantIncome = async (merchantId, amount) => {
@@ -99,7 +104,9 @@ const getMerchantTag = (level, totalIncome) => {
 
 module.exports = {
   DEFAULT_COMMISSION_RATE,
+  TAGGED_USER_WIN_COMMISSION_RATE,
   calculateCommission,
+  calculateTaggedUserWinCommission,
   addMerchantIncome,
   getMerchantIncome,
   getMerchantDailyIncome,

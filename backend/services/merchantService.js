@@ -1,6 +1,6 @@
 const { query, getClient } = require('../db/db');
 const { client } = require('../redis');
-const { calculateCommission, addMerchantIncome, getMerchantIncome, getMerchantStats, getMerchantTag } = require('../utils/merchantTags');
+const { calculateCommission, calculateTaggedUserWinCommission, addMerchantIncome, getMerchantIncome, getMerchantStats, getMerchantTag } = require('../utils/merchantTags');
 
 const createMerchant = async (userId, mentorId, commissionRate = 30) => {
   try {
@@ -183,6 +183,56 @@ const recordGameSpend = async (merchantId, userId, username, gameType, spendAmou
     await dbClient.query('ROLLBACK');
     console.error('Error recording game spend:', error);
     return { success: false, error: 'Failed to record game spend' };
+  } finally {
+    dbClient.release();
+  }
+};
+
+const recordTaggedUserWin = async (merchantId, userId, username, gameType, winAmount) => {
+  const dbClient = await getClient();
+  
+  try {
+    await dbClient.query('BEGIN');
+    
+    const merchantResult = await dbClient.query(
+      'SELECT * FROM merchants WHERE id = $1 AND active = TRUE',
+      [merchantId]
+    );
+    
+    if (merchantResult.rows.length === 0) {
+      await dbClient.query('ROLLBACK');
+      return { success: false, error: 'Merchant not found or inactive' };
+    }
+    
+    const commissionAmount = calculateTaggedUserWinCommission(winAmount);
+    
+    await dbClient.query(
+      `INSERT INTO merchant_spend_logs (merchant_id, user_id, username, game_type, spend_amount, commission_amount)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [merchantId, userId, username, gameType, winAmount, commissionAmount]
+    );
+    
+    await dbClient.query(
+      `UPDATE merchants SET total_income = total_income + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+      [commissionAmount, merchantId]
+    );
+    
+    await addMerchantIncome(merchantId, commissionAmount);
+    
+    await dbClient.query('COMMIT');
+    
+    console.log(`💰 Merchant ${merchantId} earned ${commissionAmount} (10% of ${winAmount}) from tagged user ${username} win`);
+    
+    return {
+      success: true,
+      winAmount,
+      commissionAmount,
+      merchantId
+    };
+  } catch (error) {
+    await dbClient.query('ROLLBACK');
+    console.error('Error recording tagged user win:', error);
+    return { success: false, error: 'Failed to record commission' };
   } finally {
     dbClient.release();
   }
@@ -444,6 +494,7 @@ module.exports = {
   disableMerchant,
   enableMerchant,
   recordGameSpend,
+  recordTaggedUserWin,
   getMerchantIncomeTotal,
   getMerchantSpendLogs,
   getMerchantProfile,
