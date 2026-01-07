@@ -546,6 +546,10 @@ const startServer = async () => {
         }
       }, 60 * 60 * 1000); // Check every hour
       console.log('🏪 Merchant expiry check job started (interval: 1 hour)');
+      
+      // Start gift queue processor for async DB persistence
+      const giftQueueService = require('./services/giftQueueService');
+      giftQueueService.startGiftQueueProcessor();
       console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║           MIG33 Clone Backend Server                  ║

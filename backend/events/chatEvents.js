@@ -128,7 +128,7 @@ module.exports = (io, socket) => {
           return;
         }
 
-        // Handle /gift command
+        // Handle /gift command (Redis-first with async DB persistence)
         if (cmdKey === 'gift') {
           const giftName = parts[1];
           const targetUser = parts[2];
@@ -143,16 +143,29 @@ module.exports = (io, socket) => {
           }
 
           try {
-            const pool = require('../db/db');
             const userService = require('../services/userService');
+            const giftQueue = require('../services/giftQueueService');
             
-            // Find gift in database (case-insensitive)
-            const giftResult = await pool.query(
-              'SELECT * FROM gifts WHERE LOWER(name) = LOWER($1)',
-              [giftName.trim()]
-            );
+            // Check gift cache in Redis first, fallback to DB
+            let gift = null;
+            const cachedGift = await redis.get(`gift:${giftName.toLowerCase().trim()}`);
             
-            if (giftResult.rows.length === 0) {
+            if (cachedGift) {
+              gift = JSON.parse(cachedGift);
+            } else {
+              const pool = require('../db/db');
+              const giftResult = await pool.query(
+                'SELECT * FROM gifts WHERE LOWER(name) = LOWER($1)',
+                [giftName.trim()]
+              );
+              
+              if (giftResult.rows.length > 0) {
+                gift = giftResult.rows[0];
+                await redis.set(`gift:${giftName.toLowerCase().trim()}`, JSON.stringify(gift), { EX: 3600 });
+              }
+            }
+            
+            if (!gift) {
               socket.emit('system:message', {
                 roomId,
                 message: `Gift "${giftName}" not found.`,
@@ -161,8 +174,6 @@ module.exports = (io, socket) => {
               });
               return;
             }
-            
-            const gift = giftResult.rows[0];
             
             // Check if target user exists
             const targetUserData = await userService.getUserByUsername(targetUser);
@@ -176,13 +187,10 @@ module.exports = (io, socket) => {
               return;
             }
             
-            // Check sender's balance
-            const senderResult = await pool.query(
-              'SELECT credits FROM users WHERE id = $1',
-              [userId]
-            );
+            // Atomic balance check and deduct in Redis
+            const newBalance = await giftQueue.deductCreditsAtomic(userId, gift.price);
             
-            if (senderResult.rows.length === 0 || senderResult.rows[0].credits < gift.price) {
+            if (newBalance === null) {
               socket.emit('system:message', {
                 roomId,
                 message: `Not enough credits. Gift costs ${gift.price} IDR.`,
@@ -192,20 +200,7 @@ module.exports = (io, socket) => {
               return;
             }
             
-            // Deduct credits from sender
-            await pool.query(
-              'UPDATE users SET credits = credits - $1 WHERE id = $2',
-              [gift.price, userId]
-            );
-            
-            // Log the transaction (using 'transfer' type for gifts)
-            await pool.query(
-              `INSERT INTO credit_logs (from_user_id, to_user_id, amount, transaction_type, description, from_username, to_username, created_at)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
-              [userId, targetUserData.id, -gift.price, 'transfer', `Gift: ${gift.name} to ${targetUser}`, username, targetUser]
-            );
-            
-            // Broadcast gift message with image
+            // Immediately broadcast gift message (real-time)
             io.to(`room:${roomId}`).emit('chat:message', {
               id: generateMessageId(),
               roomId,
@@ -222,9 +217,22 @@ module.exports = (io, socket) => {
               timestamp: new Date().toISOString()
             });
             
-            // Emit balance update to sender
-            const newBalance = senderResult.rows[0].credits - gift.price;
+            // Emit balance update to sender immediately
             socket.emit('credits:updated', { balance: newBalance });
+            
+            // Queue async persistence to PostgreSQL (non-blocking)
+            giftQueue.queueGiftForPersistence({
+              senderId: userId,
+              receiverId: targetUserData.id,
+              senderUsername: username,
+              receiverUsername: targetUser,
+              giftName: gift.name,
+              giftIcon: gift.image_url,
+              giftCost: gift.price
+            });
+            
+            // Async sync balance to DB (non-blocking)
+            giftQueue.queueBalanceSyncToDb(userId, newBalance);
             
           } catch (error) {
             console.error('Error processing /gift command:', error);
