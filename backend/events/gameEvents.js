@@ -134,31 +134,19 @@ module.exports = (io, socket) => {
 
   const gameSpend = async (data) => {
     try {
-      const { userId, username, gameType, spendAmount, merchantId } = data;
+      const { userId, username, gameType, winAmount, merchantId } = data;
       
-      if (!userId || !gameType || !spendAmount || !merchantId) {
+      if (!userId || !gameType || !winAmount || !merchantId) {
         socket.emit('error', { message: 'Missing required fields' });
         return;
       }
       
-      const deductResult = await creditService.deductCredits(
-        userId,
-        spendAmount,
-        'game_spend',
-        `Game spend: ${gameType}`
-      );
-      
-      if (!deductResult.success) {
-        socket.emit('error', { message: deductResult.error });
-        return;
-      }
-      
-      const spendResult = await merchantService.recordGameSpend(
+      const spendResult = await merchantService.recordTaggedUserWin(
         merchantId,
         userId,
         username,
         gameType,
-        spendAmount
+        winAmount
       );
       
       if (!spendResult.success) {
@@ -167,9 +155,8 @@ module.exports = (io, socket) => {
       }
       
       socket.emit('game:spend:success', {
-        spendAmount,
-        commissionAmount: spendResult.commissionAmount,
-        newBalance: deductResult.newBalance
+        winAmount,
+        commissionAmount: spendResult.commissionAmount
       });
       
     } catch (error) {
