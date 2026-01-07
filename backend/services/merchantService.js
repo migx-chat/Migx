@@ -27,11 +27,15 @@ const createMerchant = async (userId, mentorId, commissionRate = 30) => {
       [userId]
     );
     
+    // Set expired_at to 1 month from now
+    const expiredAt = new Date();
+    expiredAt.setMonth(expiredAt.getMonth() + 1);
+    
     const result = await query(
-      `INSERT INTO merchants (user_id, created_by, commission_rate)
-       VALUES ($1, $2, $3)
+      `INSERT INTO merchants (user_id, created_by, commission_rate, expired_at)
+       VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [userId, mentorId, commissionRate]
+      [userId, mentorId, commissionRate, expiredAt]
     );
     
     return { success: true, merchant: result.rows[0] };
@@ -487,6 +491,128 @@ const withdrawMerchantEarnings = async (merchantId, amount) => {
   }
 };
 
+const MONTHLY_MINIMUM_TRANSFER = 1600000;
+
+const recordMentorTransfer = async (mentorId, merchantUserId, amount) => {
+  try {
+    const merchant = await getMerchantByUserId(merchantUserId);
+    if (!merchant) {
+      return { success: false, error: 'Merchant not found' };
+    }
+    
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    
+    await query(
+      `INSERT INTO mentor_merchant_transfers (mentor_id, merchant_id, merchant_user_id, amount, transfer_month)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [mentorId, merchant.id, merchantUserId, amount, currentMonth]
+    );
+    
+    const monthlyTotal = await getMonthlyTransferTotal(merchant.id, currentMonth);
+    
+    if (monthlyTotal >= MONTHLY_MINIMUM_TRANSFER) {
+      const newExpiredAt = new Date();
+      newExpiredAt.setMonth(newExpiredAt.getMonth() + 1);
+      
+      await query(
+        `UPDATE merchants SET expired_at = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+        [newExpiredAt, merchant.id]
+      );
+      
+      return { success: true, renewed: true, newExpiredAt, monthlyTotal };
+    }
+    
+    return { success: true, renewed: false, monthlyTotal, remaining: MONTHLY_MINIMUM_TRANSFER - monthlyTotal };
+  } catch (error) {
+    console.error('Error recording mentor transfer:', error);
+    return { success: false, error: 'Failed to record transfer' };
+  }
+};
+
+const getMonthlyTransferTotal = async (merchantId, month = null) => {
+  try {
+    const targetMonth = month || new Date().toISOString().slice(0, 7);
+    
+    const result = await query(
+      `SELECT COALESCE(SUM(amount), 0) as total
+       FROM mentor_merchant_transfers
+       WHERE merchant_id = $1 AND transfer_month = $2`,
+      [merchantId, targetMonth]
+    );
+    
+    return parseInt(result.rows[0]?.total || 0);
+  } catch (error) {
+    console.error('Error getting monthly transfer total:', error);
+    return 0;
+  }
+};
+
+const checkAndExpireMerchants = async () => {
+  try {
+    const now = new Date();
+    const currentMonth = now.toISOString().slice(0, 7);
+    
+    const expiredMerchants = await query(
+      `SELECT m.id, m.user_id, u.username
+       FROM merchants m
+       JOIN users u ON m.user_id = u.id
+       WHERE m.active = true AND m.expired_at IS NOT NULL AND m.expired_at <= $1`,
+      [now]
+    );
+    
+    const expiredList = [];
+    
+    for (const merchant of expiredMerchants.rows) {
+      const monthlyTotal = await getMonthlyTransferTotal(merchant.id, currentMonth);
+      
+      if (monthlyTotal < MONTHLY_MINIMUM_TRANSFER) {
+        await query(`UPDATE merchants SET active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [merchant.id]);
+        await query(`UPDATE users SET role = 'user' WHERE id = $1`, [merchant.user_id]);
+        
+        expiredList.push({
+          merchantId: merchant.id,
+          userId: merchant.user_id,
+          username: merchant.username,
+          monthlyTotal,
+          required: MONTHLY_MINIMUM_TRANSFER
+        });
+        
+        console.log(`[MERCHANT EXPIRED] ${merchant.username} (ID: ${merchant.user_id}) - Monthly transfers: ${monthlyTotal}/${MONTHLY_MINIMUM_TRANSFER}`);
+      }
+    }
+    
+    return { success: true, expiredCount: expiredList.length, expired: expiredList };
+  } catch (error) {
+    console.error('Error checking merchant expiry:', error);
+    return { success: false, error: 'Failed to check expiry' };
+  }
+};
+
+const getMerchantTransferStatus = async (merchantUserId) => {
+  try {
+    const merchant = await getMerchantByUserId(merchantUserId);
+    if (!merchant) {
+      return { success: false, error: 'Merchant not found' };
+    }
+    
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const monthlyTotal = await getMonthlyTransferTotal(merchant.id, currentMonth);
+    
+    return {
+      success: true,
+      merchantId: merchant.id,
+      monthlyTotal,
+      required: MONTHLY_MINIMUM_TRANSFER,
+      remaining: Math.max(0, MONTHLY_MINIMUM_TRANSFER - monthlyTotal),
+      percentage: Math.min(100, Math.round((monthlyTotal / MONTHLY_MINIMUM_TRANSFER) * 100)),
+      expiredAt: merchant.expired_at
+    };
+  } catch (error) {
+    console.error('Error getting merchant transfer status:', error);
+    return { success: false, error: 'Failed to get status' };
+  }
+};
+
 module.exports = {
   createMerchant,
   getMerchantByUserId,
@@ -502,5 +628,10 @@ module.exports = {
   withdrawMerchantEarnings,
   getMerchantDashboard,
   getTaggedUserCommissions,
-  getMonthlyRechargeHistory
+  getMonthlyRechargeHistory,
+  recordMentorTransfer,
+  getMonthlyTransferTotal,
+  checkAndExpireMerchants,
+  getMerchantTransferStatus,
+  MONTHLY_MINIMUM_TRANSFER
 };
