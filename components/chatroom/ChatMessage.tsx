@@ -22,6 +22,7 @@ interface ChatMessageProps {
   hasTopMerchantBadge?: boolean;
   hasTopLikeReward?: boolean;
   topLikeRewardExpiry?: string;
+  hasBackground?: boolean;
 }
 
 const BadgeTop1 = () => (
@@ -118,10 +119,17 @@ export const ChatMessage = React.memo(({
   messageType,
   hasTopMerchantBadge,
   hasTopLikeReward,
-  topLikeRewardExpiry
+  topLikeRewardExpiry,
+  hasBackground
 }: ChatMessageProps) => {
   
   const { theme, scaleSize } = useThemeCustom();
+  
+  const textShadowStyle = hasBackground ? {
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  } : {};
   
   const dynamicStyles = {
     messageWrapper: {
@@ -213,7 +221,7 @@ export const ChatMessage = React.memo(({
         
         return (
           <View style={[styles.messageContainer, styles.giftMessageContainer]}>
-            <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: textColor }]}>
+            <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: textColor }, textShadowStyle]}>
               {'<'}{sender} sent{' '}
             </Text>
             {isImageUrl ? (
@@ -223,11 +231,11 @@ export const ChatMessage = React.memo(({
                 resizeMode="contain" 
               />
             ) : (
-              <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: textColor }]}>
+              <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: textColor }, textShadowStyle]}>
                 {giftImageUrl}
               </Text>
             )}
-            <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: textColor }]}>
+            <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: textColor }, textShadowStyle]}>
               {' '}to {receiver}{'>'}
             </Text>
           </View>
@@ -237,7 +245,7 @@ export const ChatMessage = React.memo(({
     
     return (
       <View style={styles.messageContainer}>
-        <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: textColor }]}>
+        <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: textColor }, textShadowStyle]}>
           {message}
         </Text>
       </View>
@@ -272,14 +280,14 @@ export const ChatMessage = React.memo(({
       
       return (
         <View style={styles.presenceRow}>
-          <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }]}>
+          <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }, textShadowStyle]}>
             {username}:{' '}
           </Text>
-          <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }]}>
+          <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }, textShadowStyle]}>
             {beforeBadge}
           </Text>
           <RoleBadge userType={userType} />
-          <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }]}>
+          <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }, textShadowStyle]}>
             {afterBadge}
           </Text>
         </View>
@@ -288,10 +296,10 @@ export const ChatMessage = React.memo(({
     
     return (
       <View style={styles.presenceRow}>
-        <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }]}>
+        <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }, textShadowStyle]}>
           {username}:{' '}
         </Text>
-        <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }]}>
+        <Text style={[styles.message, dynamicStyles.message, { color: getMessageColor() }, textShadowStyle]}>
           {message}
         </Text>
       </View>
@@ -303,7 +311,7 @@ export const ChatMessage = React.memo(({
   return (
     <View style={styles.messageContainer}>
       <Text style={[styles.messageWrapper, dynamicStyles.messageWrapper]}>
-        <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }]}>
+        <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }, textShadowStyle]}>
           {username}{hasTopMerchantBadge && <BadgeTop1 />}:{' '}
         </Text>
         {parsedMessage.map((item, index) => {
@@ -320,7 +328,7 @@ export const ChatMessage = React.memo(({
             );
           }
           return (
-            <Text key={item.key} style={[styles.message, dynamicStyles.message, { color: getMessageColor() }]}>
+            <Text key={item.key} style={[styles.message, dynamicStyles.message, { color: getMessageColor() }, textShadowStyle]}>
               {item.content}
             </Text>
           );

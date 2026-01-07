@@ -49,6 +49,7 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 70, backg
           hasTopMerchantBadge={item.hasTopMerchantBadge}
           hasTopLikeReward={item.hasTopLikeReward}
           topLikeRewardExpiry={item.topLikeRewardExpiry}
+          hasBackground={!!backgroundImage}
         />
       )}
       contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]}
