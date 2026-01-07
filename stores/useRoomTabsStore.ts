@@ -40,6 +40,7 @@ export interface OpenRoom {
   roomId: string;
   name: string;
   unread: number;
+  backgroundImage?: string;
 }
 
 interface RoomTabsState {
@@ -70,6 +71,7 @@ interface RoomTabsActions {
   setSocket: (socket: Socket | null) => void;
   setUserInfo: (username: string, userId: string) => void;
   updateRoomName: (roomId: string, name: string) => void;
+  updateRoomBackground: (roomId: string, backgroundImage: string | null) => void;
   markRoomJoined: (roomId: string) => void;
   markRoomLeft: (roomId: string) => void;
   isRoomJoined: (roomId: string) => boolean;
@@ -433,6 +435,19 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
       openRoomsById: {
         ...state.openRoomsById,
         [roomId]: { ...room, name },
+      },
+    });
+  },
+
+  updateRoomBackground: (roomId: string, backgroundImage: string | null) => {
+    const state = get();
+    const room = state.openRoomsById[roomId];
+    if (!room) return;
+
+    set({
+      openRoomsById: {
+        ...state.openRoomsById,
+        [roomId]: { ...room, backgroundImage: backgroundImage || undefined },
       },
     });
   },

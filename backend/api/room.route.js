@@ -790,4 +790,51 @@ router.get('/:roomId/participants', async (req, res) => {
   }
 });
 
+const auth = require('../middleware/auth');
+const { query } = require('../db');
+
+router.delete('/:roomId/background', auth, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    const room = await roomService.getRoomById(roomId);
+    
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        error: 'Room not found'
+      });
+    }
+
+    const isAdmin = ['admin', 'super_admin'].includes(userRole);
+    const isRoomOwner = room.owner_id == userId;
+    
+    if (!isAdmin && !isRoomOwner) {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to remove this room background'
+      });
+    }
+
+    await query(
+      'UPDATE rooms SET background_image = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+      [roomId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Background removed successfully'
+    });
+
+  } catch (error) {
+    console.error('Remove background error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'Failed to remove background' 
+    });
+  }
+});
+
 module.exports = router;
