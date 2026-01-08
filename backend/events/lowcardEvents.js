@@ -11,8 +11,11 @@ const sendBotMessage = (io, roomId, message, type = 'lowcard') => {
     username: 'LowCardBot',
     message: `LowCardBot: ${message}`,
     messageType: type,
-    type: type,
+    type: 'bot',
+    botType: 'lowcard',
     userType: 'bot',
+    usernameColor: '#719c35',
+    messageColor: '#347499',
     timestamp: new Date().toISOString()
   });
 };
