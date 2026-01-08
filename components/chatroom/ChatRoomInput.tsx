@@ -169,6 +169,8 @@ export const ChatRoomInput = forwardRef<ChatRoomInputRef, ChatRoomInputProps>(({
     setMessage('');
     // Fast clear for immediate feedback
     onSend(msgToSend);
+    // Auto close keyboard and emoji picker after sending
+    Keyboard.dismiss();
     if (emojiPickerVisible && onEmojiPress) {
       onEmojiPress();
     }
