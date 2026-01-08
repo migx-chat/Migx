@@ -492,9 +492,148 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /mod command - Add moderator to room
+        if (cmdKey === 'mod') {
+          const targetUsername = parts[1];
+          if (!targetUsername) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /mod <username>`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          try {
+            const roomService = require('../services/roomService');
+            const userService = require('../services/userService');
+            
+            // Check if user is room owner or admin
+            const room = await roomService.getRoomById(roomId);
+            const isRoomOwner = room && room.owner_id == userId;
+            const isGlobalAdmin = await userService.isAdmin(userId);
+            
+            if (!isRoomOwner && !isGlobalAdmin) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Only room owner can add moderators`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Find target user
+            const targetUser = await userService.getUserByUsername(targetUsername);
+            if (!targetUser) {
+              socket.emit('system:message', {
+                roomId,
+                message: `User "${targetUsername}" not found`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Add to room_admins table
+            await roomService.addRoomAdmin(roomId, targetUser.id);
+            
+            // Broadcast success message
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: `** ${targetUsername} Has Been moderator **`,
+              messageType: 'modPromotion',
+              type: 'cmd',
+              timestamp: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error processing /mod command:', error);
+            socket.emit('system:message', {
+              roomId,
+              message: `Failed to add moderator`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+          }
+          return;
+        }
+
+        // Handle /unmod command - Remove moderator from room
+        if (cmdKey === 'unmod') {
+          const targetUsername = parts[1];
+          if (!targetUsername) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /unmod <username>`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          try {
+            const roomService = require('../services/roomService');
+            const userService = require('../services/userService');
+            
+            // Check if user is room owner or admin
+            const room = await roomService.getRoomById(roomId);
+            const isRoomOwner = room && room.owner_id == userId;
+            const isGlobalAdmin = await userService.isAdmin(userId);
+            
+            if (!isRoomOwner && !isGlobalAdmin) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Only room owner can remove moderators`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Find target user
+            const targetUser = await userService.getUserByUsername(targetUsername);
+            if (!targetUser) {
+              socket.emit('system:message', {
+                roomId,
+                message: `User "${targetUsername}" not found`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Remove from room_admins table
+            await roomService.removeRoomAdmin(roomId, targetUser.id);
+            
+            // Broadcast success message
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: `** ${username} removed ${targetUsername} from moderator **`,
+              messageType: 'modRemoval',
+              type: 'cmd',
+              timestamp: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error processing /unmod command:', error);
+            socket.emit('system:message', {
+              roomId,
+              message: `Failed to remove moderator`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+          }
+          return;
+        }
+
         // Handle other MIG33 commands
         const cmd = MIG33_CMD[cmdKey];
         if (cmd) {
+          // Skip mod/unmod as they're handled above
+          if (cmdKey === 'mod' || cmdKey === 'unmod') return;
+          
           const target = parts[1];
           if (cmd.requiresTarget && !target) {
             socket.emit('system:message', {
