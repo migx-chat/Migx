@@ -152,7 +152,7 @@ const addBotToRoom = async (roomId) => {
     createdAt: new Date().toISOString()
   }), 'EX', 86400 * 7);
   
-  return { success: true, message: '[PVT] LowCardBot is running. Amount: 50.0' };
+  return { success: true, message: '[PVT] LowCardBot is running. Amount: 1000' };
 };
 
 const removeBotFromRoom = async (roomId) => {
@@ -206,7 +206,7 @@ const startGame = async (roomId, userId, username, amount) => {
   
   const deductResult = await deductCredits(userId, entryAmount);
   if (!deductResult.success) {
-    return { success: false, message: `Not enough credits. You need ${entryAmount} MCR to start.` };
+    return { success: false, message: `Not enough credits. You need ${entryAmount} IDR to start.` };
   }
   
   const gameId = Date.now();
@@ -243,7 +243,7 @@ const startGame = async (roomId, userId, username, amount) => {
     success: true,
     gameId,
     newBalance: deductResult.balance,
-    message: `LowCard started by ${username}. Enter !j to join the game. Cost: ${entryAmount}.0 MCR [30s]`
+    message: `LowCard started by ${username}. Enter !j to join the game. Cost: ${entryAmount}.0 IDR [30s]`
   };
 };
 
@@ -273,7 +273,7 @@ const joinGame = async (roomId, userId, username) => {
   
   const deductResult = await deductCredits(userId, game.entryAmount);
   if (!deductResult.success) {
-    return { success: false, message: `Not enough credits. Entry costs ${game.entryAmount} MCR.` };
+    return { success: false, message: `Not enough credits. Entry costs ${game.entryAmount} IDR.` };
   }
   
   game.players.push({
@@ -524,8 +524,8 @@ const tallyRound = async (roomId) => {
       winnerId: winner.userId,
       winnings,
       newBalance: creditResult.balance,
-      message: `LowCard game over! ${winner.username} WINS ${winnings.toFixed(1)} MCR! CONGRATS!`,
-      followUp: `Play now: !start to enter. Cost: ${game.entryAmount}.0 MCR. For custom entry, !start [amount]`
+      message: `LowCard game over! ${winner.username} WINS ${winnings.toFixed(1)} IDR! CONGRATS!`,
+      followUp: `Play now: !start to enter. Cost: ${game.entryAmount}.0 IDR. For custom entry, !start [amount]`
     };
   }
   
