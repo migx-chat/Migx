@@ -90,12 +90,12 @@ const FemaleIcon = ({ size = 16, color = '#E91E63' }: { size?: number; color?: s
   </Svg>
 );
 
-type UserRole = 'admin' | 'care_service' | 'customer_service' | 'mentor' | 'merchant';
+type UserRole = 'admin' | 'care_service' | 'mentor' | 'merchant';
 
 interface User {
   id: string;
   username: string;
-  role: UserRole;
+  role: UserRole | 'customer_service';
   avatar?: string;
   status?: string;
   gender?: string;
@@ -126,13 +126,6 @@ const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     textColor: '#FFFFFF',
     abbreviation: 'CS'
   },
-  customer_service: {
-    label: 'CS',
-    color: '#4CAF50',
-    bgColor: '',
-    textColor: '#FFFFFF',
-    abbreviation: 'CS'
-  },
   mentor: {
     label: 'MENTOR',
     color: '#E74C3C',
@@ -147,6 +140,14 @@ const ROLE_CONFIGS: Record<UserRole, RoleConfig> = {
     textColor: '#FFFFFF',
     abbreviation: 'M'
   }
+};
+
+const CS_CONFIG: RoleConfig = {
+  label: 'CS',
+  color: '#4CAF50',
+  bgColor: '',
+  textColor: '#FFFFFF',
+  abbreviation: 'CS'
 };
 
 export default function PeoplePage() {
@@ -172,10 +173,10 @@ export default function PeoplePage() {
 
       if (response.ok) {
         setUsersData({
-          admin: data.admin.users || [],
-          care_service: data.care_service.users || [],
-          mentor: data.mentor.users || [],
-          merchant: data.merchant.users || []
+          admin: data.admin?.users || [],
+          care_service: data.care_service?.users || data.customer_service?.users || [],
+          mentor: data.mentor?.users || [],
+          merchant: data.merchant?.users || []
         });
       }
     } catch (error) {
@@ -206,13 +207,8 @@ export default function PeoplePage() {
   };
 
   const renderUserItemFixed = ({ item }: { item: User }) => {
-    const config = ROLE_CONFIGS[item.role] || {
-      label: 'USER',
-      color: '#808080',
-      bgColor: '',
-      textColor: '#FFFFFF',
-      abbreviation: 'U'
-    };
+    const roleKey = item.role === 'customer_service' ? 'care_service' : item.role;
+    const config = ROLE_CONFIGS[roleKey as UserRole] || CS_CONFIG;
     const roleBadge = getRoleBadge(item.role);
 
     return (
