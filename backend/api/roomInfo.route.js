@@ -53,7 +53,7 @@ router.get('/:roomId/info', async (req, res) => {
       `SELECT u.username FROM room_admins ra
        JOIN users u ON ra.user_id = u.id
        WHERE ra.room_id = $1
-       ORDER BY ra.added_at ASC`,
+       ORDER BY ra.created_at ASC`,
       [roomId]
     );
     const moderators = moderatorsResult.rows.map(m => m.username);
