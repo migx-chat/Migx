@@ -8,7 +8,8 @@ const CARD_VALUES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
 const JOIN_TIMEOUT = 30000;
 const DRAW_TIMEOUT = 20000;
 const COUNTDOWN_DELAY = 3000;
-const MIN_ENTRY = 10;
+const MIN_ENTRY = 1000;
+const MIN_ENTRY_BIG_GAME = 5000;
 const MAX_ENTRY = 100000;
 
 const getCardCode = (value) => {
@@ -211,7 +212,12 @@ const startGame = async (roomId, userId, username, amount) => {
     }
   }
   
-  const entryAmount = Math.min(MAX_ENTRY, Math.max(MIN_ENTRY, parseInt(amount) || 50));
+  const roomResult = await query('SELECT name FROM rooms WHERE id = $1', [roomId]);
+  const roomName = roomResult.rows[0]?.name || '';
+  const isBigGame = roomName.toLowerCase().includes('big game');
+  const minEntry = isBigGame ? MIN_ENTRY_BIG_GAME : MIN_ENTRY;
+  
+  const entryAmount = Math.min(MAX_ENTRY, Math.max(minEntry, parseInt(amount) || minEntry));
   
   const deductResult = await deductCredits(userId, entryAmount);
   if (!deductResult.success) {
