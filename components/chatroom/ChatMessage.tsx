@@ -170,11 +170,11 @@ export const ChatMessage = React.memo(({
     if (userType === 'merchant') return roleColors.merchant;
     if (userType === 'admin') return roleColors.admin;
     if (userType === 'customer_service' || userType === 'cs') return roleColors.customer_service;
+    if (userType === 'moderator') return '#FFFF00'; // Yellow for moderators
+    if (userType === 'creator') return roleColors.creator;
     
     if (usernameColor) return usernameColor;
     if (isOwnMessage) return roleColors.own;
-    if (userType === 'creator') return roleColors.creator;
-    if (userType === 'moderator') return roleColors.moderator;
     return roleColors.normal;
   };
 

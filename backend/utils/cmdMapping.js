@@ -1,7 +1,7 @@
 const MIG33_CMD = {
   mod: {
     requiresTarget: true,
-    message: (u, t) => `${u} promoted ${t} to moderator`,
+    message: (u, t) => `${t} Has Been moderator`,
     type: 'modPromotion'
   },
   unmod: {

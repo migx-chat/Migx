@@ -532,6 +532,7 @@ module.exports = (io, socket) => {
       else if (senderRole === 'creator') userType = 'creator';
       else if (senderRole === 'mentor') userType = 'mentor';
       else if (senderRole === 'merchant') userType = 'merchant';
+      else if (senderRole === 'moderator') userType = 'moderator';
       else if (senderRole === 'customer_service' || senderRole === 'cs') userType = 'customer_service';
 
       const messageData = {
