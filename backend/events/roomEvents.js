@@ -255,7 +255,10 @@ module.exports = (io, socket) => {
           : username;
 
         // MIG33-style welcome messages - send to the joining user only
-        const welcomeMsg1 = `Welcome to ${room.name}...`;
+        // Use description as welcome message if available, otherwise default message
+        const welcomeMsg1 = room.description && room.description.trim() 
+          ? room.description.trim() 
+          : `Welcome to ${room.name}...`;
 
         // Send welcome messages in correct order
         socket.emit('chat:message', {
@@ -271,7 +274,8 @@ module.exports = (io, socket) => {
         // Only send "managed by" message for user-created rooms (has owner_id)
         // Admin-created rooms (no owner_id) don't show this message
         if (room.owner_id && (room.owner_name || room.creator_name)) {
-          const welcomeMsg2 = `This room is managed by ${room.owner_name || room.creator_name}`;
+          const managedByName = room.owner_name || room.creator_name;
+          const welcomeMsg2 = `This room is managed by ${managedByName}`;
           setTimeout(() => {
             socket.emit('chat:message', {
               id: Date.now().toString() + '-2',
