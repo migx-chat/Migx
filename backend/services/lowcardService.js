@@ -11,11 +11,20 @@ const COUNTDOWN_DELAY = 3000;
 const MIN_ENTRY = 10;
 const MAX_ENTRY = 100000;
 
+const getCardCode = (value) => {
+  if (value === 11) return 'j';
+  if (value === 12) return 'q';
+  if (value === 13) return 'k';
+  if (value === 14) return 'a';
+  return value.toString();
+};
+
 const generateDeck = () => {
   const deck = [];
   for (const suit of CARD_SUITS) {
     for (const value of CARD_VALUES) {
-      deck.push({ value, suit, code: `lc_${value}${suit}` });
+      const code = `lc_${getCardCode(value)}${suit}`;
+      deck.push({ value, suit, code, image: `${code}.png` });
     }
   }
   return shuffleDeck(deck);
@@ -32,7 +41,7 @@ const shuffleDeck = (deck) => {
 
 const getCardEmoji = (card) => {
   if (!card) return '(?)';
-  return `(${card.code})`;
+  return `[CARD:${card.code}]`;
 };
 
 const getUserCredits = async (userId) => {
