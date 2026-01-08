@@ -50,10 +50,10 @@ router.get('/:roomId/info', async (req, res) => {
     
     // Ambil moderators dari database
     const moderatorsResult = await query(
-      `SELECT u.id, u.username FROM room_moderators rm
-       JOIN users u ON rm.user_id = u.id
-       WHERE rm.room_id = $1
-       ORDER BY rm.added_at ASC`,
+      `SELECT u.username FROM room_admins ra
+       JOIN users u ON ra.user_id = u.id
+       WHERE ra.room_id = $1
+       ORDER BY ra.added_at ASC`,
       [roomId]
     );
     const moderators = moderatorsResult.rows.map(m => m.username);
