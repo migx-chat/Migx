@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { FlatList, StyleSheet, View, ImageBackground } from 'react-native';
 import { ChatMessage } from './ChatMessage';
 
@@ -27,22 +27,15 @@ interface ChatRoomContentProps {
 
 export const ChatRoomContent = React.memo(({ messages, bottomPadding = 70, backgroundImage }: ChatRoomContentProps) => {
   const flatListRef = useRef<FlatList>(null);
-  const prevMessageCount = useRef(messages.length);
-
-  useEffect(() => {
-    if (messages.length > prevMessageCount.current) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
-    prevMessageCount.current = messages.length;
-  }, [messages.length]);
+  
+  const reversedMessages = [...messages].reverse();
 
   const renderFlatList = () => (
     <FlatList
       ref={flatListRef}
-      data={messages}
+      data={reversedMessages}
       keyExtractor={(item) => item.id}
+      inverted={true}
       renderItem={({ item }) => (
         <ChatMessage
           username={item.username}
@@ -62,14 +55,13 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 70, backg
           hasBackground={!!backgroundImage}
         />
       )}
-      contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]}
+      contentContainerStyle={[styles.container, { paddingTop: bottomPadding }]}
       removeClippedSubviews={true}
       maxToRenderPerBatch={10}
       windowSize={10}
       initialNumToRender={15}
-      onContentSizeChange={() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-      }}
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets={true}
     />
   );
 
