@@ -268,9 +268,10 @@ module.exports = (io, socket) => {
           messageType: 'system'
         });
 
-        // Only send "managed by" message for official rooms
-        if (room.category === 'official') {
-          const welcomeMsg2 = `This room is managed by ${room.owner_name || room.creator_name || 'migx'}`;
+        // Only send "managed by" message for user-created rooms (has owner_id)
+        // Admin-created rooms (no owner_id) don't show this message
+        if (room.owner_id && (room.owner_name || room.creator_name)) {
+          const welcomeMsg2 = `This room is managed by ${room.owner_name || room.creator_name}`;
           setTimeout(() => {
             socket.emit('chat:message', {
               id: Date.now().toString() + '-2',
