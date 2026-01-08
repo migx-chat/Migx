@@ -944,11 +944,7 @@ export default function ChatRoomScreen() {
   }, [activeVote, hasVoted, handleVoteKick]);
 
   return (
-    <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: theme.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
-    >
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar backgroundColor={HEADER_COLOR} barStyle="light-content" />
       
       {/* Header - Untuk semua tabs termasuk private chat */}
@@ -1089,7 +1085,7 @@ export default function ChatRoomScreen() {
           }
         }}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
