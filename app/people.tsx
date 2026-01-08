@@ -198,7 +198,13 @@ export default function PeoplePage() {
   };
 
   const renderUserItemFixed = ({ item }: { item: User }) => {
-    const config = ROLE_CONFIGS[item.role];
+    const config = ROLE_CONFIGS[item.role] || {
+      label: 'USER',
+      color: '#808080',
+      bgColor: '',
+      textColor: '#FFFFFF',
+      abbreviation: 'U'
+    };
     const roleBadge = getRoleBadge(item.role);
 
     return (
