@@ -217,7 +217,13 @@ const startGame = async (roomId, userId, username, amount) => {
   const isBigGame = roomName.toLowerCase().includes('big game');
   const minEntry = isBigGame ? MIN_ENTRY_BIG_GAME : MIN_ENTRY;
   
-  const entryAmount = Math.min(MAX_ENTRY, Math.max(minEntry, parseInt(amount) || minEntry));
+  const requestedAmount = parseInt(amount) || minEntry;
+  
+  if (requestedAmount < minEntry) {
+    return { success: false, message: `Minimal ${minEntry.toLocaleString()} IDR to start game.` };
+  }
+  
+  const entryAmount = Math.min(MAX_ENTRY, requestedAmount);
   
   const deductResult = await deductCredits(userId, entryAmount);
   if (!deductResult.success) {
