@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { FlatList, StyleSheet, View, ImageBackground } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import { FlatList, StyleSheet, View, ImageBackground, Keyboard, Platform } from 'react-native';
 import { ChatMessage } from './ChatMessage';
 
 interface Message {
@@ -27,8 +27,29 @@ interface ChatRoomContentProps {
 
 export const ChatRoomContent = React.memo(({ messages, bottomPadding = 85, backgroundImage }: ChatRoomContentProps) => {
   const flatListRef = useRef<FlatList>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      const height = e.endCoordinates?.height ?? 0;
+      setKeyboardHeight(height);
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
   
   const reversedMessages = [...messages].reverse();
+  const totalBottomPadding = bottomPadding + keyboardHeight;
 
   const renderFlatList = () => (
     <FlatList
@@ -55,7 +76,7 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 85, backg
           hasBackground={!!backgroundImage}
         />
       )}
-      contentContainerStyle={[styles.container, { paddingTop: bottomPadding }]}
+      contentContainerStyle={[styles.container, { paddingTop: totalBottomPadding }]}
       removeClippedSubviews={true}
       maxToRenderPerBatch={10}
       windowSize={10}
