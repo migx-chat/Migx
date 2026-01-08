@@ -55,6 +55,7 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
       id: data.id || `msg-${Date.now()}-${Math.random()}`,
       username: data.username,
       usernameColor: data.usernameColor,
+      messageColor: data.messageColor,
       message: data.message,
       isOwnMessage: isOwnMessage,
       isSystem: (data.messageType === 'system' || data.type === 'system') && !isPresenceMessage,
@@ -63,7 +64,8 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
       isPresence: isPresenceMessage,
       timestamp: data.timestamp,
       messageType: data.messageType || data.type,
-      // Pass reward data to Message object
+      type: data.type,
+      botType: data.botType,
       hasTopMerchantBadge: data.hasTopMerchantBadge,
       hasTopLikeReward: data.hasTopLikeReward,
       topLikeRewardExpiry: data.topLikeRewardExpiry,
