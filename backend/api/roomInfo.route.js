@@ -48,13 +48,13 @@ router.get('/:roomId/info', async (req, res) => {
     const participants = await getRoomParticipants(roomId);
     const currentUsers = participants.length;
     
-    // Ambil moderators dari database
+    // Ambil moderators dari database (kecuali owner)
     const moderatorsResult = await query(
       `SELECT u.username FROM room_admins ra
        JOIN users u ON ra.user_id = u.id
-       WHERE ra.room_id = $1
+       WHERE ra.room_id = $1 AND ra.user_id != $2
        ORDER BY ra.created_at ASC`,
-      [roomId]
+      [roomId, room.owner_id]
     );
     const moderators = moderatorsResult.rows.map(m => m.username);
     
