@@ -223,6 +223,24 @@ const handleLowcardCommand = async (io, socket, data) => {
       return true;
     }
     
+    if (subCmd === 'off') {
+      const isRoomAdmin = await lowcardService.isRoomAdmin(roomId, userId);
+      if (!isRoomAdmin) {
+        socket.emit('system:message', {
+          roomId,
+          message: 'Only room owner/admin can manage bots.',
+          timestamp: new Date().toISOString(),
+          type: 'warning'
+        });
+        return true;
+      }
+      
+      const result = await lowcardService.removeBotFromRoom(roomId);
+      clearGameTimers(roomId);
+      sendBotMessage(io, roomId, result.message);
+      return true;
+    }
+    
     return false;
   }
   
