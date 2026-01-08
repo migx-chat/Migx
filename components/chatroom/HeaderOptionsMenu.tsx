@@ -47,7 +47,6 @@ export function HeaderOptionsMenu({ visible, onClose, onStore, onChangeBackgroun
   const { theme } = useThemeCustom();
 
   const menuItems = [
-    { icon: StoreIcon, label: 'Store', onPress: onStore },
     { icon: BackgroundIcon, label: 'Change Background', onPress: onChangeBackground },
   ];
 
