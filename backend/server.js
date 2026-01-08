@@ -52,8 +52,8 @@ const io = new Server(server, {
     credentials: true
   },
   transports: ['polling', 'websocket'],
-  pingTimeout: 300000,  // 5 minutes - allow longer background periods
-  pingInterval: 25000,
+  pingTimeout: 28800000,  // 8 hours - allow very long background periods for mobile apps
+  pingInterval: 25000,    // 25 seconds ping interval
   allowUpgrades: true,
   upgradeTimeout: 30000
 });
