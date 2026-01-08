@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { FlatList, StyleSheet, View, ImageBackground } from 'react-native';
+import React, { useRef, useEffect, useCallback } from 'react';
+import { FlatList, StyleSheet, View, ImageBackground, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { ChatMessage } from './ChatMessage';
 
 interface Message {
@@ -27,6 +27,23 @@ interface ChatRoomContentProps {
 
 export const ChatRoomContent = React.memo(({ messages, bottomPadding = 70, backgroundImage }: ChatRoomContentProps) => {
   const flatListRef = useRef<FlatList>(null);
+  const isNearBottom = useRef(true);
+  const prevMessageCount = useRef(messages.length);
+
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
+    isNearBottom.current = distanceFromBottom < 150;
+  }, []);
+
+  useEffect(() => {
+    if (messages.length > prevMessageCount.current && isNearBottom.current) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+    prevMessageCount.current = messages.length;
+  }, [messages.length]);
 
   const renderFlatList = () => (
     <FlatList
@@ -57,6 +74,13 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 70, backg
       maxToRenderPerBatch={10}
       windowSize={10}
       initialNumToRender={15}
+      onScroll={handleScroll}
+      scrollEventThrottle={100}
+      onContentSizeChange={() => {
+        if (isNearBottom.current) {
+          flatListRef.current?.scrollToEnd({ animated: false });
+        }
+      }}
     />
   );
 
