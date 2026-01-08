@@ -132,6 +132,10 @@ export function ContactItem({
                 )
               ))}
             </View>
+          ) : effectivePresence === 'offline' && lastSeen ? (
+            <Text style={[styles.status, { color: theme.secondary, fontStyle: 'italic' }]}>
+              {lastSeen}
+            </Text>
           ) : (
             <Text style={[styles.status, { color: theme.secondary, fontStyle: 'italic' }]}>
               No status message
