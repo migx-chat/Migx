@@ -9,6 +9,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 interface ChatMessageProps {
   username: string;
   usernameColor?: string;
+  messageColor?: string;
   message: string;
   timestamp: string;
   isSystem?: boolean;
@@ -19,6 +20,8 @@ interface ChatMessageProps {
   userType?: 'creator' | 'admin' | 'normal' | 'mentor' | 'merchant' | 'moderator' | 'customer_service' | 'cs';
   isOwnMessage?: boolean;
   messageType?: string;
+  type?: string;
+  botType?: string;
   hasTopMerchantBadge?: boolean;
   hasTopLikeReward?: boolean;
   topLikeRewardExpiry?: string;
@@ -107,6 +110,7 @@ const ChatImageMessage = ({ imageUrl, username, usernameColor }: { imageUrl: str
 export const ChatMessage = React.memo(({
   username,
   usernameColor,
+  messageColor,
   message,
   timestamp,
   isSystem,
@@ -117,6 +121,8 @@ export const ChatMessage = React.memo(({
   userType,
   isOwnMessage,
   messageType,
+  type,
+  botType,
   hasTopMerchantBadge,
   hasTopLikeReward,
   topLikeRewardExpiry,
@@ -179,6 +185,8 @@ export const ChatMessage = React.memo(({
   };
 
   const getMessageColor = () => {
+    if (messageColor) return messageColor;
+    if (type === 'bot' && botType) return messageColor || '#347499';
     if (isSystem) return theme.text;
     return theme.text;
   };

@@ -22,6 +22,7 @@ export interface Message {
   id: string;
   username: string;
   usernameColor?: string;
+  messageColor?: string;
   message: string;
   isOwnMessage?: boolean;
   isSystem?: boolean;
@@ -30,6 +31,8 @@ export interface Message {
   isPresence?: boolean;
   timestamp?: string;
   messageType?: string;
+  type?: string;
+  botType?: string;
   hasTopMerchantBadge?: boolean;
   hasTopLikeReward?: boolean;
   topLikeRewardExpiry?: string;

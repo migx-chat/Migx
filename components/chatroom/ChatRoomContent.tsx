@@ -6,6 +6,7 @@ interface Message {
   id: string;
   username: string;
   usernameColor?: string;
+  messageColor?: string;
   message: string;
   isOwnMessage?: boolean;
   isSystem?: boolean;
@@ -14,6 +15,8 @@ interface Message {
   isPresence?: boolean;
   userType?: 'creator' | 'admin' | 'normal' | 'mentor' | 'merchant' | 'moderator';
   messageType?: string;
+  type?: string;
+  botType?: string;
   hasTopMerchantBadge?: boolean;
   hasTopLikeReward?: boolean;
   topLikeRewardExpiry?: string;
@@ -61,6 +64,7 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 85, backg
         <ChatMessage
           username={item.username}
           usernameColor={item.usernameColor}
+          messageColor={item.messageColor}
           message={item.message}
           timestamp=""
           isSystem={item.isSystem}
@@ -70,6 +74,8 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 85, backg
           userType={item.userType}
           isOwnMessage={item.isOwnMessage}
           messageType={item.messageType}
+          type={item.type}
+          botType={item.botType}
           hasTopMerchantBadge={item.hasTopMerchantBadge}
           hasTopLikeReward={item.hasTopLikeReward}
           topLikeRewardExpiry={item.topLikeRewardExpiry}
