@@ -252,6 +252,40 @@ router.post('/:roomId/min-level', async (req, res) => {
   }
 });
 
+router.put('/:roomId/description', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { description, userId } = req.body;
+
+    if (!description || description.trim().length === 0) {
+      return res.status(400).json({ success: false, error: 'Description cannot be empty' });
+    }
+
+    if (description.length > 500) {
+      return res.status(400).json({ success: false, error: 'Description too long (max 500 chars)' });
+    }
+
+    const room = await roomService.getRoomById(roomId);
+    if (!room) {
+      return res.status(404).json({ success: false, error: 'Room not found' });
+    }
+
+    if (room.owner_id !== userId) {
+      return res.status(403).json({ success: false, error: 'Only the room owner can edit description' });
+    }
+
+    const updated = await roomService.updateRoom(roomId, { description: description.trim() });
+    if (updated) {
+      res.json({ success: true, description: updated.description });
+    } else {
+      res.status(500).json({ success: false, error: 'Failed to update description' });
+    }
+  } catch (error) {
+    console.error('[Chatroom API] Update description error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
 router.post('/:roomId/mod', async (req, res) => {
   try {
     const { roomId } = req.params;

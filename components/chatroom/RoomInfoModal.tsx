@@ -45,6 +45,9 @@ export function RoomInfoModal({ visible, onClose, roomId, info }: RoomInfoModalP
   const [loading, setLoading] = useState(false);
   const [minLevelInput, setMinLevelInput] = useState('');
   const [updatingLevel, setUpdatingLevel] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionInput, setDescriptionInput] = useState('');
+  const [updatingDescription, setUpdatingDescription] = useState(false);
   
   const currentUserId = useRoomTabsStore(state => state.currentUserId);
   const colorScheme = useColorScheme();
@@ -106,6 +109,43 @@ export function RoomInfoModal({ visible, onClose, roomId, info }: RoomInfoModalP
     }
   };
 
+  const handleDescriptionTap = () => {
+    if (roomInfo && currentUserId === roomInfo.ownerId) {
+      setDescriptionInput(roomInfo.description || '');
+      setEditingDescription(true);
+    }
+  };
+
+  const handleSaveDescription = async () => {
+    if (!descriptionInput.trim()) {
+      Alert.alert('Error', 'Description cannot be empty');
+      return;
+    }
+
+    try {
+      setUpdatingDescription(true);
+      const response = await fetch(`${API_BASE_URL}/api/rooms/${roomId}/description`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: descriptionInput.trim(), userId: currentUserId }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setRoomInfo(prev => prev ? { ...prev, description: descriptionInput.trim() } : null);
+        setEditingDescription(false);
+        Alert.alert('Success', 'Description updated');
+      } else {
+        Alert.alert('Error', data.error || 'Failed to update description');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Connection failed');
+    } finally {
+      setUpdatingDescription(false);
+    }
+  };
+
+  const isOwner = roomInfo && currentUserId === roomInfo.ownerId;
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -146,13 +186,53 @@ export function RoomInfoModal({ visible, onClose, roomId, info }: RoomInfoModalP
 
               <View style={[styles.divider, dynamicStyles.divider]} />
 
-              <View style={styles.infoRow}>
+              <TouchableOpacity 
+                style={styles.infoRow} 
+                onPress={handleDescriptionTap}
+                disabled={!isOwner}
+                activeOpacity={isOwner ? 0.7 : 1}
+              >
                 <Ionicons name="information-circle-outline" size={20} color={colors.icon} />
                 <View style={styles.infoTextContainer}>
-                  <Text style={[styles.infoLabel, dynamicStyles.infoLabel]}>Description</Text>
-                  <Text style={[styles.infoValue, dynamicStyles.infoValue]}>{roomInfo.description}</Text>
+                  <View style={styles.descriptionHeader}>
+                    <Text style={[styles.infoLabel, dynamicStyles.infoLabel]}>Description</Text>
+                    {isOwner && <Ionicons name="pencil" size={14} color={colors.icon} style={{ marginLeft: 6 }} />}
+                  </View>
+                  {editingDescription ? (
+                    <View style={styles.descriptionEditContainer}>
+                      <TextInput
+                        style={[styles.descriptionInput, { color: colors.text, borderColor: colors.icon }]}
+                        value={descriptionInput}
+                        onChangeText={setDescriptionInput}
+                        multiline
+                        placeholder="Enter description"
+                        placeholderTextColor="#999"
+                      />
+                      <View style={styles.descriptionButtons}>
+                        <TouchableOpacity 
+                          style={[styles.descriptionBtn, styles.cancelBtn]} 
+                          onPress={() => setEditingDescription(false)}
+                        >
+                          <Text style={styles.cancelBtnText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={[styles.descriptionBtn, styles.saveBtn]} 
+                          onPress={handleSaveDescription}
+                          disabled={updatingDescription}
+                        >
+                          {updatingDescription ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <Text style={styles.saveBtnText}>Save</Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <Text style={[styles.infoValue, dynamicStyles.infoValue]}>{roomInfo.description}</Text>
+                  )}
                 </View>
-              </View>
+              </TouchableOpacity>
 
               <View style={styles.infoRow}>
                 <Ionicons name="person-outline" size={20} color={colors.icon} />
@@ -294,9 +374,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     padding: 16,
-    paddingTop: 24,
+    paddingTop: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
@@ -413,6 +493,48 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 8,
     fontStyle: 'italic',
+  },
+  descriptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  descriptionEditContainer: {
+    marginTop: 8,
+  },
+  descriptionInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  descriptionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+    gap: 8,
+  },
+  descriptionBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  cancelBtn: {
+    backgroundColor: '#666',
+  },
+  saveBtn: {
+    backgroundColor: '#0a5229',
+  },
+  cancelBtnText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  saveBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   errorContainer: {
     padding: 40,
