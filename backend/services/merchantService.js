@@ -1,5 +1,5 @@
 const { query, getClient } = require('../db/db');
-const { client } = require('../redis');
+const { client, getRedisClient } = require('../redis');
 const { calculateCommission, calculateTaggedUserWinCommission, addMerchantIncome, getMerchantIncome, getMerchantStats, getMerchantTag } = require('../utils/merchantTags');
 
 const createMerchant = async (userId, mentorId, commissionRate = 30) => {
@@ -480,6 +480,14 @@ const withdrawMerchantEarnings = async (merchantId, amount) => {
     await client.decrBy(`merchant:${merchantId}:income`, amount);
     
     await dbClient.query('COMMIT');
+    
+    // Invalidate Redis credit cache
+    try {
+      const redis = getRedisClient();
+      await redis.del(`credits:${merchant.user_id}`);
+    } catch (cacheError) {
+      console.error('Cache invalidation error:', cacheError);
+    }
     
     return { success: true, amount, newBalance: income - amount };
   } catch (error) {

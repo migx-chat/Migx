@@ -1,5 +1,6 @@
 const { query } = require('../db/db');
 const { setUserStatus, getUserStatus, setUserSocket, removeUserSocket } = require('../utils/presence');
+const { getRedisClient } = require('../redis');
 
 const createUser = async (username, password = null, email = null) => {
   try {
@@ -142,6 +143,15 @@ const updateUserCredits = async (userId, amount) => {
        RETURNING id, username, credits`,
       [amount, userId]
     );
+    
+    // Invalidate Redis credit cache
+    try {
+      const redis = getRedisClient();
+      await redis.del(`credits:${userId}`);
+    } catch (cacheError) {
+      console.error('Cache invalidation error:', cacheError);
+    }
+    
     return result.rows[0];
   } catch (error) {
     console.error('Error updating user credits:', error);
@@ -157,6 +167,15 @@ const setCredits = async (userId, credits) => {
        RETURNING id, username, credits`,
       [credits, userId]
     );
+    
+    // Invalidate Redis credit cache
+    try {
+      const redis = getRedisClient();
+      await redis.del(`credits:${userId}`);
+    } catch (cacheError) {
+      console.error('Cache invalidation error:', cacheError);
+    }
+    
     return result.rows[0];
   } catch (error) {
     console.error('Error setting user credits:', error);

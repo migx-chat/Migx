@@ -1,4 +1,5 @@
 const db = require('../db/db');
+const { getRedisClient } = require('../redis');
 
 class StreakService {
   async updateStreak(userId) {
@@ -38,6 +39,14 @@ class StreakService {
           'UPDATE users SET login_streak = $1, last_login_date = $2, credits = credits + $3 WHERE id = $4',
           [newStreak, today, rewardAmount, userId]
         );
+        
+        // Invalidate Redis credit cache
+        try {
+          const redis = getRedisClient();
+          await redis.del(`credits:${userId}`);
+        } catch (cacheError) {
+          console.error('Cache invalidation error:', cacheError);
+        }
       }
 
       return {
