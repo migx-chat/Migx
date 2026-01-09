@@ -286,15 +286,15 @@ export default function PeoplePage() {
         >
           <View style={styles.roleHeaderLeft}>
             <View style={[styles.roleAvatar, { backgroundColor: theme.primary }]}>
-              <Text style={[styles.roleAbbreviation, { color: theme.text }]}>
+              <Text style={[styles.roleAbbreviation, { color: '#FFFFFF' }]}>
                 {config.abbreviation}
               </Text>
             </View>
             <View>
-              <Text style={[styles.roleLabel, { color: theme.text }]}>
+              <Text style={[styles.roleLabel, { color: '#FFFFFF' }]}>
                 {config.label}
               </Text>
-              <Text style={[styles.userCount, { color: theme.text }]}>
+              <Text style={[styles.userCount, { color: 'rgba(255,255,255,0.7)' }]}>
                 {users.length} {users.length === 1 ? 'user' : 'users'}
               </Text>
             </View>
@@ -303,7 +303,7 @@ export default function PeoplePage() {
             styles.chevronContainer,
             isExpanded && styles.chevronRotated
           ]}>
-            <ChevronDownIcon size={24} color={theme.text} />
+            <ChevronDownIcon size={24} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
 
