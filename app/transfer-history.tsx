@@ -15,7 +15,7 @@ import { router } from 'expo-router';
 import { useThemeCustom } from '@/theme/provider';
 import Svg, { Path } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_ENDPOINTS } from '@/utils/api';
+import API_BASE_URL from '@/utils/api';
 
 const BackIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -29,25 +29,25 @@ const BackIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string
   </Svg>
 );
 
-interface TransferItem {
+interface HistoryItem {
   id: string;
-  type: 'sent' | 'received';
-  username: string;
-  amount: number;
-  date: string;
-  time: string;
+  history_type: 'transfer' | 'game' | 'gift';
+  display_type: string;
+  display_label: string;
+  display_amount: number;
+  created_at: string;
 }
 
 export default function TransferHistoryScreen() {
   const { theme } = useThemeCustom();
-  const [transfers, setTransfers] = useState<TransferItem[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadTransferHistory();
+    loadHistory();
   }, []);
 
-  const loadTransferHistory = async () => {
+  const loadHistory = async () => {
     try {
       setIsLoading(true);
       const userDataStr = await AsyncStorage.getItem('user_data');
@@ -56,67 +56,86 @@ export default function TransferHistoryScreen() {
         return;
       }
       const userData = JSON.parse(userDataStr);
-      const response = await fetch(`${API_ENDPOINTS.CREDIT.TRANSFER}s/${userData.id}`);
+      const response = await fetch(`${API_BASE_URL}/api/credit/full-history/${userData.id}`);
       const data = await response.json();
       
-      const transfersList = data.transfers || data.transactions || [];
-      if (transfersList && Array.isArray(transfersList)) {
-        const formattedTransfers = transfersList.map((transfer: any) => {
-          const transferDate = new Date(transfer.created_at);
-          return {
-            id: transfer.id || Math.random().toString(),
-            type: transfer.from_user_id === userData.id ? 'sent' : 'received',
-            username: transfer.from_user_id === userData.id ? transfer.to_username : transfer.from_username,
-            amount: transfer.amount,
-            date: transferDate.toISOString().split('T')[0],
-            time: transferDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          };
-        });
-        setTransfers(formattedTransfers);
+      if (data.history && Array.isArray(data.history)) {
+        setHistory(data.history);
       }
     } catch (error) {
-      console.error('Error loading transfer history:', error);
+      console.error('Error loading history:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const renderItem = ({ item }: { item: TransferItem }) => (
-    <View style={[styles.historyItem, { backgroundColor: theme.card }]}>
-      <View style={styles.historyLeft}>
-        <View style={[
-          styles.typeIndicator,
-          { backgroundColor: item.type === 'sent' ? '#FF6B6B' : '#4CAF50' }
-        ]} />
-        <View style={styles.historyInfo}>
-          <Text style={[styles.historyUsername, { color: theme.text }]}>
-            {item.type === 'sent' ? 'To: ' : 'From: '}{item.username}
-          </Text>
-          <Text style={[styles.historyDate, { color: theme.secondary }]}>{item.date} • {item.time}</Text>
+  const getTypeColor = (item: HistoryItem) => {
+    if (item.history_type === 'game') {
+      if (item.display_type === 'win') return '#4CAF50';
+      if (item.display_type === 'refund') return '#FFC107';
+      return '#FF6B6B';
+    }
+    if (item.history_type === 'gift') {
+      return item.display_type === 'sent' ? '#9C27B0' : '#E91E63';
+    }
+    return item.display_type === 'sent' ? '#FF6B6B' : '#4CAF50';
+  };
+
+  const getIndicatorColor = (item: HistoryItem) => {
+    if (item.history_type === 'game') {
+      if (item.display_type === 'win') return '#4CAF50';
+      if (item.display_type === 'refund') return '#FFC107';
+      return '#FF6B6B';
+    }
+    if (item.history_type === 'gift') {
+      return '#9C27B0';
+    }
+    return item.display_type === 'sent' ? '#FF6B6B' : '#4CAF50';
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return {
+      date: date.toISOString().split('T')[0],
+      time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    };
+  };
+
+  const renderItem = ({ item }: { item: HistoryItem }) => {
+    const { date, time } = formatDate(item.created_at);
+    const amountColor = getTypeColor(item);
+    const indicatorColor = getIndicatorColor(item);
+    
+    return (
+      <View style={[styles.historyItem, { backgroundColor: theme.card }]}>
+        <View style={styles.historyLeft}>
+          <View style={[styles.typeIndicator, { backgroundColor: indicatorColor }]} />
+          <View style={styles.historyInfo}>
+            <Text style={[styles.historyLabel, { color: theme.text }]} numberOfLines={2}>
+              {item.display_label}
+            </Text>
+            <Text style={[styles.historyDate, { color: theme.secondary }]}>{date} • {time}</Text>
+          </View>
+        </View>
+        <View style={styles.historyRight}>
+          <View style={styles.amountRow}>
+            <Text style={[styles.historyAmount, { color: amountColor }]}>
+              {item.display_amount > 0 ? '+' : ''}{item.display_amount}
+            </Text>
+            <Image 
+              source={require('@/assets/icons/ic_coin.png')} 
+              style={styles.smallCoinIcon}
+            />
+          </View>
         </View>
       </View>
-      <View style={styles.historyRight}>
-        <View style={styles.amountRow}>
-          <Text style={[
-            styles.historyAmount,
-            { color: item.type === 'sent' ? '#FF6B6B' : '#4CAF50' }
-          ]}>
-            {item.type === 'sent' ? '-' : '+'}{item.amount}
-          </Text>
-          <Image 
-            source={require('@/assets/icons/ic_coin.png')} 
-            style={styles.smallCoinIcon}
-          />
-        </View>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'} />
       
-      {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <TouchableOpacity 
           style={styles.backButton}
@@ -124,7 +143,7 @@ export default function TransferHistoryScreen() {
         >
           <BackIcon size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Transfer History</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>History</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -133,15 +152,15 @@ export default function TransferHistoryScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.primary || '#4CAF50'} />
           </View>
-        ) : transfers.length === 0 ? (
+        ) : history.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.secondary }]}>No transfer history</Text>
+            <Text style={[styles.emptyText, { color: theme.secondary }]}>No history</Text>
           </View>
         ) : (
           <FlatList
-            data={transfers}
+            data={history}
             renderItem={renderItem}
-            keyExtractor={item => item.id}
+            keyExtractor={(item, index) => `${item.history_type}-${item.id}-${index}`}
             contentContainerStyle={styles.listContainer}
             ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: theme.border }]} />}
           />
@@ -200,8 +219,8 @@ const styles = StyleSheet.create({
   historyInfo: {
     flex: 1,
   },
-  historyUsername: {
-    fontSize: 16,
+  historyLabel: {
+    fontSize: 15,
     fontWeight: '600',
     marginBottom: 4,
   },
@@ -210,6 +229,7 @@ const styles = StyleSheet.create({
   },
   historyRight: {
     alignItems: 'flex-end',
+    marginLeft: 8,
   },
   amountRow: {
     flexDirection: 'row',

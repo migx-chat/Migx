@@ -177,6 +177,25 @@ router.get('/transfers/:userId', async (req, res) => {
   }
 });
 
+router.get('/full-history/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { limit = 100 } = req.query;
+    
+    const fullHistory = await creditService.getFullHistory(userId, parseInt(limit));
+    
+    res.json({
+      userId,
+      history: fullHistory,
+      count: fullHistory.length
+    });
+    
+  } catch (error) {
+    console.error('Get full history error:', error);
+    res.status(500).json({ error: 'Failed to get full history' });
+  }
+});
+
 router.post('/topup', async (req, res) => {
   try {
     const { userId, amount, adminId } = req.body;

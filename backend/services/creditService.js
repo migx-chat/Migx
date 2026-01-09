@@ -433,6 +433,110 @@ const sanitizeErrorForClient = (errorType, originalError, userId = null, context
   return safeMessages[errorType] || safeMessages['UNKNOWN_ERROR'];
 };
 
+const getFullHistory = async (userId, limit = 100) => {
+  try {
+    const transfers = await query(
+      `SELECT 
+        id,
+        from_user_id,
+        to_user_id,
+        from_username,
+        to_username,
+        amount,
+        'transfer' as history_type,
+        created_at
+       FROM credit_logs
+       WHERE (from_user_id = $1 OR to_user_id = $1)
+       AND transaction_type = 'transfer'`,
+      [userId]
+    );
+
+    const games = await query(
+      `SELECT 
+        lg.id,
+        lp.user_id,
+        lg.entry_amount as amount,
+        lg.winner_id,
+        lg.winner_username,
+        lg.status,
+        lg.pot_amount,
+        'game' as history_type,
+        CASE 
+          WHEN lg.winner_id = lp.user_id THEN 'win'
+          WHEN lg.status = 'finished' AND lg.winner_id != lp.user_id THEN 'bet'
+          WHEN lg.status = 'cancelled' THEN 'refund'
+          ELSE 'bet'
+        END as game_result,
+        lg.created_at
+       FROM lowcard_players lp
+       JOIN lowcard_games lg ON lp.game_id = lg.id
+       WHERE lp.user_id = $1`,
+      [userId]
+    );
+
+    const gifts = await query(
+      `SELECT 
+        g.id,
+        g.sender_id,
+        g.receiver_id,
+        s.username as sender_username,
+        r.username as receiver_username,
+        g.gift_name,
+        g.gift_cost as amount,
+        'gift' as history_type,
+        g.created_at
+       FROM user_gifts g
+       JOIN users s ON g.sender_id = s.id
+       JOIN users r ON g.receiver_id = r.id
+       WHERE g.sender_id = $1 OR g.receiver_id = $1`,
+      [userId]
+    );
+
+    const allHistory = [
+      ...transfers.rows.map(t => ({
+        ...t,
+        history_type: 'transfer',
+        display_type: t.from_user_id == userId ? 'sent' : 'received',
+        display_label: t.from_user_id == userId 
+          ? `To: ${t.to_username}` 
+          : `From: ${t.from_username}`,
+        display_amount: t.from_user_id == userId ? -t.amount : t.amount
+      })),
+      ...games.rows.map(g => ({
+        ...g,
+        history_type: 'game',
+        display_type: g.game_result,
+        display_label: g.game_result === 'win' 
+          ? `LowCard Win` 
+          : g.game_result === 'refund' 
+            ? `LowCard Refund` 
+            : `LowCard Bet`,
+        display_amount: g.game_result === 'win' 
+          ? g.pot_amount 
+          : g.game_result === 'refund' 
+            ? g.amount 
+            : -g.amount
+      })),
+      ...gifts.rows.map(g => ({
+        ...g,
+        history_type: 'gift',
+        display_type: g.sender_id == userId ? 'sent' : 'received',
+        display_label: g.sender_id == userId 
+          ? `Send Gift [${g.gift_name}] to ${g.receiver_username}` 
+          : `Received Gift [${g.gift_name}] from ${g.sender_username}`,
+        display_amount: g.sender_id == userId ? -g.amount : g.amount
+      }))
+    ];
+
+    allHistory.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    return allHistory.slice(0, limit);
+  } catch (error) {
+    logger.error('GET_FULL_HISTORY_ERROR: Failed to get full history', error, { userId });
+    return [];
+  }
+};
+
 module.exports = {
   transferCredits,
   addCredits,
@@ -440,6 +544,7 @@ module.exports = {
   getBalance,
   getTransactionHistory,
   getTransferHistory,
+  getFullHistory,
   validateTransfer,
   validatePIN,
   sanitizeErrorForClient
