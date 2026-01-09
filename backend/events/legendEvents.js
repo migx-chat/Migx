@@ -1,0 +1,273 @@
+const legendService = require('../services/legendService');
+const creditService = require('../services/creditService');
+const { generateMessageId } = require('../utils/idGenerator');
+
+const activeTimers = new Map();
+
+const sendBotMessage = (io, roomId, message, type = 'legend') => {
+  io.to(`room:${roomId}`).emit('chat:message', {
+    id: generateMessageId(),
+    roomId,
+    username: 'LegendBot',
+    message: `LegendBot: ${message}`,
+    messageType: type,
+    type: 'bot',
+    botType: 'legend',
+    userType: 'bot',
+    usernameColor: '#FF6B35',
+    messageColor: '#1E90FF',
+    timestamp: new Date().toISOString()
+  });
+};
+
+const clearGameTimer = (roomId) => {
+  const timerKey = `legend:timer:${roomId}`;
+  if (activeTimers.has(timerKey)) {
+    clearTimeout(activeTimers.get(timerKey));
+    activeTimers.delete(timerKey);
+  }
+};
+
+const startBettingTimer = (io, roomId) => {
+  clearGameTimer(roomId);
+  
+  const timerKey = `legend:timer:${roomId}`;
+  
+  const timer = setTimeout(async () => {
+    activeTimers.delete(timerKey);
+    await endBettingPhase(io, roomId);
+  }, legendService.BETTING_TIME * 1000);
+  
+  activeTimers.set(timerKey, timer);
+};
+
+const endBettingPhase = async (io, roomId) => {
+  sendBotMessage(io, roomId, "Times Up ‼️ Betting Ends..");
+  
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  sendBotMessage(io, roomId, "Bot is calculating result...");
+  
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  const result = await legendService.calculateWinners(roomId);
+  
+  if (!result.success) {
+    sendBotMessage(io, roomId, result.error || "Error calculating results");
+    return;
+  }
+  
+  const resultsEmoji = result.resultsEmoji.join(' ');
+  sendBotMessage(io, roomId, `Results:\n\n${resultsEmoji}`);
+  
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  const matchingLines = [];
+  Object.entries(result.multipliers).forEach(([group, data]) => {
+    matchingLines.push(`${data.group.emoji} ${data.group.name}: ${data.count}x → Multiplier ${data.multiplier}x`);
+  });
+  
+  if (matchingLines.length > 0) {
+    sendBotMessage(io, roomId, `Matching guesses...\n${matchingLines.join('\n')}`);
+  } else {
+    sendBotMessage(io, roomId, "No matching results!");
+  }
+  
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  if (result.winners.length > 0) {
+    for (const winner of result.winners) {
+      try {
+        await creditService.addCredits(winner.userId, winner.winAmount, 'legend_win', `Won Legend game betting on ${winner.groupName}`);
+        
+        io.to(`room:${roomId}`).emit('credits:updated', {
+          userId: winner.userId,
+          username: winner.username
+        });
+      } catch (err) {
+        console.error(`Failed to pay winner ${winner.username}:`, err);
+      }
+      
+      sendBotMessage(io, roomId, `• ${winner.username} has won ${winner.winAmount} credits for placing ${winner.amount} credits on ${winner.groupName}`);
+    }
+  } else {
+    sendBotMessage(io, roomId, "No winners this round. Better luck next time!");
+  }
+  
+  await legendService.endGame(roomId);
+  
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  sendBotMessage(io, roomId, "LegendBot ready for the next round. Type !legend to start.");
+};
+
+const handleLegendCommand = async (io, socket, data) => {
+  const { roomId, userId, username, message } = data;
+  
+  const lowerMessage = message.toLowerCase().trim();
+  
+  if (lowerMessage === '!legend') {
+    const currentGame = await legendService.getGameState(roomId);
+    if (currentGame && (currentGame.phase === 'betting' || currentGame.phase === 'calculating')) {
+      sendBotMessage(io, roomId, "A game is already in progress!");
+      return true;
+    }
+    
+    const result = await legendService.startGame(roomId, username);
+    
+    if (!result.success) {
+      sendBotMessage(io, roomId, result.error);
+      return true;
+    }
+    
+    const groupList = Object.entries(legendService.GROUPS)
+      .map(([key, g]) => `${g.emoji} ${g.name}`)
+      .join(', ');
+    
+    sendBotMessage(io, roomId, `Legend game started! Type !b [group] [amount] to bid.\nAvailable groups: ${groupList}. [${legendService.BETTING_TIME} seconds]`);
+    
+    startBettingTimer(io, roomId);
+    return true;
+  }
+  
+  if (lowerMessage.startsWith('!b ')) {
+    const parts = lowerMessage.split(' ');
+    const groupCode = parts[1];
+    const amount = parts[2];
+    
+    if (!groupCode || !amount) {
+      socket.emit('system:message', {
+        roomId,
+        message: "Usage: !b [group] [amount]. Example: !b r 500",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    const userBalance = await creditService.getBalance(userId);
+    const betAmount = parseInt(amount);
+    
+    if (isNaN(betAmount) || betAmount < legendService.MIN_BET) {
+      socket.emit('system:message', {
+        roomId,
+        message: `Minimum bet is ${legendService.MIN_BET} IDR`,
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    if (userBalance < betAmount) {
+      socket.emit('system:message', {
+        roomId,
+        message: `Not enough credits. Your balance: ${userBalance} IDR`,
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    const deductResult = await creditService.deductCredits(userId, betAmount, 'legend_bet', `Bet on Legend game`);
+    if (!deductResult.success) {
+      socket.emit('system:message', {
+        roomId,
+        message: deductResult.error || "Failed to place bet",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    const result = await legendService.placeBet(roomId, userId, username, groupCode, betAmount);
+    
+    if (!result.success) {
+      await creditService.addCredits(userId, betAmount, 'legend_refund', 'Bet refunded');
+      socket.emit('system:message', {
+        roomId,
+        message: result.error,
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    socket.emit('credits:updated', { balance: deductResult.newBalance });
+    
+    sendBotMessage(io, roomId, `${username} placed ${betAmount} on ${result.bet.groupName}.\nTotal bid: ${result.totalBid}`);
+    return true;
+  }
+  
+  if (lowerMessage === '!lock') {
+    const game = await legendService.getGameState(roomId);
+    
+    if (!game || game.phase !== 'betting') {
+      socket.emit('system:message', {
+        roomId,
+        message: "No active betting phase to lock",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    if (game.startedBy !== username) {
+      const userService = require('../services/userService');
+      const user = await userService.getUserById(userId);
+      if (user?.role !== 'admin') {
+        socket.emit('system:message', {
+          roomId,
+          message: "Only the game starter or admin can lock betting",
+          timestamp: new Date().toISOString(),
+          type: 'warning'
+        });
+        return true;
+      }
+    }
+    
+    clearGameTimer(roomId);
+    await endBettingPhase(io, roomId);
+    return true;
+  }
+  
+  if (lowerMessage === '!cancel') {
+    const game = await legendService.getGameState(roomId);
+    
+    if (!game) {
+      socket.emit('system:message', {
+        roomId,
+        message: "No active game to cancel",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    const userService = require('../services/userService');
+    const user = await userService.getUserById(userId);
+    
+    if (user?.role !== 'admin' && game.startedBy !== username) {
+      socket.emit('system:message', {
+        roomId,
+        message: "Only admin or game starter can cancel",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    const allBets = await legendService.getAllBets(roomId);
+    for (const bet of allBets) {
+      await creditService.addCredits(bet.userId, bet.amount, 'legend_refund', 'Game cancelled - bet refunded');
+    }
+    
+    clearGameTimer(roomId);
+    await legendService.endGame(roomId);
+    
+    sendBotMessage(io, roomId, "Game cancelled! All bets have been refunded.");
+    return true;
+  }
+  
+  return false;
+};
+
+module.exports = { handleLegendCommand };
