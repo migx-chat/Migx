@@ -57,8 +57,8 @@ const endBettingPhase = async (io, roomId) => {
     return;
   }
   
-  const resultsEmoji = result.resultsEmoji.join(' ');
-  sendBotMessage(io, roomId, `Results:\n\n${resultsEmoji}`);
+  const resultsEmoji = result.resultsEmoji.join('  ');
+  sendBotMessage(io, roomId, `Results:\n\n[BIG_EMOJI]${resultsEmoji}[/BIG_EMOJI]`);
   
   await new Promise(resolve => setTimeout(resolve, 1500));
   

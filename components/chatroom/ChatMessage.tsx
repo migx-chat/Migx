@@ -461,6 +461,13 @@ export const ChatMessage = React.memo(({
               </Text>
             );
           }
+          if (item.type === 'bigEmoji') {
+            return (
+              <Text key={item.key} style={[styles.bigEmojiText, textShadowStyle]}>
+                {item.content}
+              </Text>
+            );
+          }
           return (
             <Text key={item.key} style={[styles.message, dynamicStyles.message, { color: getMessageColor() }, textShadowStyle]}>
               {item.content}
@@ -504,6 +511,10 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     marginBottom: -5,
+  },
+  bigEmojiText: {
+    fontSize: 28,
+    lineHeight: 36,
   },
   noticeContainer: {
     paddingVertical: 8,
