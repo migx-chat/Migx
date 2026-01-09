@@ -113,6 +113,7 @@ main {
   padding: 12px 16px;
   border-bottom: 1px solid #eee;
   font-size: 14px;
+  color: #333;
 }
 
 .data-table tbody tr:hover {
@@ -220,6 +221,8 @@ main {
   border-radius: 4px;
   font-size: 14px;
   font-family: inherit;
+  color: #333;
+  background: white;
 }
 
 .form-group input:focus,
@@ -354,6 +357,7 @@ main {
     grid-template-columns: 120px 1fr;
     align-items: center;
     gap: 8px;
+    color: #333;
   }
 
   .data-table td::before {
