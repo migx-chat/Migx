@@ -133,16 +133,24 @@ export default function CreateRoomScreen() {
             placeholderTextColor={theme.secondary}
           />
 
-          <Text style={[styles.label, { color: theme.text }]}>Description</Text>
+          <View style={styles.labelRow}>
+            <Text style={[styles.label, { color: theme.text }]}>Description</Text>
+            <Text style={[styles.charCount, { color: description.length >= 100 ? '#4CAF50' : '#FF6B6B' }]}>
+              {description.length}/100
+            </Text>
+          </View>
           <TextInput
-            style={[styles.textarea, { borderColor: theme.border, backgroundColor: theme.card, color: theme.text }]}
+            style={[styles.textarea, { borderColor: description.length >= 100 ? theme.border : '#FF6B6B', backgroundColor: theme.card, color: theme.text }]}
             value={description}
             onChangeText={setDescription}
-            placeholder="Short description (optional)"
+            placeholder="Describe your room (minimum 100 characters)"
             placeholderTextColor={theme.secondary}
             multiline
-            numberOfLines={3}
+            numberOfLines={4}
           />
+          <Text style={[styles.hintText, { color: theme.secondary }]}>
+            * Minimum Level 10 required to create a room
+          </Text>
 
           {/* Max Users fixed — MIG33 style */}
           <Text style={[styles.label, { color: theme.text }]}>Max Users</Text>
@@ -192,6 +200,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 6,
     fontWeight: '600',
+  },
+
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+
+  charCount: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  hintText: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginBottom: 16,
+    marginTop: -8,
   },
 
   input: {

@@ -414,6 +414,31 @@ router.post('/create', async (req, res) => {
       });
     }
     
+    // Check user level - minimum level 10 required
+    if (ownerId) {
+      const pool = require('../db');
+      const levelResult = await pool.query(
+        'SELECT level FROM user_levels WHERE user_id = $1',
+        [ownerId]
+      );
+      const userLevel = levelResult.rows[0]?.level || 1;
+      
+      if (userLevel < 10) {
+        return res.status(400).json({
+          success: false,
+          error: `You need to be at least Level 10 to create a room. Your current level is ${userLevel}.`
+        });
+      }
+    }
+    
+    // Validate description - minimum 100 characters
+    if (!description || description.trim().length < 100) {
+      return res.status(400).json({
+        success: false,
+        error: `Description must be at least 100 characters. Current: ${description ? description.trim().length : 0} characters.`
+      });
+    }
+    
     // Owner is only required for official category
     if (category === 'official' && !ownerId) {
       return res.status(400).json({ 
