@@ -443,6 +443,22 @@ router.post('/:feedId/comment', authMiddleware, async (req, res) => {
             message: `${username} commented on your post. Check feed to see`,
             postId: feedId
           });
+          
+          // Emit socket notification for sound
+          const ownerSocketId = await redis.get(`socket:${postOwnerUsername}`);
+          if (ownerSocketId) {
+            const { io } = require('../server');
+            if (io) {
+              io.to(ownerSocketId).emit('notif:comment', {
+                type: 'comment',
+                from: username,
+                message: `${username} commented on your post`,
+                postId: feedId,
+                timestamp: Date.now()
+              });
+            }
+          }
+          
           console.log(`📬 Comment notification sent to ${postOwnerUsername} from ${username}`);
         }
       }

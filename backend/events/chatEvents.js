@@ -227,6 +227,19 @@ module.exports = (io, socket) => {
             // Emit balance update to sender immediately
             socket.emit('credits:updated', { balance: newBalance });
             
+            // Emit gift notification to receiver for sound
+            const receiverSocketId = await redis.get(`socket:${targetUser}`);
+            if (receiverSocketId) {
+              io.to(receiverSocketId).emit('notif:gift', {
+                type: 'gift',
+                from: username,
+                message: `${username} sent you a gift [${gift.name}]`,
+                giftName: gift.name,
+                giftImage: gift.image_url,
+                timestamp: Date.now()
+              });
+            }
+            
             // Queue async persistence to PostgreSQL (non-blocking)
             giftQueue.queueGiftForPersistence({
               senderId: userId,

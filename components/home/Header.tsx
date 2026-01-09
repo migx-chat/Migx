@@ -83,6 +83,7 @@ export function Header() {
       socketInstance.on('notif:credit', handleNotif);
       socketInstance.on('notif:gift', handleNotif);
       socketInstance.on('notif:follow', handleNotif);
+      socketInstance.on('notif:comment', handleNotif);
 
       fetchNotificationCount();
 
@@ -90,6 +91,7 @@ export function Header() {
         socketInstance.off('notif:credit', handleNotif);
         socketInstance.off('notif:gift', handleNotif);
         socketInstance.off('notif:follow', handleNotif);
+        socketInstance.off('notif:comment', handleNotif);
       };
     }
   }, [username]);
