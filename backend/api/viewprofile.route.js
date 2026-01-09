@@ -38,11 +38,12 @@ router.get('/:userId', async (req, res) => {
     }
     
     // Get stats
-    const [postCount, giftCount, followersCount, followingCount] = await Promise.all([
+    const [postCount, giftCount, followersCount, followingCount, footprintCount] = await Promise.all([
       profileService.getPostCount(userId),
       profileService.getGiftCount(userId),
       profileService.getFollowersCount(userId),
-      profileService.getFollowingCount(userId)
+      profileService.getFollowingCount(userId),
+      profileService.getFootprintCount(userId)
     ]);
     
     // Check if viewer is following this user
@@ -88,7 +89,8 @@ router.get('/:userId', async (req, res) => {
         postCount,
         giftCount,
         followersCount,
-        followingCount
+        followingCount,
+        footprintCount
       },
       isFollowing
     });

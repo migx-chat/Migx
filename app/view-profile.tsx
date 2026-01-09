@@ -228,7 +228,7 @@ export default function ViewProfileScreen() {
                 giftCount={profileData.stats.giftCount}
                 followersCount={followersCount}
                 followingCount={profileData.stats.followingCount}
-                viewCount={profileData.stats.viewCount || 0}
+                viewCount={profileData.stats.footprintCount || 0}
                 onPostPress={handlePostPress}
                 onGiftPress={handleGiftPress}
                 onFollowersPress={handleFollowersPress}

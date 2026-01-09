@@ -130,6 +130,21 @@ const getGiftCount = async (userId) => {
   }
 };
 
+// ==================== FOOTPRINTS ====================
+
+const getFootprintCount = async (userId) => {
+  try {
+    const result = await query(
+      'SELECT COUNT(*) as count FROM profile_footprints WHERE profile_id = $1',
+      [userId]
+    );
+    return parseInt(result.rows[0].count) || 0;
+  } catch (error) {
+    console.error('Error getting footprint count:', error);
+    return 0;
+  }
+};
+
 // ==================== FOLLOWS ====================
 
 const followUser = async (followerId, followingId) => {
@@ -481,6 +496,9 @@ module.exports = {
   getReceivedGifts,
   getSentGifts,
   getGiftCount,
+  
+  // Footprints
+  getFootprintCount,
   
   // Follows
   followUser,
