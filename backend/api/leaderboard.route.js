@@ -409,17 +409,21 @@ router.get('/all', async (req, res) => {
     ]);
 
     const formatUser = (u, i, category) => {
-      const isTop1 = i === 0 && (category === 'top_level' || category === 'top_merchant');
       let color = u.username_color;
       
-      if (isTop1) {
-        color = category === 'top_merchant' ? '#9C27B0' : '#FF69B4';
+      // Top 1-3 in top_level get pink color reward
+      if (category === 'top_level' && i < 3) {
+        color = '#FF69B4'; // Pink for top 1-3 level
       }
       
-      // Pink Reward Logic
+      // Top 1 merchant gets purple
+      if (category === 'top_merchant' && i === 0) {
+        color = '#9C27B0'; // Purple for top 1 merchant
+      }
+      
+      // Pink Reward Logic from likes leaderboard
       const hasActiveLikeReward = u.has_top_like_reward && new Date(u.top_like_reward_expiry) > new Date();
       if (hasActiveLikeReward) {
-        // If merchant, only feed is pink (handled on client), here we provide the flag
         if (u.role !== 'merchant') {
           color = '#FF69B4'; // Pink
         }
