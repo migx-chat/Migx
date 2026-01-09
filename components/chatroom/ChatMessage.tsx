@@ -474,8 +474,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   cardImage: {
-    width: 28,
-    height: 40,
+    width: 18,
+    height: 24,
     marginHorizontal: 2,
   },
 });
