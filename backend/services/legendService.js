@@ -22,8 +22,29 @@ const MULTIPLIERS = {
 const BETTING_TIME = 45;
 const MIN_BET = 100;
 
-const getGameKey = (roomId) => `legend:room:${roomId}`;
-const getBetsKey = (roomId) => `legend:room:${roomId}:bets`;
+const getGameKey = (roomId) => `flagbot:room:${roomId}`;
+const getBetsKey = (roomId) => `flagbot:room:${roomId}:bets`;
+const getBotActiveKey = (roomId) => `flagbot:active:${roomId}`;
+
+const activateBot = async (roomId) => {
+  const redis = getRedisClient();
+  await redis.set(getBotActiveKey(roomId), '1');
+  return { success: true };
+};
+
+const deactivateBot = async (roomId) => {
+  const redis = getRedisClient();
+  await redis.del(getBotActiveKey(roomId));
+  await redis.del(getGameKey(roomId));
+  await redis.del(getBetsKey(roomId));
+  return { success: true };
+};
+
+const isBotActive = async (roomId) => {
+  const redis = getRedisClient();
+  const active = await redis.get(getBotActiveKey(roomId));
+  return active === '1';
+};
 
 const startGame = async (roomId, starterUsername) => {
   const redis = getRedisClient();
@@ -298,5 +319,8 @@ module.exports = {
   calculateWinners,
   getGameState,
   endGame,
-  getAllBets
+  getAllBets,
+  activateBot,
+  deactivateBot,
+  isBotActive
 };

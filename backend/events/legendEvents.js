@@ -100,10 +100,127 @@ const endBettingPhase = async (io, roomId) => {
   sendBotMessage(io, roomId, "FlagBot ready for the next round. Type !fg to start.");
 };
 
+const isRoomAdminOrMod = async (roomId, userId) => {
+  const roomService = require('../services/roomService');
+  const moderatorService = require('../services/moderatorService');
+  const userService = require('../services/userService');
+  
+  const user = await userService.getUserById(userId);
+  if (user?.role === 'admin') return true;
+  
+  const room = await roomService.getRoomById(roomId);
+  if (room && room.owner_id == userId) return true;
+  
+  const isMod = await moderatorService.isModerator(roomId, userId);
+  return isMod;
+};
+
 const handleLegendCommand = async (io, socket, data) => {
   const { roomId, userId, username, message } = data;
   
   const lowerMessage = message.toLowerCase().trim();
+  
+  if (lowerMessage === '/bot flagh add') {
+    const hasPermission = await isRoomAdminOrMod(roomId, userId);
+    if (!hasPermission) {
+      socket.emit('system:message', {
+        roomId,
+        message: "Only admin, owner, or moderator can add bot",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    const isActive = await legendService.isBotActive(roomId);
+    if (isActive) {
+      sendBotMessage(io, roomId, "FlagBot is already active in this room!");
+      return true;
+    }
+    
+    await legendService.activateBot(roomId);
+    sendBotMessage(io, roomId, "FlagBot has been activated! Type !fg to start a game.");
+    return true;
+  }
+  
+  if (lowerMessage === '/bot flagh off') {
+    const hasPermission = await isRoomAdminOrMod(roomId, userId);
+    if (!hasPermission) {
+      socket.emit('system:message', {
+        roomId,
+        message: "Only admin, owner, or moderator can remove bot",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    const isActive = await legendService.isBotActive(roomId);
+    if (!isActive) {
+      socket.emit('system:message', {
+        roomId,
+        message: "FlagBot is not active in this room",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    const game = await legendService.getGameState(roomId);
+    if (game && (game.phase === 'betting' || game.phase === 'calculating')) {
+      socket.emit('system:message', {
+        roomId,
+        message: "Cannot remove bot while game is in progress. Use /bot stop flagh first.",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    clearGameTimer(roomId);
+    await legendService.deactivateBot(roomId);
+    sendBotMessage(io, roomId, "FlagBot has been deactivated. Goodbye!");
+    return true;
+  }
+  
+  if (lowerMessage === '/bot stop flagh') {
+    const hasPermission = await isRoomAdminOrMod(roomId, userId);
+    if (!hasPermission) {
+      socket.emit('system:message', {
+        roomId,
+        message: "Only admin, owner, or moderator can stop the game",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    const game = await legendService.getGameState(roomId);
+    if (!game || game.phase === 'finished') {
+      socket.emit('system:message', {
+        roomId,
+        message: "No active game to stop",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
+    const allBets = await legendService.getAllBets(roomId);
+    for (const bet of allBets) {
+      await creditService.addCredits(bet.userId, bet.amount, 'flagbot_refund', 'Game stopped - bet refunded');
+    }
+    
+    clearGameTimer(roomId);
+    await legendService.endGame(roomId);
+    sendBotMessage(io, roomId, "Game stopped by moderator. All bets have been refunded.");
+    return true;
+  }
+  
+  const isBotActive = await legendService.isBotActive(roomId);
+  if (!isBotActive) {
+    return false;
+  }
   
   if (lowerMessage === '!fg') {
     const currentGame = await legendService.getGameState(roomId);
