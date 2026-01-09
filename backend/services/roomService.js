@@ -291,8 +291,9 @@ const joinRoom = async (roomId, userId, username) => {
       };
     }
     
+    // Room full check - admin can bypass
     const userCount = await presence.getRoomUserCount(roomId);
-    if (userCount >= room.max_users) {
+    if (userCount >= room.max_users && !isGlobalAdmin) {
       return { success: false, error: 'Room is full' };
     }
     

@@ -212,21 +212,25 @@ module.exports = (io, socket) => {
       // Get current users before adding new user
       const currentUsersList = await getRoomPresenceUsers(roomId);
 
-      // Add user to Redis presence
-      await addUserToRoom(roomId, username);
+      // Add user to Redis presence (skip for invisible admin)
+      if (!socket.invisible) {
+        await addUserToRoom(roomId, username);
+      }
 
       // Save room history to DATABASE (for Chat menu)
       await roomService.saveRoomHistory(userId, roomId);
 
-      // Add to participants (MIG33 style - Redis Set)
-      await addRoomParticipant(roomId, username);
-      
-      // Broadcast updated participants to all users in room
-      const updatedParticipants = await getRoomParticipants(roomId);
-      io.to(`room:${roomId}`).emit('room:participants:update', {
-        roomId,
-        participants: updatedParticipants
-      });
+      // Add to participants (MIG33 style - Redis Set) - skip for invisible admin
+      if (!socket.invisible) {
+        await addRoomParticipant(roomId, username);
+        
+        // Broadcast updated participants to all users in room
+        const updatedParticipants = await getRoomParticipants(roomId);
+        io.to(`room:${roomId}`).emit('room:participants:update', {
+          roomId,
+          participants: updatedParticipants
+        });
+      }
 
       // Get updated count after adding user
       const newUserCount = await getRoomUserCount(roomId);
