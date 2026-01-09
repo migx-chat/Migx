@@ -466,6 +466,116 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /f command - Follow user
+        if (cmdKey === 'f') {
+          const targetUsername = parts[1];
+          if (!targetUsername) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /f <username>`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          try {
+            const userService = require('../services/userService');
+            const profileService = require('../services/profileService');
+            
+            const targetUser = await userService.getUserByUsername(targetUsername);
+            if (!targetUser) {
+              socket.emit('system:message', {
+                roomId,
+                message: `User "${targetUsername}" not found`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+
+            if (targetUser.id == userId) {
+              socket.emit('system:message', {
+                roomId,
+                message: `You cannot follow yourself`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+
+            const result = await profileService.followUser(userId, targetUser.id);
+            
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: `** ${username} is now following ${targetUsername} **`,
+              messageType: 'cmd',
+              type: 'cmd',
+              timestamp: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error processing /f:', error);
+            socket.emit('system:message', {
+              roomId,
+              message: error.message || 'Failed to follow user',
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+          }
+          return;
+        }
+
+        // Handle /uf command - Unfollow user
+        if (cmdKey === 'uf') {
+          const targetUsername = parts[1];
+          if (!targetUsername) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /uf <username>`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          try {
+            const userService = require('../services/userService');
+            const profileService = require('../services/profileService');
+            
+            const targetUser = await userService.getUserByUsername(targetUsername);
+            if (!targetUser) {
+              socket.emit('system:message', {
+                roomId,
+                message: `User "${targetUsername}" not found`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+
+            const result = await profileService.unfollowUser(userId, targetUser.id);
+            
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: `** ${username} unfollowed ${targetUsername} **`,
+              messageType: 'cmd',
+              type: 'cmd',
+              timestamp: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error processing /uf:', error);
+            socket.emit('system:message', {
+              roomId,
+              message: error.message || 'Failed to unfollow user',
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+          }
+          return;
+        }
+
         // Handle /kick command
         if (cmdKey === 'kick') {
           const targetUsername = parts[1];
@@ -479,16 +589,96 @@ module.exports = (io, socket) => {
             return;
           }
 
-          const userService = require('../services/userService');
-          const isAdmin = await userService.isAdmin(userId);
-          
-          socket.emit('room:kick', {
-            roomId,
-            targetUsername,
-            kickerUserId: userId,
-            kickerUsername: username,
-            isAdmin
-          });
+          try {
+            const userService = require('../services/userService');
+            const roomService = require('../services/roomService');
+            
+            const room = await roomService.getRoomById(roomId);
+            const isRoomOwner = room && room.owner_id == userId;
+            const isGlobalAdmin = await userService.isAdmin(userId);
+            const isModerator = await roomService.isRoomModerator(roomId, userId);
+            
+            if (!isRoomOwner && !isGlobalAdmin && !isModerator) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Only room owner, admin, or moderator can kick users`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+
+            const targetUser = await userService.getUserByUsername(targetUsername);
+            if (!targetUser) {
+              socket.emit('system:message', {
+                roomId,
+                message: `User "${targetUsername}" not found`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+
+            // Can't kick yourself
+            if (targetUser.id == userId) {
+              socket.emit('system:message', {
+                roomId,
+                message: `You cannot kick yourself`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+
+            // Can't kick room owner or admins (unless you're an admin)
+            const targetIsAdmin = await userService.isAdmin(targetUser.id);
+            const targetIsOwner = room && room.owner_id == targetUser.id;
+            
+            if (targetIsOwner) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Cannot kick the room owner`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+
+            if (targetIsAdmin && !isGlobalAdmin) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Only admins can kick other admins`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+
+            // Emit kick event to target user
+            io.to(`room:${roomId}`).emit('user:kicked', {
+              roomId,
+              kickedUserId: targetUser.id,
+              kickedUsername: targetUsername,
+              kickedBy: username
+            });
+
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: `** ${targetUsername} was kicked from the room by ${username} **`,
+              messageType: 'cmd',
+              type: 'cmd',
+              timestamp: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error processing /kick:', error);
+            socket.emit('system:message', {
+              roomId,
+              message: 'Failed to kick user',
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+          }
           return;
         }
 
