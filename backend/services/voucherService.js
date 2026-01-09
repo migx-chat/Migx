@@ -274,7 +274,7 @@ const broadcastVoucherAnnouncement = async (voucher) => {
     return;
   }
   
-  const message = `🎁 FREE CREDIT!! Total IDR ${voucher.totalPool.toLocaleString()} for up to ${VOUCHER_CONFIG.maxClaimers} users! CMD /c ${voucher.code} to claim [${VOUCHER_CONFIG.expirySeconds}s]`;
+  const message = `🎁 FREE CREDIT!! Total IDR ${voucher.totalPool.toLocaleString()} for up to ${VOUCHER_CONFIG.maxClaimers} users! CMD type /c ${voucher.code} to claim`;
   
   const announcement = {
     id: generateMessageId(),

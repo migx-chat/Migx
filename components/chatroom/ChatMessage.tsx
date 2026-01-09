@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, Dimensions, Pressable } from 'react-native';
 import { useThemeCustom } from '@/theme/provider';
 import { parseEmojiMessage } from '@/utils/emojiParser';
@@ -29,6 +29,7 @@ interface ChatMessageProps {
   hasBackground?: boolean;
   voucherCode?: string;
   voucherCodeColor?: string;
+  expiresIn?: number;
 }
 
 const BadgeTop1 = () => (
@@ -68,6 +69,78 @@ const parseImageTags = (message: string): { hasImage: boolean; imageUrl: string 
     };
   }
   return { hasImage: false, imageUrl: null, textContent: message };
+};
+
+const VoucherMessage = ({ message, voucherCode, voucherCodeColor, expiresIn, timestamp, hasBackground }: { 
+  message: string; 
+  voucherCode?: string; 
+  voucherCodeColor?: string; 
+  expiresIn?: number;
+  timestamp: string;
+  hasBackground?: boolean;
+}) => {
+  const { scaleSize } = useThemeCustom();
+  const [countdown, setCountdown] = useState(() => {
+    if (expiresIn) {
+      const messageTime = new Date(timestamp).getTime();
+      const now = Date.now();
+      const elapsed = Math.floor((now - messageTime) / 1000);
+      return Math.max(0, expiresIn - elapsed);
+    }
+    return 0;
+  });
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const textShadowStyle = hasBackground ? {
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  } : {};
+
+  const codeColor = voucherCodeColor || '#FF0000';
+  const codeMatch = message.match(/\/c (\d+)/i);
+  const extractedCode = codeMatch ? codeMatch[1] : (voucherCode || '');
+  
+  const messageParts = message.split(/\/c \d+/i);
+  const beforeCode = messageParts[0] || '';
+  const afterCode = messageParts[1] || '';
+
+  if (countdown <= 0) {
+    return (
+      <View style={styles.messageContainer}>
+        <Text style={[styles.voucherText, { fontSize: scaleSize(13) }, textShadowStyle]}>
+          <Text style={{ color: '#888' }}>🎁 Voucher expired</Text>
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.messageContainer}>
+      <Text style={[styles.voucherText, { fontSize: scaleSize(13) }, textShadowStyle]}>
+        <Text style={{ color: '#FFD700' }}>🎁 </Text>
+        <Text style={{ color: '#FFD700' }}>{beforeCode.replace('🎁 ', '')}</Text>
+        <Text style={{ color: codeColor, fontWeight: 'bold' }}>/c {extractedCode}</Text>
+        <Text style={{ color: '#FFD700' }}>{afterCode}</Text>
+        <Text style={{ color: '#FF6B6B', fontWeight: 'bold' }}> [{countdown}s]</Text>
+      </Text>
+    </View>
+  );
 };
 
 const ChatImageMessage = ({ imageUrl, username, usernameColor }: { imageUrl: string; username: string; usernameColor: string }) => {
@@ -131,7 +204,8 @@ export const ChatMessage = React.memo(({
   topLikeRewardExpiry,
   hasBackground,
   voucherCode,
-  voucherCodeColor
+  voucherCodeColor,
+  expiresIn
 }: ChatMessageProps) => {
   
   const { theme, scaleSize } = useThemeCustom();
@@ -210,25 +284,15 @@ export const ChatMessage = React.memo(({
   }
 
   if (messageType === 'voucher' || type === 'voucher') {
-    const codeColor = voucherCodeColor || '#FF0000';
-    const displayCode = voucherCode || '';
-    
-    const codeMatch = message.match(/CMD \/c (\d+)/i) || message.match(/\/c (\d+)/i);
-    const extractedCode = codeMatch ? codeMatch[1] : displayCode;
-    
-    const messageParts = message.split(/\/c \d+/i);
-    const beforeCode = messageParts[0] || '';
-    const afterCode = messageParts[1] || '';
-    
     return (
-      <View style={styles.messageContainer}>
-        <Text style={[styles.voucherText, dynamicStyles.messageWrapper, textShadowStyle]}>
-          <Text style={{ color: '#FFD700' }}>🎁 </Text>
-          <Text style={{ color: '#FFD700' }}>{beforeCode.replace('🎁 ', '')}</Text>
-          <Text style={{ color: codeColor, fontWeight: 'bold' }}>/c {extractedCode}</Text>
-          <Text style={{ color: '#FFD700' }}>{afterCode}</Text>
-        </Text>
-      </View>
+      <VoucherMessage
+        message={message}
+        voucherCode={voucherCode}
+        voucherCodeColor={voucherCodeColor}
+        expiresIn={expiresIn}
+        timestamp={timestamp}
+        hasBackground={hasBackground}
+      />
     );
   }
 
