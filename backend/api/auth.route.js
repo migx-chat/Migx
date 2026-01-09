@@ -9,6 +9,7 @@ const { sendOtpEmail, sendActivationEmail, sendPasswordChangeOtp, sendForgotPass
 const streakService = require('../services/streakService');
 const logger = require('../utils/logger');
 const sessionService = require('../services/sessionService');
+const { getRedisClient } = require('../redis');
 
 // Username validation regex (MIG33 rules)
 const usernameRegex = /^[a-z][a-z0-9._]{5,11}$/;
@@ -805,6 +806,37 @@ router.post('/reset-password', async (req, res) => {
   } catch (error) {
     console.error('Reset password error:', error);
     res.status(500).json({ success: false, error: 'Failed to reset password' });
+  }
+});
+
+// Logout endpoint - clears chatlist and session data
+router.post('/logout', async (req, res) => {
+  try {
+    const { username, userId } = req.body;
+    
+    if (!username) {
+      return res.status(400).json({ success: false, error: 'Username is required' });
+    }
+    
+    const redis = getRedisClient();
+    
+    // Clear chatlist from Redis
+    await redis.del(`user:rooms:${username}`);
+    
+    // Clear user presence data
+    await redis.del(`user:status:${userId || username}`);
+    
+    // Invalidate sessions if userId provided
+    if (userId) {
+      await sessionService.revokeAllSessions(userId);
+    }
+    
+    logger.info('LOGOUT_SUCCESS', { username, userId });
+    
+    res.json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    logger.error('LOGOUT_ERROR', error);
+    res.status(500).json({ success: false, error: 'Logout failed' });
   }
 });
 

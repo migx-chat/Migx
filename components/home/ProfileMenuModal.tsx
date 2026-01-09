@@ -139,6 +139,21 @@ export function ProfileMenuModal({ visible, onClose, userData }: ProfileMenuModa
         onPress: async () => {
           try {
             onClose();
+            
+            // Call logout API to clear chatlist from Redis
+            try {
+              await fetch(`${API_BASE_URL}/api/auth/logout`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  username: userData?.username,
+                  userId: userData?.id 
+                })
+              });
+            } catch (apiError) {
+              console.log('Logout API error (non-critical):', apiError);
+            }
+            
             if (socket) {
               socket.emit('logout');
               socket.disconnect();
