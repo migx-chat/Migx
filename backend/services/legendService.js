@@ -1,4 +1,5 @@
 const { getRedisClient } = require('../redis');
+const { query } = require('../db/db');
 
 const GROUPS = {
   j: { name: 'Jerman', emoji: '🇩🇪', code: 'J' },
@@ -225,8 +226,49 @@ const getGameState = async (roomId) => {
   return JSON.parse(gameData);
 };
 
+const saveGameHistory = async (roomId, game, winners, losers) => {
+  try {
+    const roundResult = await query(
+      `INSERT INTO legend_rounds (room_id, started_by, result_symbols, total_pool, ended_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       RETURNING id`,
+      [roomId, game.startedBy, game.results.join(','), game.totalPool]
+    );
+    
+    const roundId = roundResult.rows[0].id;
+    
+    for (const winner of winners) {
+      await query(
+        `INSERT INTO legend_bets (round_id, user_id, username, group_code, group_name, bet_amount, win_amount, multiplier, is_winner)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)`,
+        [roundId, winner.userId, winner.username, winner.group, winner.groupName, winner.amount, winner.winAmount, winner.multiplier]
+      );
+    }
+    
+    for (const loser of losers) {
+      await query(
+        `INSERT INTO legend_bets (round_id, user_id, username, group_code, group_name, bet_amount, win_amount, multiplier, is_winner)
+         VALUES ($1, $2, $3, $4, $5, $6, 0, 0, false)`,
+        [roundId, loser.userId, loser.username, loser.group, loser.groupName, loser.amount]
+      );
+    }
+    
+    console.log(`📊 Legend game history saved: Round #${roundId}`);
+    return roundId;
+  } catch (error) {
+    console.error('Error saving legend game history:', error);
+    return null;
+  }
+};
+
 const endGame = async (roomId) => {
   const redis = getRedisClient();
+  
+  const game = await getGameState(roomId);
+  if (game && game.winners && game.losers) {
+    await saveGameHistory(roomId, game, game.winners, game.losers);
+  }
+  
   await redis.del(getGameKey(roomId));
   await redis.del(getBetsKey(roomId));
 };
