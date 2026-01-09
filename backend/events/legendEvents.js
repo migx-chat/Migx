@@ -224,6 +224,19 @@ const handleLegendCommand = async (io, socket, data) => {
     return false;
   }
   
+  // Check if LowCard game is running - prevent conflict
+  const lowcardService = require('../services/lowcardService');
+  const lowcardGame = await lowcardService.getGame(roomId);
+  if (lowcardGame && lowerMessage === '!fg') {
+    socket.emit('system:message', {
+      roomId,
+      message: 'LowCard game is running. Please wait until LowCard game ends.',
+      timestamp: new Date().toISOString(),
+      type: 'warning'
+    });
+    return true;
+  }
+  
   if (lowerMessage === '!fg') {
     const currentGame = await legendService.getGameState(roomId);
     if (currentGame && (currentGame.phase === 'betting' || currentGame.phase === 'calculating')) {

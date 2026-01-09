@@ -249,6 +249,19 @@ const handleLowcardCommand = async (io, socket, data) => {
     return false;
   }
   
+  // Check if FlagBot is running - prevent conflict
+  const legendService = require('../services/legendService');
+  const flagBotActive = await legendService.isBotActive(roomId);
+  if (flagBotActive && message.startsWith('!start')) {
+    socket.emit('system:message', {
+      roomId,
+      message: 'FlagBot is running. Please wait until FlagBot game ends.',
+      timestamp: new Date().toISOString(),
+      type: 'warning'
+    });
+    return true;
+  }
+  
   if (message.startsWith('!start')) {
     const parts = message.split(' ');
     const amount = parts[1] ? parseInt(parts[1]) : 50;
