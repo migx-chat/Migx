@@ -65,7 +65,7 @@ const endBettingPhase = async (io, roomId) => {
   const matchingLines = [];
   Object.entries(result.multipliers).forEach(([group, data]) => {
     if (data.count >= 2) {
-      matchingLines.push(`${data.group.emoji} ${data.count}x`);
+      matchingLines.push(`${data.group.emoji} ${data.group.name}: ${data.count}x`);
     }
   });
   
