@@ -11,12 +11,12 @@ const GROUPS = {
 };
 
 const MULTIPLIERS = {
-  1: 2,
-  2: 3,
-  3: 5,
-  4: 8,
-  5: 15,
-  6: 30
+  1: 0,
+  2: 2,
+  3: 3,
+  4: 5,
+  5: 8,
+  6: 15
 };
 
 const BETTING_TIME = 45;
@@ -174,9 +174,9 @@ const calculateWinners = async (roomId) => {
   for (const [key, betStr] of Object.entries(allBets)) {
     const bet = JSON.parse(betStr);
     const groupOccurrence = occurrences[bet.group] || 0;
+    const multiplier = MULTIPLIERS[groupOccurrence] || 0;
     
-    if (groupOccurrence > 0) {
-      const multiplier = MULTIPLIERS[groupOccurrence];
+    if (groupOccurrence >= 2 && multiplier > 0) {
       const winAmount = bet.amount * multiplier;
       winners.push({
         ...bet,
