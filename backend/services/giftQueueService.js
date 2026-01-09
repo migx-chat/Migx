@@ -34,7 +34,7 @@ const persistGiftToDatabase = async (giftData) => {
     await query(
       `INSERT INTO credit_logs (from_user_id, to_user_id, amount, transaction_type, description, from_username, to_username, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
-      [giftData.senderId, giftData.receiverId, -giftData.giftCost, 'transfer', `Gift: ${giftData.giftName} to ${giftData.receiverUsername}`, giftData.senderUsername, giftData.receiverUsername]
+      [giftData.senderId, giftData.receiverId, giftData.giftCost, 'gift', `Gift: ${giftData.giftName} to ${giftData.receiverUsername}`, giftData.senderUsername, giftData.receiverUsername]
     );
     
     console.log(`✅ Gift persisted to DB: ${giftData.giftName}`);
