@@ -278,16 +278,27 @@ export default function ChatRoomScreen() {
         console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
         
         const openRoomIds = useRoomTabsStore.getState().openRoomIds;
-        openRoomIds.forEach((rid) => {
-          if (!rid.startsWith('private:') && !rid.startsWith('pm_')) {
-            console.log('🔄 Rejoining room after reconnect:', rid);
-            newSocket.emit('join_room', {
-              roomId: rid,
-              userId: currentUserId,
-              username: currentUsername,
-              silent: true
+        // Get invisible mode for reconnect
+        AsyncStorage.getItem('user_data').then(userData => {
+          AsyncStorage.getItem('invisible_mode').then(invisibleMode => {
+            const parsedData = userData ? JSON.parse(userData) : {};
+            const userRole = parsedData.role || 'user';
+            const isInvisible = invisibleMode === 'true' && userRole === 'admin';
+            
+            openRoomIds.forEach((rid) => {
+              if (!rid.startsWith('private:') && !rid.startsWith('pm_')) {
+                console.log('🔄 Rejoining room after reconnect:', rid);
+                newSocket.emit('join_room', {
+                  roomId: rid,
+                  userId: currentUserId,
+                  username: currentUsername,
+                  invisible: isInvisible,
+                  role: userRole,
+                  silent: true
+                });
+              }
             });
-          }
+          });
         });
       });
 
