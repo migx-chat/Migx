@@ -28,9 +28,11 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
     
     console.log("MESSAGE RECEIVE", data.roomId, data.message);
     
+    const isError = data.type === 'warning' || data.type === 'error';
+    
     const newMessage: Message = {
       id: `sys-${Date.now()}-${Math.random()}`,
-      username: 'System',
+      username: isError ? 'ERROR' : 'System',
       message: data.message,
       isSystem: true,
     };
