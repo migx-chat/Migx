@@ -340,7 +340,7 @@ export default function LeaderboardPage() {
           <View style={[styles.avatar, { backgroundColor: roleColor }]}>
             {user.avatar ? (
               <Image
-                source={{ uri: `${API_ENDPOINTS.LEADERBOARD.ALL.replace('/api/leaderboard/all', '')}${user.avatar}` }}
+                source={{ uri: user.avatar.startsWith('http') ? user.avatar : `${API_ENDPOINTS.LEADERBOARD.ALL.replace('/api/leaderboard/all', '')}${user.avatar}` }}
                 style={styles.avatarImage}
               />
             ) : (
