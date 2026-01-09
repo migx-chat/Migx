@@ -191,6 +191,11 @@ const removeBotFromRoom = async (roomId) => {
   const botKey = `lowcard:bot:${roomId}`;
   const gameKey = `lowcard:game:${roomId}`;
   
+  const exists = await redis.exists(botKey);
+  if (!exists) {
+    return { success: false, message: 'No LowCard bot in this room.' };
+  }
+  
   const gameData = await redis.get(gameKey);
   if (gameData) {
     const game = JSON.parse(gameData);
