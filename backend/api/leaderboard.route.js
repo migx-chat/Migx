@@ -411,15 +411,13 @@ router.get('/all', async (req, res) => {
     const formatUser = (u, i, category) => {
       let color = u.username_color;
       
-      // Top 1-3 in top_level get pink color reward
-      if (category === 'top_level' && i < 3) {
-        color = '#FF69B4'; // Pink for top 1-3 level
+      // Top 1 in all categories get pink color reward (except merchant)
+      if (i === 0 && category !== 'top_merchant') {
+        color = '#FF69B4'; // Pink for top 1
       }
       
-      // Top 1 merchant gets purple
-      if (category === 'top_merchant' && i === 0) {
-        color = '#9C27B0'; // Purple for top 1 merchant
-      }
+      // Top 1 merchant gets purple (handled via badge, not color)
+      // Merchant badge is separate from username color
       
       // Pink Reward Logic from likes leaderboard
       const hasActiveLikeReward = u.has_top_like_reward && new Date(u.top_like_reward_expiry) > new Date();

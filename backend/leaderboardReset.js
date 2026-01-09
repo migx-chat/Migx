@@ -21,36 +21,24 @@ const checkAndResetLeaderboard = async () => {
       if (levelResetNeeded) {
         logger.info('LEADERBOARD_RESET_START', { category: 'top_level' });
         
-        // Get top 3 users by level
-        const topUsers = await query(
+        // Get top 1 user by level
+        const topUser = await query(
           `SELECT u.id FROM users u 
            LEFT JOIN user_levels ul ON u.id = ul.user_id 
            WHERE u.is_active = true 
-           ORDER BY ul.level DESC, ul.xp DESC LIMIT 3`
+           ORDER BY ul.level DESC, ul.xp DESC LIMIT 1`
         );
         
-        if (topUsers.rows.length) {
-          const newTopIds = topUsers.rows.map(r => r.id);
-          
-          // First, clear pink color from users who had top-level reward but are no longer in top 3
-          // (users with username_color = #FF69B4 but not in new top 3)
-          await query(
-            `UPDATE users SET username_color = NULL, username_color_expiry = NULL 
-             WHERE username_color = '#FF69B4' 
-             AND id NOT IN (SELECT id FROM users WHERE id = ANY($1))`,
-            [newTopIds]
-          );
-          logger.info('TOP_LEVEL_DISPLACED_CLEARED', { clearedFromNonTop3: true });
-          
-          // Now grant pink color to current top 3
+        if (topUser.rows.length) {
+          const userId = topUser.rows[0].id;
           const expiry = new Date();
-          expiry.setFullYear(expiry.getFullYear() + 1);
+          expiry.setDate(expiry.getDate() + 3); // 3 day expiry
           
           await query(
-            "UPDATE users SET username_color = '#FF69B4', username_color_expiry = $1 WHERE id = ANY($2)",
-            [expiry, newTopIds]
+            "UPDATE users SET username_color = '#FF69B4', username_color_expiry = $1 WHERE id = $2",
+            [expiry, userId]
           );
-          logger.info('TOP3_LEVEL_REWARD_GRANTED', { userIds: newTopIds, expiry });
+          logger.info('TOP1_LEVEL_REWARD_GRANTED', { userId, expiry });
         }
         
         await query("INSERT INTO leaderboard_reset_log (category) VALUES ('top_level')");
