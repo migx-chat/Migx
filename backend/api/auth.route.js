@@ -809,7 +809,7 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-// Logout endpoint - clears chatlist and session data
+// Logout endpoint - clears chatlist, private chats and session data
 router.post('/logout', async (req, res) => {
   try {
     const { username, userId } = req.body;
@@ -820,8 +820,11 @@ router.post('/logout', async (req, res) => {
     
     const redis = getRedisClient();
     
-    // Clear chatlist from Redis
+    // Clear chatlist (rooms) from Redis
     await redis.del(`user:rooms:${username}`);
+    
+    // Clear private chat list from Redis
+    await redis.del(`user:dm:${username}`);
     
     // Clear user presence data
     await redis.del(`user:status:${userId || username}`);
