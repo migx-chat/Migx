@@ -29,6 +29,7 @@ interface ChatMessageProps {
   topLikeRewardExpiry?: string;
   hasBackground?: boolean;
   bigEmoji?: boolean;
+  hasFlags?: boolean;
   voucherCode?: string;
   voucherCodeColor?: string;
   expiresIn?: number;
@@ -206,6 +207,7 @@ export const ChatMessage = React.memo(({
   topLikeRewardExpiry,
   hasBackground,
   bigEmoji,
+  hasFlags,
   voucherCode,
   voucherCodeColor,
   expiresIn
@@ -443,8 +445,8 @@ export const ChatMessage = React.memo(({
     );
   }
 
-  const renderMessageContent = (text: string, isBigEmoji: boolean = false) => {
-    if (hasFlagTags(text)) {
+  const renderMessageContent = (text: string, isBigEmoji: boolean = false, forceFlags: boolean = false) => {
+    if (forceFlags || hasFlagTags(text)) {
       const { parts } = parseFlagTags(text);
       return parts.map((part, idx) => {
         if (part.type === 'flag' && part.flagKey && flagImages[part.flagKey]) {
@@ -513,7 +515,7 @@ export const ChatMessage = React.memo(({
         <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }, textShadowStyle]}>
           {username}{hasTopMerchantBadge && <BadgeTop1 />}:{' '}
         </Text>
-        {renderMessageContent(message, bigEmoji)}
+        {renderMessageContent(message, bigEmoji, hasFlags)}
       </Text>
     </View>
   );

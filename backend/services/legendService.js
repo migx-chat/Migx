@@ -2,12 +2,12 @@ const { getRedisClient } = require('../redis');
 const { query } = require('../db/db');
 
 const GROUPS = {
-  j: { name: 'Jerman', emoji: '[FLAG:jerman]', code: 'J' },
-  m: { name: 'Malaysia', emoji: '[FLAG:malaysia]', code: 'M' },
-  a: { name: 'Arab', emoji: '[FLAG:arab]', code: 'A' },
-  d: { name: 'Denmark', emoji: '[FLAG:denmark]', code: 'D' },
-  s: { name: 'Swedia', emoji: '[FLAG:swedia]', code: 'S' },
-  r: { name: 'Rusia', emoji: '[FLAG:rusia]', code: 'R' }
+  j: { name: 'Jerman', emoji: '🇩🇪', flag: 'jerman', code: 'J' },
+  m: { name: 'Malaysia', emoji: '🇲🇾', flag: 'malaysia', code: 'M' },
+  a: { name: 'Arab', emoji: '🇸🇦', flag: 'arab', code: 'A' },
+  d: { name: 'Denmark', emoji: '🇩🇰', flag: 'denmark', code: 'D' },
+  s: { name: 'Swedia', emoji: '🇸🇪', flag: 'swedia', code: 'S' },
+  r: { name: 'Rusia', emoji: '🇷🇺', flag: 'rusia', code: 'R' }
 };
 
 const MULTIPLIERS = {
@@ -227,6 +227,7 @@ const calculateWinners = async (roomId) => {
     success: true,
     results,
     resultsEmoji: results.map(r => GROUPS[r].emoji),
+    resultsFlags: results.map(r => GROUPS[r].flag),
     occurrences,
     multipliers,
     winners,
