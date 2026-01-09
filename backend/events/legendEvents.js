@@ -4,7 +4,8 @@ const { generateMessageId } = require('../utils/idGenerator');
 
 const activeTimers = new Map();
 
-const sendBotMessage = (io, roomId, message, type = 'flagbot') => {
+const sendBotMessage = (io, roomId, message, options = {}) => {
+  const { type = 'flagbot', bigEmoji = false } = typeof options === 'string' ? { type: options } : options;
   io.to(`room:${roomId}`).emit('chat:message', {
     id: generateMessageId(),
     roomId,
@@ -16,6 +17,7 @@ const sendBotMessage = (io, roomId, message, type = 'flagbot') => {
     userType: 'bot',
     usernameColor: '#FF6B35',
     messageColor: '#1E90FF',
+    bigEmoji: bigEmoji,
     timestamp: new Date().toISOString()
   });
 };
@@ -58,7 +60,7 @@ const endBettingPhase = async (io, roomId) => {
   }
   
   const resultsEmoji = result.resultsEmoji.join('  ');
-  sendBotMessage(io, roomId, `Results:\n\n[BIG_EMOJI]${resultsEmoji}[/BIG_EMOJI]`);
+  sendBotMessage(io, roomId, `Results:\n\n${resultsEmoji}`, { bigEmoji: true });
   
   await new Promise(resolve => setTimeout(resolve, 1500));
   

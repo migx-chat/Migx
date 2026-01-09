@@ -20,6 +20,7 @@ interface Message {
   hasTopMerchantBadge?: boolean;
   hasTopLikeReward?: boolean;
   topLikeRewardExpiry?: string;
+  bigEmoji?: boolean;
 }
 
 interface ChatRoomContentProps {
@@ -80,6 +81,7 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 85, backg
           hasTopLikeReward={item.hasTopLikeReward}
           topLikeRewardExpiry={item.topLikeRewardExpiry}
           hasBackground={!!backgroundImage}
+          bigEmoji={item.bigEmoji}
         />
       )}
       contentContainerStyle={[styles.container, { paddingTop: totalBottomPadding }]}

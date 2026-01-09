@@ -27,6 +27,7 @@ interface ChatMessageProps {
   hasTopLikeReward?: boolean;
   topLikeRewardExpiry?: string;
   hasBackground?: boolean;
+  bigEmoji?: boolean;
   voucherCode?: string;
   voucherCodeColor?: string;
   expiresIn?: number;
@@ -203,6 +204,7 @@ export const ChatMessage = React.memo(({
   hasTopLikeReward,
   topLikeRewardExpiry,
   hasBackground,
+  bigEmoji,
   voucherCode,
   voucherCodeColor,
   expiresIn
@@ -469,7 +471,13 @@ export const ChatMessage = React.memo(({
             );
           }
           return (
-            <Text key={item.key} style={[styles.message, dynamicStyles.message, { color: getMessageColor() }, textShadowStyle]}>
+            <Text key={item.key} style={[
+              styles.message, 
+              dynamicStyles.message, 
+              { color: getMessageColor() }, 
+              textShadowStyle,
+              bigEmoji && styles.bigEmojiText
+            ]}>
               {item.content}
             </Text>
           );
