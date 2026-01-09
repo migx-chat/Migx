@@ -244,7 +244,7 @@ const handleLegendCommand = async (io, socket, data) => {
   
   // Check if LowCard game is running - prevent conflict
   const lowcardService = require('../services/lowcardService');
-  const lowcardGame = await lowcardService.getGame(roomId);
+  const lowcardGame = await lowcardService.getActiveGame(roomId);
   if (lowcardGame && lowerMessage === '!fg') {
     socket.emit('system:message', {
       roomId,
