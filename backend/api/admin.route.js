@@ -135,14 +135,31 @@ router.post('/create-account', superAdminMiddleware, async (req, res) => {
 const creditService = require('../services/creditService');
 router.post('/add-coin', superAdminMiddleware, async (req, res) => {
   try {
-    const { userId, amount } = req.body;
+    const { userId, username, amount } = req.body;
     
-    if (!userId || !amount || isNaN(amount) || amount <= 0) {
-      return res.status(400).json({ error: 'Valid User ID and positive amount are required' });
+    if ((!userId && !username) || !amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Valid User ID or username and positive amount are required' });
+    }
+
+    let targetUserId = userId;
+    let targetUsername = username;
+    
+    if (!targetUserId && targetUsername) {
+      const userResult = await db.query(
+        'SELECT id, username FROM users WHERE LOWER(username) = LOWER($1)',
+        [targetUsername.trim()]
+      );
+      
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ error: `User "${targetUsername}" not found` });
+      }
+      
+      targetUserId = userResult.rows[0].id;
+      targetUsername = userResult.rows[0].username;
     }
 
     const result = await creditService.addCredits(
-      userId, 
+      targetUserId, 
       parseInt(amount), 
       'topup', 
       'Admin manual top-up'
@@ -154,7 +171,7 @@ router.post('/add-coin', superAdminMiddleware, async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: `${amount} credits added successfully`,
+      message: `${amount} credits added to ${targetUsername || targetUserId}`,
       newBalance: result.newBalance
     });
   } catch (error) {
