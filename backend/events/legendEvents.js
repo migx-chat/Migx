@@ -4,15 +4,15 @@ const { generateMessageId } = require('../utils/idGenerator');
 
 const activeTimers = new Map();
 
-const sendBotMessage = (io, roomId, message, type = 'legend') => {
+const sendBotMessage = (io, roomId, message, type = 'flagbot') => {
   io.to(`room:${roomId}`).emit('chat:message', {
     id: generateMessageId(),
     roomId,
-    username: 'LegendBot',
-    message: `LegendBot: ${message}`,
+    username: 'FlagBot',
+    message: `FlagBot: ${message}`,
     messageType: type,
     type: 'bot',
-    botType: 'legend',
+    botType: 'flagbot',
     userType: 'bot',
     usernameColor: '#FF6B35',
     messageColor: '#1E90FF',
@@ -78,7 +78,7 @@ const endBettingPhase = async (io, roomId) => {
   if (result.winners.length > 0) {
     for (const winner of result.winners) {
       try {
-        await creditService.addCredits(winner.userId, winner.winAmount, 'legend_win', `Won Legend game betting on ${winner.groupName}`);
+        await creditService.addCredits(winner.userId, winner.winAmount, 'flagbot_win', `Won FlagBot game betting on ${winner.groupName}`);
         
         io.to(`room:${roomId}`).emit('credits:updated', {
           userId: winner.userId,
@@ -97,7 +97,7 @@ const endBettingPhase = async (io, roomId) => {
   await legendService.endGame(roomId);
   
   await new Promise(resolve => setTimeout(resolve, 1000));
-  sendBotMessage(io, roomId, "LegendBot ready for the next round. Type !legend to start.");
+  sendBotMessage(io, roomId, "FlagBot ready for the next round. Type !fg to start.");
 };
 
 const handleLegendCommand = async (io, socket, data) => {
@@ -105,7 +105,7 @@ const handleLegendCommand = async (io, socket, data) => {
   
   const lowerMessage = message.toLowerCase().trim();
   
-  if (lowerMessage === '!legend') {
+  if (lowerMessage === '!fg') {
     const currentGame = await legendService.getGameState(roomId);
     if (currentGame && (currentGame.phase === 'betting' || currentGame.phase === 'calculating')) {
       sendBotMessage(io, roomId, "A game is already in progress!");
@@ -123,7 +123,7 @@ const handleLegendCommand = async (io, socket, data) => {
       .map(([key, g]) => `${g.emoji} ${g.name}`)
       .join(', ');
     
-    sendBotMessage(io, roomId, `Legend game started! Type !b [group] [amount] to bid.\nAvailable groups: ${groupList}. [${legendService.BETTING_TIME} seconds]`);
+    sendBotMessage(io, roomId, `FlagBot game started! Type !b [group] [amount] to bid.\nAvailable groups: ${groupList}. [${legendService.BETTING_TIME} seconds]`);
     
     startBettingTimer(io, roomId);
     return true;
@@ -167,7 +167,7 @@ const handleLegendCommand = async (io, socket, data) => {
       return true;
     }
     
-    const deductResult = await creditService.deductCredits(userId, betAmount, 'legend_bet', `Bet on Legend game`);
+    const deductResult = await creditService.deductCredits(userId, betAmount, 'flagbot_bet', `Bet on FlagBot game`);
     if (!deductResult.success) {
       socket.emit('system:message', {
         roomId,
@@ -181,7 +181,7 @@ const handleLegendCommand = async (io, socket, data) => {
     const result = await legendService.placeBet(roomId, userId, username, groupCode, betAmount);
     
     if (!result.success) {
-      await creditService.addCredits(userId, betAmount, 'legend_refund', 'Bet refunded');
+      await creditService.addCredits(userId, betAmount, 'flagbot_refund', 'Bet refunded');
       socket.emit('system:message', {
         roomId,
         message: result.error,
@@ -257,7 +257,7 @@ const handleLegendCommand = async (io, socket, data) => {
     
     const allBets = await legendService.getAllBets(roomId);
     for (const bet of allBets) {
-      await creditService.addCredits(bet.userId, bet.amount, 'legend_refund', 'Game cancelled - bet refunded');
+      await creditService.addCredits(bet.userId, bet.amount, 'flagbot_refund', 'Game cancelled - bet refunded');
     }
     
     clearGameTimer(roomId);
