@@ -272,13 +272,21 @@ const joinRoom = async (roomId, userId, username) => {
       return { success: false, error: 'You are banned from this room' };
     }
     
-    // Level Check
+    // Level Check - bypass for owner, moderator, and admin
     const { getUserLevel } = require('../utils/xpLeveling');
     const levelData = await getUserLevel(userId);
-    if (room.min_level && levelData.level < room.min_level) {
+    
+    // Check if user can bypass level restriction
+    const isOwner = room.owner_id == userId;
+    const isModerator = await isRoomAdmin(roomId, userId);
+    const userResult = await query('SELECT role FROM users WHERE id = $1', [userId]);
+    const isGlobalAdmin = userResult.rows[0]?.role === 'admin';
+    const canBypassLevel = isOwner || isModerator || isGlobalAdmin;
+    
+    if (room.min_level && levelData.level < room.min_level && !canBypassLevel) {
       return { 
         success: false, 
-        error: `Unable to join chat room. Minimum level has been set to ${room.min_level}`,
+        error: `Unable to join chat room. Minimum level is ${room.min_level}.\nYour level: ${levelData.level}`,
         minLevel: room.min_level
       };
     }
