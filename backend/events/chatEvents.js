@@ -212,11 +212,16 @@ module.exports = (io, socket) => {
               return;
             }
             
+            // Get sender and receiver levels
+            const senderData = await userService.getUserById(userId);
+            const senderLevel = senderData?.level || 1;
+            const receiverLevel = targetUserData?.level || 1;
+            
             // Immediately broadcast gift message (real-time)
             io.to(`room:${roomId}`).emit('chat:message', {
               id: generateMessageId(),
               roomId,
-              message: `<${username} sent [GIFT_IMAGE:${gift.image_url || '🎁'}] to ${targetUser}>`,
+              message: `<< ${username} [${senderLevel}] gives a ${gift.name} [GIFT_IMAGE:${gift.image_url || '🎁'}] to ${targetUser} [${receiverLevel}] >>`,
               messageType: 'cmdGift',
               type: 'cmdGift',
               giftData: {
@@ -224,7 +229,9 @@ module.exports = (io, socket) => {
                 image_url: gift.image_url,
                 price: gift.price,
                 sender: username,
-                receiver: targetUser
+                senderLevel: senderLevel,
+                receiver: targetUser,
+                receiverLevel: receiverLevel
               },
               timestamp: new Date().toISOString()
             });
