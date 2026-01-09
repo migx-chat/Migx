@@ -480,15 +480,17 @@ const getFullHistory = async (userId, limit = 100) => {
       `SELECT 
         id,
         from_user_id,
+        to_user_id,
         from_username,
+        to_username,
         amount,
         transaction_type,
         description,
         'game' as history_type,
         created_at
        FROM credit_logs
-       WHERE from_user_id = $1
-       AND transaction_type IN ('game_bet', 'game_win', 'game_refund')`,
+       WHERE (from_user_id = $1 OR to_user_id = $1)
+       AND transaction_type IN ('game_bet', 'game_win', 'game_refund', 'flagbot_bet', 'flagbot_win', 'flagbot_refund')`,
       [userId]
     );
 
@@ -520,19 +522,24 @@ const getFullHistory = async (userId, limit = 100) => {
           : `From: ${t.from_username}`,
         display_amount: t.from_user_id == userId ? -t.amount : t.amount
       })),
-      ...games.rows.map(g => ({
-        ...g,
-        history_type: 'game',
-        display_type: g.transaction_type === 'game_win' ? 'win' 
-          : g.transaction_type === 'game_refund' ? 'refund' 
-          : 'bet',
-        display_label: g.description || (
-          g.transaction_type === 'game_win' ? 'LowCard Win' 
-          : g.transaction_type === 'game_refund' ? 'LowCard Refund' 
-          : 'LowCard Bet'
-        ),
-        display_amount: g.amount
-      })),
+      ...games.rows.map(g => {
+        const isFlagbot = g.transaction_type.startsWith('flagbot_');
+        const isWin = g.transaction_type === 'game_win' || g.transaction_type === 'flagbot_win';
+        const isRefund = g.transaction_type === 'game_refund' || g.transaction_type === 'flagbot_refund';
+        const gameName = isFlagbot ? 'FlagBot' : 'LowCard';
+        
+        return {
+          ...g,
+          history_type: 'game',
+          display_type: isWin ? 'win' : isRefund ? 'refund' : 'bet',
+          display_label: g.description || (
+            isWin ? `${gameName} Win` 
+            : isRefund ? `${gameName} Refund` 
+            : `${gameName} Bet`
+          ),
+          display_amount: isWin || isRefund ? g.amount : -g.amount
+        };
+      }),
       ...gifts.rows.map(g => ({
         ...g,
         history_type: 'gift',
