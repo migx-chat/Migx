@@ -122,7 +122,7 @@ const handleLegendCommand = async (io, socket, data) => {
   
   const lowerMessage = message.toLowerCase().trim();
   
-  if (lowerMessage === '/bot flagh add') {
+  if (lowerMessage === '/bot flagh add' || lowerMessage === '/add bot flagh') {
     const hasPermission = await isRoomAdminOrMod(roomId, userId);
     if (!hasPermission) {
       socket.emit('system:message', {
@@ -134,9 +134,27 @@ const handleLegendCommand = async (io, socket, data) => {
       return true;
     }
     
+    // Check if LowCard is active - only one game per room
+    const lowcardService = require('../services/lowcardService');
+    const lowcardActive = await lowcardService.isBotActive(roomId);
+    if (lowcardActive) {
+      socket.emit('system:message', {
+        roomId,
+        message: "LowCard is active in this room. Remove it first with /bot lowcard off",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
     const isActive = await legendService.isBotActive(roomId);
     if (isActive) {
-      sendBotMessage(io, roomId, "FlagBot is already active in this room!");
+      socket.emit('system:message', {
+        roomId,
+        message: "FlagBot is already active in this room!",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
       return true;
     }
     

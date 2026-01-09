@@ -175,15 +175,46 @@ const handleLowcardCommand = async (io, socket, data) => {
       }
       
       if (action === 'add') {
+        // Check if FlagBot is active - only one game per room
+        const legendService = require('../services/legendService');
+        const flagBotActive = await legendService.isBotActive(roomId);
+        if (flagBotActive) {
+          socket.emit('system:message', {
+            roomId,
+            message: 'FlagBot is active in this room. Remove it first with /bot flagh off',
+            timestamp: new Date().toISOString(),
+            type: 'warning'
+          });
+          return true;
+        }
+        
         const result = await lowcardService.addBotToRoom(roomId);
-        sendBotMessage(io, roomId, result.message);
+        if (result.success) {
+          sendBotMessage(io, roomId, result.message);
+        } else {
+          socket.emit('system:message', {
+            roomId,
+            message: result.message,
+            timestamp: new Date().toISOString(),
+            type: 'warning'
+          });
+        }
         return true;
       }
       
       if (action === 'off') {
         const result = await lowcardService.removeBotFromRoom(roomId);
-        clearGameTimers(roomId);
-        sendBotMessage(io, roomId, result.message);
+        if (result.success) {
+          clearGameTimers(roomId);
+          sendBotMessage(io, roomId, result.message);
+        } else {
+          socket.emit('system:message', {
+            roomId,
+            message: result.message,
+            timestamp: new Date().toISOString(),
+            type: 'warning'
+          });
+        }
         return true;
       }
       
@@ -236,8 +267,17 @@ const handleLowcardCommand = async (io, socket, data) => {
       }
       
       const result = await lowcardService.removeBotFromRoom(roomId);
-      clearGameTimers(roomId);
-      sendBotMessage(io, roomId, result.message);
+      if (result.success) {
+        clearGameTimers(roomId);
+        sendBotMessage(io, roomId, result.message);
+      } else {
+        socket.emit('system:message', {
+          roomId,
+          message: result.message,
+          timestamp: new Date().toISOString(),
+          type: 'warning'
+        });
+      }
       return true;
     }
     
