@@ -62,7 +62,19 @@ const getUserCredits = async (userId) => {
   }
 };
 
-const deductCredits = async (userId, amount) => {
+const logGameTransaction = async (userId, username, amount, transactionType, description) => {
+  try {
+    await query(
+      `INSERT INTO credit_logs (from_user_id, from_username, amount, transaction_type, description, created_at)
+       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
+      [userId, username, amount, transactionType, description]
+    );
+  } catch (error) {
+    logger.error('LOWCARD_LOG_TRANSACTION_ERROR', error);
+  }
+};
+
+const deductCredits = async (userId, amount, username = null, reason = null) => {
   try {
     const redis = getRedisClient();
     const current = await getUserCredits(userId);
@@ -82,6 +94,10 @@ const deductCredits = async (userId, amount) => {
     const newBalance = parseInt(result.rows[0].credits);
     await redis.set(`credits:${userId}`, newBalance, 'EX', 300);
     
+    if (username && reason) {
+      await logGameTransaction(userId, username, -amount, 'game_bet', reason);
+    }
+    
     return { success: true, balance: newBalance };
   } catch (error) {
     logger.error('LOWCARD_DEDUCT_CREDITS_ERROR', error);
@@ -89,7 +105,7 @@ const deductCredits = async (userId, amount) => {
   }
 };
 
-const addCredits = async (userId, amount) => {
+const addCredits = async (userId, amount, username = null, reason = null) => {
   try {
     const redis = getRedisClient();
     const result = await query(
@@ -100,6 +116,11 @@ const addCredits = async (userId, amount) => {
     if (result.rows.length > 0) {
       const newBalance = parseInt(result.rows[0].credits);
       await redis.set(`credits:${userId}`, newBalance, 'EX', 300);
+      
+      if (username && reason) {
+        await logGameTransaction(userId, username, amount, reason.includes('Refund') ? 'game_refund' : 'game_win', reason);
+      }
+      
       return { success: true, balance: newBalance };
     }
     return { success: false, balance: 0 };
@@ -175,7 +196,7 @@ const removeBotFromRoom = async (roomId) => {
     const game = JSON.parse(gameData);
     if (game.status === 'waiting') {
       for (const player of game.players) {
-        await addCredits(player.userId, game.entryAmount);
+        await addCredits(player.userId, game.entryAmount, player.username, 'LowCard Refund - Bot removed');
       }
     }
   }
@@ -225,7 +246,7 @@ const startGame = async (roomId, userId, username, amount) => {
   
   const entryAmount = Math.min(MAX_ENTRY, requestedAmount);
   
-  const deductResult = await deductCredits(userId, entryAmount);
+  const deductResult = await deductCredits(userId, entryAmount, username, `LowCard Bet - Start game`);
   if (!deductResult.success) {
     return { success: false, message: `Not enough credits. You need ${entryAmount} IDR to start.` };
   }
@@ -292,7 +313,7 @@ const joinGame = async (roomId, userId, username) => {
     return { success: false, message: 'You have already joined this game.' };
   }
   
-  const deductResult = await deductCredits(userId, game.entryAmount);
+  const deductResult = await deductCredits(userId, game.entryAmount, username, `LowCard Bet - Join game`);
   if (!deductResult.success) {
     return { success: false, message: `Not enough credits. Entry costs ${game.entryAmount} IDR.` };
   }
@@ -332,7 +353,7 @@ const beginGame = async (roomId) => {
   
   if (game.players.length < 2) {
     for (const player of game.players) {
-      await addCredits(player.userId, game.entryAmount);
+      await addCredits(player.userId, game.entryAmount, player.username, 'LowCard Refund - Not enough players');
     }
     await redis.del(gameKey);
     return { cancelled: true, message: 'Not enough players. Game cancelled. Credits refunded.' };
@@ -522,7 +543,7 @@ const tallyRound = async (roomId) => {
     const commission = Math.floor(game.pot * 0.05);
     const winnings = game.pot - commission;
     
-    const creditResult = await addCredits(winner.userId, winnings);
+    const creditResult = await addCredits(winner.userId, winnings, winner.username, `LowCard Win - Pot ${game.pot} IDR`);
     
     await query(
       `UPDATE lowcard_games SET status = 'finished', winner_id = $1, winner_username = $2, pot_amount = $3, finished_at = NOW()
@@ -588,7 +609,7 @@ const stopGame = async (roomId) => {
   }
   
   for (const player of game.players) {
-    await addCredits(player.userId, game.entryAmount);
+    await addCredits(player.userId, game.entryAmount, player.username, 'LowCard Refund - Game stopped');
   }
   
   await redis.del(gameKey);

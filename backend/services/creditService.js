@@ -453,24 +453,17 @@ const getFullHistory = async (userId, limit = 100) => {
 
     const games = await query(
       `SELECT 
-        lg.id,
-        lp.user_id,
-        lg.entry_amount as amount,
-        lg.winner_id,
-        lg.winner_username,
-        lg.status,
-        lg.pot_amount,
+        id,
+        from_user_id,
+        from_username,
+        amount,
+        transaction_type,
+        description,
         'game' as history_type,
-        CASE 
-          WHEN lg.winner_id = lp.user_id THEN 'win'
-          WHEN lg.status = 'finished' AND lg.winner_id != lp.user_id THEN 'bet'
-          WHEN lg.status = 'cancelled' THEN 'refund'
-          ELSE 'bet'
-        END as game_result,
-        lg.created_at
-       FROM lowcard_players lp
-       JOIN lowcard_games lg ON lp.game_id = lg.id
-       WHERE lp.user_id = $1`,
+        created_at
+       FROM credit_logs
+       WHERE from_user_id = $1
+       AND transaction_type IN ('game_bet', 'game_win', 'game_refund')`,
       [userId]
     );
 
@@ -505,17 +498,15 @@ const getFullHistory = async (userId, limit = 100) => {
       ...games.rows.map(g => ({
         ...g,
         history_type: 'game',
-        display_type: g.game_result,
-        display_label: g.game_result === 'win' 
-          ? `LowCard Win` 
-          : g.game_result === 'refund' 
-            ? `LowCard Refund` 
-            : `LowCard Bet`,
-        display_amount: g.game_result === 'win' 
-          ? g.pot_amount 
-          : g.game_result === 'refund' 
-            ? g.amount 
-            : -g.amount
+        display_type: g.transaction_type === 'game_win' ? 'win' 
+          : g.transaction_type === 'game_refund' ? 'refund' 
+          : 'bet',
+        display_label: g.description || (
+          g.transaction_type === 'game_win' ? 'LowCard Win' 
+          : g.transaction_type === 'game_refund' ? 'LowCard Refund' 
+          : 'LowCard Bet'
+        ),
+        display_amount: g.amount
       })),
       ...gifts.rows.map(g => ({
         ...g,
