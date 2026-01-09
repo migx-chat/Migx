@@ -4,6 +4,7 @@ import { useThemeCustom } from '@/theme/provider';
 import { parseEmojiMessage } from '@/utils/emojiParser';
 import { roleColors } from '@/utils/roleColors';
 import { cardImages, parseCardTags, hasCardTags } from '@/utils/cardImages';
+import { flagImages, parseFlagTags, hasFlagTags } from '@/utils/flagImages';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -442,7 +443,69 @@ export const ChatMessage = React.memo(({
     );
   }
 
-  const parsedMessage = parseEmojiMessage(message);
+  const renderMessageContent = (text: string, isBigEmoji: boolean = false) => {
+    if (hasFlagTags(text)) {
+      const { parts } = parseFlagTags(text);
+      return parts.map((part, idx) => {
+        if (part.type === 'flag' && part.flagKey && flagImages[part.flagKey]) {
+          return (
+            <Image 
+              key={`flag-${idx}`} 
+              source={flagImages[part.flagKey]} 
+              style={isBigEmoji ? styles.bigFlagImage : styles.flagImage} 
+              resizeMode="contain" 
+            />
+          );
+        }
+        const parsed = parseEmojiMessage(part.content || '');
+        return parsed.map((item) => {
+          if (item.type === 'emoji') {
+            return (
+              <Text key={`emoji-${idx}-${item.key}`}>
+                {' '}
+                <Image source={item.src} style={styles.emojiImage} resizeMode="contain" />
+              </Text>
+            );
+          }
+          return (
+            <Text key={`text-${idx}-${item.key}`} style={[
+              styles.message, dynamicStyles.message, { color: getMessageColor() }, textShadowStyle,
+              isBigEmoji && styles.bigEmojiText
+            ]}>
+              {item.content}
+            </Text>
+          );
+        });
+      });
+    }
+    
+    const parsedMessage = parseEmojiMessage(text);
+    return parsedMessage.map((item) => {
+      if (item.type === 'emoji') {
+        return (
+          <Text key={item.key}>
+            {' '}
+            <Image source={item.src} style={styles.emojiImage} resizeMode="contain" />
+          </Text>
+        );
+      }
+      if (item.type === 'bigEmoji') {
+        return (
+          <Text key={item.key} style={[styles.bigEmojiText, textShadowStyle]}>
+            {item.content}
+          </Text>
+        );
+      }
+      return (
+        <Text key={item.key} style={[
+          styles.message, dynamicStyles.message, { color: getMessageColor() }, textShadowStyle,
+          isBigEmoji && styles.bigEmojiText
+        ]}>
+          {item.content}
+        </Text>
+      );
+    });
+  };
 
   return (
     <View style={styles.messageContainer}>
@@ -450,38 +513,7 @@ export const ChatMessage = React.memo(({
         <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }, textShadowStyle]}>
           {username}{hasTopMerchantBadge && <BadgeTop1 />}:{' '}
         </Text>
-        {parsedMessage.map((item, index) => {
-          if (item.type === 'emoji') {
-            return (
-              <Text key={item.key}>
-                {' '}
-                <Image
-                  source={item.src}
-                  style={styles.emojiImage}
-                  resizeMode="contain"
-                />
-              </Text>
-            );
-          }
-          if (item.type === 'bigEmoji') {
-            return (
-              <Text key={item.key} style={[styles.bigEmojiText, textShadowStyle]}>
-                {item.content}
-              </Text>
-            );
-          }
-          return (
-            <Text key={item.key} style={[
-              styles.message, 
-              dynamicStyles.message, 
-              { color: getMessageColor() }, 
-              textShadowStyle,
-              bigEmoji && styles.bigEmojiText
-            ]}>
-              {item.content}
-            </Text>
-          );
-        })}
+        {renderMessageContent(message, bigEmoji)}
       </Text>
     </View>
   );
@@ -523,6 +555,18 @@ const styles = StyleSheet.create({
   bigEmojiText: {
     fontSize: 28,
     lineHeight: 36,
+  },
+  flagImage: {
+    width: 24,
+    height: 18,
+    marginHorizontal: 2,
+    marginBottom: -3,
+  },
+  bigFlagImage: {
+    width: 36,
+    height: 27,
+    marginHorizontal: 3,
+    marginBottom: -5,
   },
   noticeContainer: {
     paddingVertical: 8,

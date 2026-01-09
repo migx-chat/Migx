@@ -2,12 +2,12 @@ const { getRedisClient } = require('../redis');
 const { query } = require('../db/db');
 
 const GROUPS = {
-  j: { name: 'Jerman', emoji: '🇩🇪', code: 'J' },
-  m: { name: 'Malaysia', emoji: '🇲🇾', code: 'M' },
-  a: { name: 'Arab', emoji: '🇸🇦', code: 'A' },
-  d: { name: 'Denmark', emoji: '🇩🇰', code: 'D' },
-  s: { name: 'Swedia', emoji: '🇸🇪', code: 'S' },
-  r: { name: 'Rusia', emoji: '🇷🇺', code: 'R' }
+  j: { name: 'Jerman', emoji: '[FLAG:jerman]', code: 'J' },
+  m: { name: 'Malaysia', emoji: '[FLAG:malaysia]', code: 'M' },
+  a: { name: 'Arab', emoji: '[FLAG:arab]', code: 'A' },
+  d: { name: 'Denmark', emoji: '[FLAG:denmark]', code: 'D' },
+  s: { name: 'Swedia', emoji: '[FLAG:swedia]', code: 'S' },
+  r: { name: 'Rusia', emoji: '[FLAG:rusia]', code: 'R' }
 };
 
 const MULTIPLIERS = {
