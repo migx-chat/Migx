@@ -5,12 +5,15 @@ const { generateMessageId } = require('../utils/idGenerator');
 const ACTIVE_VOUCHER_KEY = 'voucher:active';
 const VOUCHER_COOLDOWN_KEY = (userId) => `voucher:cooldown:${userId}`;
 const VOUCHER_CLAIMED_KEY = (code) => `voucher:claimed:${code}`;
+const VOUCHER_POOL_KEY = 'voucher:pool';
 
 const VOUCHER_CONFIG = {
   intervalMinutes: 30,
   expirySeconds: 60,
-  minAmount: 500,
-  maxAmount: 1000,
+  totalPool: 500,
+  maxClaimers: 40,
+  minClaimAmount: 5,
+  maxClaimAmount: 50,
   userCooldownMinutes: 30
 };
 
@@ -21,21 +24,18 @@ const generateRandomCode = () => {
   return Math.floor(1000000 + Math.random() * 9000000).toString();
 };
 
-const generateRandomAmount = () => {
-  const { minAmount, maxAmount } = VOUCHER_CONFIG;
-  return Math.floor(Math.random() * (maxAmount - minAmount + 1)) + minAmount;
-};
-
 const createNewVoucher = async () => {
   try {
     const redis = getRedisClient();
     const code = generateRandomCode();
-    const amount = generateRandomAmount();
     const expiresAt = Date.now() + (VOUCHER_CONFIG.expirySeconds * 1000);
     
     const voucherData = {
       code,
-      amount: amount.toString(),
+      totalPool: VOUCHER_CONFIG.totalPool.toString(),
+      remainingPool: VOUCHER_CONFIG.totalPool.toString(),
+      claimCount: '0',
+      maxClaimers: VOUCHER_CONFIG.maxClaimers.toString(),
       expiresAt: expiresAt.toString(),
       createdAt: Date.now().toString()
     };
@@ -43,7 +43,7 @@ const createNewVoucher = async () => {
     await redis.hSet(ACTIVE_VOUCHER_KEY, voucherData);
     await redis.expire(ACTIVE_VOUCHER_KEY, VOUCHER_CONFIG.expirySeconds + 10);
     
-    return { code, amount, expiresAt };
+    return { code, totalPool: VOUCHER_CONFIG.totalPool, expiresAt };
   } catch (error) {
     console.error('Error creating voucher:', error);
     return null;
@@ -63,9 +63,20 @@ const getActiveVoucher = async () => {
       return null;
     }
     
+    const remainingPool = parseInt(data.remainingPool) || 0;
+    const claimCount = parseInt(data.claimCount) || 0;
+    const maxClaimers = parseInt(data.maxClaimers) || VOUCHER_CONFIG.maxClaimers;
+    
+    if (remainingPool <= 0 || claimCount >= maxClaimers) {
+      return null;
+    }
+    
     return {
       code: data.code,
-      amount: parseInt(data.amount),
+      totalPool: parseInt(data.totalPool),
+      remainingPool,
+      claimCount,
+      maxClaimers,
       expiresAt,
       remainingSeconds: Math.ceil((expiresAt - Date.now()) / 1000)
     };
@@ -144,49 +155,117 @@ const claimVoucher = async (userId, inputCode) => {
     };
   }
   
-  const activeVoucher = await getActiveVoucher();
-  if (!activeVoucher) {
-    return {
-      success: false,
-      type: 'expired',
-      error: 'No active voucher or voucher expired'
-    };
-  }
+  const redis = getRedisClient();
+  const lockKey = `voucher:lock:${inputCode}`;
   
-  if (activeVoucher.code !== inputCode) {
+  try {
+    const locked = await redis.set(lockKey, '1', { NX: true, EX: 5 });
+    if (!locked) {
+      return {
+        success: false,
+        type: 'busy',
+        error: 'Please try again'
+      };
+    }
+    
+    const activeVoucher = await getActiveVoucher();
+    if (!activeVoucher) {
+      await redis.del(lockKey);
+      return {
+        success: false,
+        type: 'expired',
+        error: 'No active voucher or pool is empty'
+      };
+    }
+    
+    if (activeVoucher.code !== inputCode) {
+      await redis.del(lockKey);
+      return {
+        success: false,
+        type: 'invalid',
+        error: 'Invalid code'
+      };
+    }
+    
+    const alreadyClaimed = await hasUserClaimed(inputCode, userId);
+    if (alreadyClaimed) {
+      await redis.del(lockKey);
+      return {
+        success: false,
+        type: 'already_claimed',
+        error: 'You already claimed this voucher'
+      };
+    }
+    
+    const remainingPool = activeVoucher.remainingPool;
+    const remainingClaimers = activeVoucher.maxClaimers - activeVoucher.claimCount;
+    
+    let claimAmount;
+    if (remainingClaimers <= 1) {
+      claimAmount = remainingPool;
+    } else {
+      const maxPossible = Math.min(
+        VOUCHER_CONFIG.maxClaimAmount,
+        Math.floor(remainingPool * 0.5)
+      );
+      const minPossible = Math.max(VOUCHER_CONFIG.minClaimAmount, 1);
+      
+      if (maxPossible <= minPossible) {
+        claimAmount = Math.min(remainingPool, minPossible);
+      } else {
+        claimAmount = Math.floor(Math.random() * (maxPossible - minPossible + 1)) + minPossible;
+      }
+    }
+    
+    claimAmount = Math.min(claimAmount, remainingPool);
+    
+    if (claimAmount <= 0) {
+      await redis.del(lockKey);
+      return {
+        success: false,
+        type: 'pool_empty',
+        error: 'Voucher pool is empty'
+      };
+    }
+    
+    const creditResult = await addCredits(userId, claimAmount, 'voucher_claim', `Claimed voucher: ${inputCode}`);
+    if (!creditResult.success) {
+      await redis.del(lockKey);
+      return {
+        success: false,
+        type: 'error',
+        error: 'Failed to add credits'
+      };
+    }
+    
+    const newRemainingPool = remainingPool - claimAmount;
+    const newClaimCount = activeVoucher.claimCount + 1;
+    
+    await redis.hSet(ACTIVE_VOUCHER_KEY, {
+      remainingPool: newRemainingPool.toString(),
+      claimCount: newClaimCount.toString()
+    });
+    
+    await markUserClaimed(inputCode, userId);
+    await setUserCooldown(userId);
+    await redis.del(lockKey);
+    
     return {
-      success: false,
-      type: 'invalid',
-      error: 'Invalid code'
+      success: true,
+      amount: claimAmount,
+      newBalance: creditResult.newBalance,
+      poolRemaining: newRemainingPool,
+      claimersRemaining: activeVoucher.maxClaimers - newClaimCount
     };
-  }
-  
-  const alreadyClaimed = await hasUserClaimed(inputCode, userId);
-  if (alreadyClaimed) {
-    return {
-      success: false,
-      type: 'already_claimed',
-      error: 'You already claimed this voucher'
-    };
-  }
-  
-  const creditResult = await addCredits(userId, activeVoucher.amount, 'voucher_claim', `Claimed voucher: ${inputCode}`);
-  if (!creditResult.success) {
+  } catch (error) {
+    console.error('Error claiming voucher:', error);
+    await redis.del(lockKey);
     return {
       success: false,
       type: 'error',
-      error: 'Failed to add credits'
+      error: 'Failed to claim voucher'
     };
   }
-  
-  await markUserClaimed(inputCode, userId);
-  await setUserCooldown(userId);
-  
-  return {
-    success: true,
-    amount: activeVoucher.amount,
-    newBalance: creditResult.newBalance
-  };
 };
 
 const broadcastVoucherAnnouncement = async (voucher) => {
@@ -195,7 +274,7 @@ const broadcastVoucherAnnouncement = async (voucher) => {
     return;
   }
   
-  const message = `🎁 FREE CREDIT!! Free IDR ${voucher.amount.toLocaleString()} for game, gift and many more! CMD /c ${voucher.code} to claim [${VOUCHER_CONFIG.expirySeconds}s]`;
+  const message = `🎁 FREE CREDIT!! Total IDR ${voucher.totalPool.toLocaleString()} for up to ${VOUCHER_CONFIG.maxClaimers} users! CMD /c ${voucher.code} to claim [${VOUCHER_CONFIG.expirySeconds}s]`;
   
   const announcement = {
     id: generateMessageId(),
@@ -204,7 +283,9 @@ const broadcastVoucherAnnouncement = async (voucher) => {
     type: 'voucher',
     timestamp: new Date().toISOString(),
     voucherCode: voucher.code,
-    voucherAmount: voucher.amount,
+    voucherCodeColor: '#FF0000',
+    voucherPool: voucher.totalPool,
+    maxClaimers: VOUCHER_CONFIG.maxClaimers,
     expiresIn: VOUCHER_CONFIG.expirySeconds
   };
   
@@ -221,6 +302,8 @@ const broadcastVoucherAnnouncement = async (voucher) => {
         message,
         messageType: 'voucher',
         type: 'voucher',
+        voucherCode: voucher.code,
+        voucherCodeColor: '#FF0000',
         timestamp: new Date().toISOString()
       });
     }
@@ -228,7 +311,7 @@ const broadcastVoucherAnnouncement = async (voucher) => {
     console.error('Error broadcasting to rooms:', error);
   }
   
-  console.log(`📢 Voucher broadcast: ${voucher.code} - IDR ${voucher.amount}`);
+  console.log(`📢 Voucher broadcast: ${voucher.code} - Pool IDR ${voucher.totalPool} for ${VOUCHER_CONFIG.maxClaimers} users`);
 };
 
 const startVoucherGenerator = (io) => {
@@ -249,7 +332,7 @@ const startVoucherGenerator = (io) => {
   
   voucherInterval = setInterval(generateAndBroadcast, VOUCHER_CONFIG.intervalMinutes * 60 * 1000);
   
-  console.log(`🎫 Voucher generator started - every ${VOUCHER_CONFIG.intervalMinutes} minutes`);
+  console.log(`🎫 Voucher generator started - every ${VOUCHER_CONFIG.intervalMinutes} minutes, pool: ${VOUCHER_CONFIG.totalPool} IDR`);
 };
 
 const stopVoucherGenerator = () => {

@@ -27,6 +27,8 @@ interface ChatMessageProps {
   hasTopLikeReward?: boolean;
   topLikeRewardExpiry?: string;
   hasBackground?: boolean;
+  voucherCode?: string;
+  voucherCodeColor?: string;
 }
 
 const BadgeTop1 = () => (
@@ -127,7 +129,9 @@ export const ChatMessage = React.memo(({
   hasTopMerchantBadge,
   hasTopLikeReward,
   topLikeRewardExpiry,
-  hasBackground
+  hasBackground,
+  voucherCode,
+  voucherCodeColor
 }: ChatMessageProps) => {
   
   const { theme, scaleSize } = useThemeCustom();
@@ -200,6 +204,29 @@ export const ChatMessage = React.memo(({
       <View style={styles.messageContainer}>
         <Text style={[styles.errorText, dynamicStyles.errorText]}>
           {displayMessage}
+        </Text>
+      </View>
+    );
+  }
+
+  if (messageType === 'voucher' || type === 'voucher') {
+    const codeColor = voucherCodeColor || '#FF0000';
+    const displayCode = voucherCode || '';
+    
+    const codeMatch = message.match(/CMD \/c (\d+)/i) || message.match(/\/c (\d+)/i);
+    const extractedCode = codeMatch ? codeMatch[1] : displayCode;
+    
+    const messageParts = message.split(/\/c \d+/i);
+    const beforeCode = messageParts[0] || '';
+    const afterCode = messageParts[1] || '';
+    
+    return (
+      <View style={styles.messageContainer}>
+        <Text style={[styles.voucherText, dynamicStyles.messageWrapper, textShadowStyle]}>
+          <Text style={{ color: '#FFD700' }}>🎁 </Text>
+          <Text style={{ color: '#FFD700' }}>{beforeCode.replace('🎁 ', '')}</Text>
+          <Text style={{ color: codeColor, fontWeight: 'bold' }}>/c {extractedCode}</Text>
+          <Text style={{ color: '#FFD700' }}>{afterCode}</Text>
         </Text>
       </View>
     );
@@ -477,5 +504,9 @@ const styles = StyleSheet.create({
     width: 18,
     height: 24,
     marginHorizontal: 2,
+  },
+  voucherText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
