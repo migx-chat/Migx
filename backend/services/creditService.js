@@ -117,6 +117,15 @@ const transferCredits = async (fromUserId, toUserId, amount, description = null,
     
     await client.query('COMMIT');
     
+    // 🔄 Invalidate Redis credit cache for both users (used by lowcardService)
+    try {
+      const redis = getRedisClient();
+      await redis.del(`credits:${fromUserId}`);
+      await redis.del(`credits:${toUserId}`);
+    } catch (cacheError) {
+      logger.error('CACHE_INVALIDATION_ERROR', cacheError);
+    }
+    
     // 🔔 Send notification to recipient
     try {
       const notificationMessage = `You have received credit of ${amount.toLocaleString()} IDR from ${sender.username}`;
@@ -196,6 +205,14 @@ const addCredits = async (userId, amount, transactionType = 'topup', description
       [userId, result.rows[0].username, amount, transactionType, description]
     );
     
+    // 🔄 Invalidate Redis credit cache
+    try {
+      const redis = getRedisClient();
+      await redis.del(`credits:${userId}`);
+    } catch (cacheError) {
+      logger.error('CACHE_INVALIDATION_ERROR', cacheError);
+    }
+    
     return {
       success: true,
       userId,
@@ -243,6 +260,14 @@ const deductCredits = async (userId, amount, transactionType = 'game_spend', des
     );
     
     await client.query('COMMIT');
+    
+    // 🔄 Invalidate Redis credit cache
+    try {
+      const redis = getRedisClient();
+      await redis.del(`credits:${userId}`);
+    } catch (cacheError) {
+      logger.error('CACHE_INVALIDATION_ERROR', cacheError);
+    }
     
     return {
       success: true,
