@@ -309,6 +309,22 @@ module.exports = (io, socket) => {
             type: 'system',
             messageType: 'system'
           });
+
+          // Send room announcement if exists
+          const announcement = await redisInstance.get(`announce:${roomId}`);
+          if (announcement) {
+            setTimeout(() => {
+              socket.emit('chat:message', {
+                id: Date.now().toString() + '-4',
+                roomId,
+                username: room.name,
+                message: announcement,
+                timestamp: new Date().toISOString(),
+                type: 'system',
+                messageType: 'system'
+              });
+            }, 300);
+          }
         }, 200);
       } else {
         console.log(`🔇 [Room ${roomId}] Silent reconnect - skipping welcome messages for ${username}`);

@@ -140,6 +140,50 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /announce command
+        if (cmdKey === 'announce') {
+          const roomService = require('../services/roomService');
+          const roomInfo = await roomService.getRoomById(roomId);
+          const roomName = roomInfo?.name || roomId;
+
+          if (parts[1]?.toLowerCase() === 'off') {
+            await redis.del(`announce:${roomId}`);
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: `[${roomName}]: ${username} has turned off the announcement.`,
+              messageType: 'cmd',
+              type: 'cmd',
+              timestamp: new Date().toISOString()
+            });
+            return;
+          }
+
+          const announcementText = parts.slice(1).join(' ');
+          if (!announcementText) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /announce <text> or /announce off`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          const formattedAnnouncement = `📢 ${announcementText}`;
+          await redis.set(`announce:${roomId}`, formattedAnnouncement, 'EX', 86400); // 24h
+          
+          io.to(`room:${roomId}`).emit('chat:message', {
+            id: generateMessageId(),
+            roomId,
+            message: formattedAnnouncement,
+            messageType: 'cmd',
+            type: 'cmd',
+            timestamp: new Date().toISOString()
+          });
+          return;
+        }
+
         // Handle /gift command (Redis-first with async DB persistence)
         if (cmdKey === 'gift') {
           const giftName = parts[1];
