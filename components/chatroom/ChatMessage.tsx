@@ -314,20 +314,20 @@ export const ChatMessage = React.memo(({
   if (isCommandMessage) {
     const textColor = '#8B6F47';
     
-    // Handle gift messages with images
-    if (messageType === 'cmdGift') {
-      const giftImageMatch = message.match(/<(.+?) sent \[GIFT_IMAGE:(.*?)\] to (.+?)>/);
-      if (giftImageMatch) {
-        const sender = giftImageMatch[1];
-        const giftImageUrl = giftImageMatch[2];
-        const receiver = giftImageMatch[3];
-        
+    if (messageType === 'cmdGift' || messageType === 'cmdShower') {
+      const giftImageRegex = /\[GIFT_IMAGE:(.*?)\]/;
+      const match = message.match(giftImageRegex);
+      
+      if (match) {
+        const giftImageUrl = match[1];
         const isImageUrl = giftImageUrl.startsWith('http');
+        const beforeGift = message.split(giftImageRegex)[0];
+        const afterGift = message.split(giftImageRegex)[2];
         
         return (
           <View style={[styles.messageContainer, styles.giftMessageContainer]}>
             <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: textColor }, textShadowStyle]}>
-              {'<'}{sender} sent{' '}
+              {beforeGift}
             </Text>
             {isImageUrl ? (
               <Image 
@@ -341,7 +341,7 @@ export const ChatMessage = React.memo(({
               </Text>
             )}
             <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: textColor }, textShadowStyle]}>
-              {' '}to {receiver}{'>'}
+              {afterGift}
             </Text>
           </View>
         );
