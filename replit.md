@@ -30,13 +30,17 @@ Redis manages online user presence, banned user lists, flood control, global rat
 
 The `/chat` namespace handles real-time events for room interactions, chat and private messages, credit transfers, and game interactions. Private messages are exclusively handled via Socket.IO.
 
+### Notification System
+
+Real-time notifications use Redis for persistence and Socket.IO for instant delivery. Notifications are stored in Redis with 24-hour TTL (`notif:{username}`) and emitted via socket events (`notif:gift`, `notif:comment`, `notif:follow`, `notif:credit`). The frontend listens for these events to play sounds and update the notification badge immediately without requiring logout/login.
+
 ### Game and Economy Systems
 
 The application includes an XP & Level System, a Merchant Commission System, an Auto Voucher system for credit codes, and a Daily Login Streak System with credit rewards.
 
 ### Merchant Tagging System
 
-Merchants can tag users with exactly 5000 IDR game-only credits. Tagged credits are consumed before regular credits when playing games (LowCard, FlagBot, Dice). A 2% commission is generated on tagged credit spending, split equally between merchant (1%) and tagged user (1%). Commissions mature after 24 hours and are automatically paid out via hourly background job. Key tables: `merchant_tags`, `merchant_tag_spends`, `merchant_tag_commissions`. API endpoints: `/api/merchants/tag/:userId`, `/api/merchants/tags/:userId`, `/api/merchants/untag/:tagId`.
+Merchants can tag users with exactly 5000 COINS game-only credits. Tagged credits are consumed before regular credits when playing games (LowCard, FlagBot, Dice). A 2% commission is generated on tagged credit spending, split equally between merchant (1%) and tagged user (1%). Commissions mature after 24 hours and are automatically paid out via hourly background job. Key tables: `merchant_tags`, `merchant_tag_spends`, `merchant_tag_commissions`. API endpoints: `/api/merchants/tag/:userId`, `/api/merchants/tags/:userId`, `/api/merchants/untag/:tagId`.
 
 ### Security Features
 
