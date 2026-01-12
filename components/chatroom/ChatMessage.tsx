@@ -314,6 +314,18 @@ export const ChatMessage = React.memo(({
     );
   }
 
+  // Handle roll target and roll win messages with orange color
+  if (messageType === 'rollTarget' || type === 'rollTarget' || messageType === 'rollWin' || type === 'rollWin') {
+    const rollColor = '#FF8C00';
+    return (
+      <View style={styles.messageContainer}>
+        <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: rollColor }, textShadowStyle]}>
+          {message}
+        </Text>
+      </View>
+    );
+  }
+
   const isCommandMessage = isCmd || 
     messageType === 'cmd' || 
     messageType === 'cmdMe' || 

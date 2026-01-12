@@ -140,8 +140,8 @@ module.exports = (io, socket) => {
                 id: generateMessageId(),
                 roomId,
                 message: `${username}: Roll's target has been set to ${target} by ${username}.`,
-                messageType: 'cmdRoll',
-                type: 'cmdRoll',
+                messageType: 'rollTarget',
+                type: 'rollTarget',
                 timestamp: new Date().toISOString()
               });
               return;
@@ -153,13 +153,13 @@ module.exports = (io, socket) => {
           
           const currentTarget = await redis.get(`roll:target:${roomId}`);
           if (currentTarget && parseInt(currentTarget) === rollResult) {
-            await redis.set(`silence:${roomId}:${userId}`, '1', 'EX', 10);
+            await redis.set(`user:silence:${roomId}:${userId}`, '1', 'EX', 6);
             io.to(`room:${roomId}`).emit('chat:message', {
               id: generateMessageId(),
               roomId,
-              message: `${username}: Roll's has been temporary disabled due to rolls target being matched ${rollResult} [${username}]`,
-              messageType: 'cmdRoll',
-              type: 'cmdRoll',
+              message: `** ${username} has won roll ${rollResult} **`,
+              messageType: 'rollWin',
+              type: 'rollWin',
               timestamp: new Date().toISOString()
             });
             return;
