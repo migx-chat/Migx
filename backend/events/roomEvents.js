@@ -777,10 +777,20 @@ module.exports = (io, socket) => {
         return;
       }
 
-      // Check if kicker is admin
+      // Check if kicker is admin or owner
       const kickerIsAdmin = isAdmin || await roomService.isRoomAdmin(roomId, kickerUserId);
+      const kickerIsModerator = await roomService.isRoomModerator(roomId, kickerUserId);
+      const isRoomOwner = room.owner_id == kickerUserId;
+      
+      // Determine kicker role for messages
+      let kickerRole = 'moderator';
+      if (isRoomOwner) {
+        kickerRole = 'owner';
+      } else if (kickerIsAdmin) {
+        kickerRole = 'administrator';
+      }
 
-      if (kickerIsAdmin) {
+      if (kickerIsAdmin || kickerIsModerator) {
         // Admin kick - immediate, no vote needed
         const targetUser = await userService.getUserByUsername(targetUsername);
         const result = await executeAdminKick(io, roomId, kickerUsername, targetUsername, kickerUserId, targetUser?.id);
@@ -794,7 +804,7 @@ module.exports = (io, socket) => {
               id: `kick-private-${Date.now()}`,
               roomId,
               username: room.name,
-              message: `You have been kicked by administrator ${kickerUsername}`,
+              message: `You has been kicked by ${kickerRole} ${kickerUsername}`,
               timestamp: new Date().toISOString(),
               type: 'system',
               messageType: 'kick',
@@ -806,7 +816,7 @@ module.exports = (io, socket) => {
               targetSocket.leave(`room:${roomId}`);
               targetSocket.emit('room:kicked', {
                 roomId,
-                reason: `You have been kicked by administrator ${kickerUsername}`,
+                reason: `You has been kicked by ${kickerRole} ${kickerUsername}`,
                 type: 'adminKick',
                 isGlobalBanned: result.isGlobalBanned
               });
@@ -816,8 +826,8 @@ module.exports = (io, socket) => {
 
         // Send SYSTEM message to other users in room
         const systemMsg = result.userGlobalBanned 
-          ? `${targetUsername} has been kicked by administrator ${kickerUsername} (User banned from all rooms - exceeded 3 kicks)`
-          : `${targetUsername} has been kicked by administrator ${kickerUsername}`;
+          ? `${targetUsername} Has Been kicked by ${kickerRole} ${kickerUsername} (User banned from all rooms - exceeded 3 kicks)`
+          : `${targetUsername} Has Been kicked by ${kickerRole} ${kickerUsername}`;
 
         io.to(`room:${roomId}`).emit('chat:message', {
           id: `kick-system-${Date.now()}`,

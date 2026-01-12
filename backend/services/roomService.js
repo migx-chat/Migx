@@ -216,6 +216,19 @@ const isRoomAdmin = async (roomId, userId) => {
   }
 };
 
+const isRoomModerator = async (roomId, userId) => {
+  try {
+    const result = await query(
+      'SELECT 1 FROM room_moderators WHERE room_id = $1 AND user_id = $2',
+      [roomId, userId]
+    );
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Error checking room moderator:', error);
+    return false;
+  }
+};
+
 const addRoomAdmin = async (roomId, userId) => {
   try {
     await query(
@@ -452,6 +465,7 @@ module.exports = {
   updateRoom,
   deleteRoom,
   isRoomAdmin,
+  isRoomModerator,
   addRoomAdmin,
   removeRoomAdmin,
   getRoomAdmins,
