@@ -328,9 +328,10 @@ const getAllMerchants = async (activeOnly = true, limit = 50) => {
 const getMerchantDashboard = async (userId) => {
   try {
     const merchantResult = await query(
-      `SELECT m.*, u.username, u.avatar
+      `SELECT m.*, u.username, u.avatar, mentor.username as mentor_username
        FROM merchants m
        JOIN users u ON m.user_id = u.id
+       LEFT JOIN users mentor ON m.created_by = mentor.id
        WHERE m.user_id = $1`,
       [userId]
     );
@@ -368,7 +369,8 @@ const getMerchantDashboard = async (userId) => {
         active: merchant.active,
         createdAt: merchant.created_at,
         expiredAt: merchant.expired_at,
-        totalRechargeThisMonth
+        totalRechargeThisMonth,
+        mentorUsername: merchant.mentor_username
       }
     };
   } catch (error) {

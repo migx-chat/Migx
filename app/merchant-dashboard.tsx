@@ -19,6 +19,7 @@ interface DashboardData {
   createdAt: string;
   expiredAt: string | null;
   totalRechargeThisMonth: number;
+  mentorUsername: string | null;
 }
 
 interface TaggedUser {
@@ -469,7 +470,14 @@ export default function MerchantDashboard() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={theme.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Merchant Dashboard</Text>
+          <View style={styles.headerCenter}>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Merchant Dashboard</Text>
+            {dashboard?.mentorUsername && (
+              <Text style={[styles.headerSubtitle, { color: theme.secondary }]}>
+                Mentor: {dashboard.mentorUsername}
+              </Text>
+            )}
+          </View>
           <TouchableOpacity onPress={loadData} style={styles.refreshButton}>
             <Ionicons name="refresh" size={24} color={theme.text} />
           </TouchableOpacity>
@@ -566,9 +574,16 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 4,
   },
+  headerCenter: {
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
   },
   refreshButton: {
     padding: 4,
