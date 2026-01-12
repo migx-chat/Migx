@@ -75,47 +75,14 @@ const parseImageTags = (message: string): { hasImage: boolean; imageUrl: string 
   return { hasImage: false, imageUrl: null, textContent: message };
 };
 
-const VoucherMessage = ({ message, voucherCode, voucherCodeColor, expiresIn, timestamp, hasBackground }: { 
+const VoucherMessage = ({ message, voucherCode, voucherCodeColor, expiresIn, hasBackground }: { 
   message: string; 
   voucherCode?: string; 
   voucherCodeColor?: string; 
   expiresIn?: number;
-  timestamp: string;
   hasBackground?: boolean;
 }) => {
   const { scaleSize } = useThemeCustom();
-  
-  const calculateInitialCountdown = () => {
-    if (!expiresIn || expiresIn <= 0) return 0;
-    
-    if (timestamp && timestamp.length > 0) {
-      const messageTime = new Date(timestamp).getTime();
-      if (!isNaN(messageTime)) {
-        const now = Date.now();
-        const elapsed = Math.floor((now - messageTime) / 1000);
-        return Math.max(0, expiresIn - elapsed);
-      }
-    }
-    return expiresIn;
-  };
-  
-  const [countdown, setCountdown] = useState(calculateInitialCountdown);
-
-  useEffect(() => {
-    if (countdown <= 0) return;
-    
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
 
   const textShadowStyle = hasBackground ? {
     textShadowColor: 'rgba(0, 0, 0, 0.9)',
@@ -126,23 +93,14 @@ const VoucherMessage = ({ message, voucherCode, voucherCodeColor, expiresIn, tim
   const codeColor = voucherCodeColor || '#FF0000';
   const codeMatch = message.match(/\/c (\d+)/i);
   const extractedCode = codeMatch ? codeMatch[1] : (voucherCode || '');
-
-  if (countdown <= 0) {
-    return (
-      <View style={styles.messageContainer}>
-        <Text style={[styles.voucherText, { fontSize: scaleSize(13) }, textShadowStyle]}>
-          <Text style={{ color: '#888' }}>🎁 Voucher expired</Text>
-        </Text>
-      </View>
-    );
-  }
+  const displayExpiry = expiresIn || 60;
 
   return (
     <View style={styles.messageContainer}>
       <Text style={[styles.voucherText, { fontSize: scaleSize(13) }, textShadowStyle]}>
         <Text style={{ color: '#FFD700' }}>🎁 Free! Claim voucher </Text>
         <Text style={{ color: codeColor, fontWeight: 'bold' }}>{extractedCode}</Text>
-        <Text style={{ color: '#FF6B6B', fontWeight: 'bold' }}> [{countdown}s]</Text>
+        <Text style={{ color: '#FF6B6B', fontWeight: 'bold' }}> [{displayExpiry}s]</Text>
         <Text style={{ color: '#FFD700' }}> Claim type CMD </Text>
         <Text style={{ color: codeColor, fontWeight: 'bold' }}>/c {extractedCode}</Text>
       </Text>
@@ -299,7 +257,6 @@ export const ChatMessage = React.memo(({
         voucherCode={voucherCode}
         voucherCodeColor={voucherCodeColor}
         expiresIn={expiresIn}
-        timestamp={timestamp}
         hasBackground={hasBackground}
       />
     );
