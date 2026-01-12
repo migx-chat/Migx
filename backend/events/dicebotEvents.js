@@ -125,6 +125,11 @@ const processRoundEnd = async (io, roomId) => {
   if (result.gameOver) {
     sendBotMessage(io, roomId, result.message);
     sendBotMessage(io, roomId, result.followUp);
+    
+    if (result.playAgain) {
+      sendBotMessage(io, roomId, result.playAgain);
+    }
+    
     clearGameTimers(roomId);
     
     if (result.winnerId) {

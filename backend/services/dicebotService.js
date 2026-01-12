@@ -632,8 +632,9 @@ const finalizeGame = async (roomId) => {
     winnings,
     houseFee,
     newBalance: addResult.balance,
-    message: `Game Over! ${winner.username} WINS!`,
-    followUp: `Prize: ${winnings}.0 IDR (${HOUSE_FEE_PERCENT}% fee deducted)`
+    message: `Dice game over! ${winner.username} WINS ${winnings} IDR!`,
+    followUp: `CONGRATS!`,
+    playAgain: `Play now: !start to enter. Cost: ${MIN_ENTRY} IDR.\nFor custom entry, !start [amount]`
   };
 };
 
