@@ -723,6 +723,7 @@ module.exports = (io, socket) => {
             // Can't kick room owner or admins (unless you're an admin)
             const targetIsAdmin = await userService.isAdmin(targetUser.id);
             const targetIsOwner = room && room.owner_id == targetUser.id;
+            const targetIsModerator = await roomService.isRoomModerator(roomId, targetUser.id);
             
             if (targetIsOwner) {
               socket.emit('system:message', {
@@ -738,6 +739,17 @@ module.exports = (io, socket) => {
               socket.emit('system:message', {
                 roomId,
                 message: `Only admins can kick other admins`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Moderator cannot kick other moderators (only owner can kick mod)
+            if (targetIsModerator && isModerator && !isRoomOwner && !isGlobalAdmin) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Moderators cannot kick other moderators`,
                 timestamp: new Date().toISOString(),
                 type: 'warning'
               });
@@ -969,6 +981,18 @@ module.exports = (io, socket) => {
               socket.emit('system:message', {
                 roomId,
                 message: `Cannot ban the room owner`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Moderator cannot ban other moderators (only owner can ban mod)
+            const targetIsMod = await roomService.isRoomModerator(roomId, targetUser.id);
+            if (targetIsMod && isModerator && !isRoomOwner && !isGlobalAdmin) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Moderators cannot ban other moderators`,
                 timestamp: new Date().toISOString(),
                 type: 'warning'
               });
