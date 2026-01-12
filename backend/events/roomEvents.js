@@ -343,11 +343,11 @@ module.exports = (io, socket) => {
               socket.emit('chat:message', {
                 id: Date.now().toString() + '-4',
                 roomId,
-                username: room.name,
+                username: '',
                 message: announcement,
                 timestamp: new Date().toISOString(),
-                type: 'system',
-                messageType: 'system'
+                type: 'announcement',
+                messageType: 'announcement'
               });
             }, 300);
           }

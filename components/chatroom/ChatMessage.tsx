@@ -266,8 +266,8 @@ export const ChatMessage = React.memo(({
     );
   }
 
-  // Handle announcement messages with orange color
-  if (messageType === 'announce' || type === 'announce') {
+  // Handle announcement messages with orange color (no username prefix)
+  if (messageType === 'announce' || type === 'announce' || messageType === 'announcement' || type === 'announcement') {
     const announceColor = '#FF8C00';
     return (
       <View style={styles.messageContainer}>
