@@ -784,6 +784,131 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /bump command - Temporarily remove user from room (can rejoin immediately)
+        if (cmdKey === 'bump') {
+          const targetUsername = parts[1];
+          if (!targetUsername) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /bump <username>`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          try {
+            const userService = require('../services/userService');
+            const roomService = require('../services/roomService');
+            
+            const room = await roomService.getRoomById(roomId);
+            const isRoomOwner = room && room.owner_id == userId;
+            const isGlobalAdmin = await userService.isAdmin(userId);
+            const isModerator = await roomService.isRoomModerator(roomId, userId);
+            
+            if (!isRoomOwner && !isGlobalAdmin && !isModerator) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Only room owner, admin, or moderator can bump users`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+
+            const targetUser = await userService.getUserByUsername(targetUsername);
+            if (!targetUser) {
+              socket.emit('system:message', {
+                roomId,
+                message: `User "${targetUsername}" not found`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+
+            // Can't bump yourself
+            if (targetUser.id == userId) {
+              socket.emit('system:message', {
+                roomId,
+                message: `You cannot bump yourself`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+
+            // Can't bump room owner
+            const targetIsOwner = room && room.owner_id == targetUser.id;
+            if (targetIsOwner) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Cannot bump the room owner`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+
+            // Moderator cannot bump other moderators (only owner can bump mod)
+            const targetIsModerator = await roomService.isRoomModerator(roomId, targetUser.id);
+            if (targetIsModerator && isModerator && !isRoomOwner && !isGlobalAdmin) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Moderators cannot bump other moderators`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+
+            // Determine bumper role
+            let bumperRole = 'moderator';
+            if (isRoomOwner) bumperRole = 'owner';
+            else if (isGlobalAdmin) bumperRole = 'administrator';
+
+            // Send bump event to target user
+            const roomSockets = await io.in(`room:${roomId}`).fetchSockets();
+            for (const targetSocket of roomSockets) {
+              if (targetSocket.username === targetUsername || targetSocket.handshake?.auth?.username === targetUsername) {
+                targetSocket.emit('room:bumped', {
+                  roomId,
+                  roomName: room.name,
+                  bumpedBy: username
+                });
+                
+                setTimeout(() => {
+                  targetSocket.leave(`room:${roomId}`);
+                }, 300);
+              }
+            }
+
+            // Public message
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              username: room.name,
+              message: `${targetUsername} Has Been bumped by ${bumperRole} ${username}`,
+              messageType: 'bump',
+              type: 'system',
+              timestamp: new Date().toISOString(),
+              isSystem: true
+            });
+            
+            // Remove from presence (non-blocking)
+            try {
+              await removeUserFromRoom(roomId, targetUsername);
+              await removeUserRoom(targetUsername, roomId);
+            } catch (presenceError) {
+              console.error('Error removing user from presence:', presenceError);
+            }
+            
+          } catch (error) {
+            console.error('Error processing /bump:', error);
+          }
+          return;
+        }
+
         // Handle /mod command - Add moderator to room
         if (cmdKey === 'mod') {
           const targetUsername = parts[1];
