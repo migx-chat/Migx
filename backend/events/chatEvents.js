@@ -1647,7 +1647,45 @@ module.exports = (io, socket) => {
     }
   };
 
+  // Sync backlog messages from Redis (for reconnects)
+  const syncBacklog = async (data) => {
+    try {
+      const { roomId, lastMessageId } = data;
+      if (!roomId) return;
+      
+      const { getRedisClient } = require('../redis');
+      const redis = getRedisClient();
+      const msgKey = `room:messages:${roomId}`;
+      const messages = await redis.lrange(msgKey, 0, 49);
+      
+      if (messages && messages.length > 0) {
+        let backlog = messages
+          .map(m => { try { return JSON.parse(m); } catch { return null; } })
+          .filter(Boolean)
+          .reverse();
+        
+        // Filter to only messages after lastMessageId if provided
+        if (lastMessageId) {
+          const idx = backlog.findIndex(m => m.id === lastMessageId);
+          if (idx !== -1) {
+            backlog = backlog.slice(idx + 1);
+          }
+        }
+        
+        socket.emit('chat:backlog', { 
+          roomId, 
+          messages: backlog,
+          isBacklog: true
+        });
+        console.log(`📨 Synced ${backlog.length} messages for room ${roomId}`);
+      }
+    } catch (error) {
+      console.error('Error syncing backlog:', error);
+    }
+  };
+
   socket.on('chat:message', sendMessage);
   socket.on('chat:messages:get', getMessages);
   socket.on('chat:message:delete', deleteMessage);
+  socket.on('chat:sync', syncBacklog);
 };

@@ -1122,6 +1122,30 @@ module.exports = (io, socket) => {
         isRejoin: true
       });
 
+      // Send message backlog from Redis for quick sync
+      try {
+        const { getRedisClient } = require('../redis');
+        const redis = getRedisClient();
+        const msgKey = `room:messages:${roomId}`;
+        const messages = await redis.lrange(msgKey, 0, 49); // Get last 50 messages
+        
+        if (messages && messages.length > 0) {
+          const backlog = messages
+            .map(m => { try { return JSON.parse(m); } catch { return null; } })
+            .filter(Boolean)
+            .reverse(); // Oldest first
+          
+          socket.emit('chat:backlog', { 
+            roomId, 
+            messages: backlog,
+            isBacklog: true
+          });
+          console.log(`📨 Sent ${backlog.length} backlog messages to ${username}`);
+        }
+      } catch (backlogErr) {
+        console.error('Error sending backlog:', backlogErr);
+      }
+
       console.log(`✅ User ${username} silently rejoined room ${roomId}`);
 
     } catch (error) {
@@ -1318,6 +1342,7 @@ module.exports = (io, socket) => {
 
   socket.on('join_room', joinRoom);
   socket.on('rejoin_room', rejoinRoom);
+  socket.on('room:silent_rejoin', rejoinRoom); // Alias for silent reconnect
   socket.on('leave_room', leaveRoom);
   socket.on('room:leave', leaveRoom);
   socket.on('user:logout', logout);
