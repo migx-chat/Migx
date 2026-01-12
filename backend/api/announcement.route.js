@@ -1,7 +1,7 @@
-
 const express = require('express');
 const router = express.Router();
 const { query } = require('../db/db');
+const authMiddleware = require('../middleware/auth');
 
 // Get active announcement for login alert
 router.get('/active', async (req, res) => {
@@ -78,21 +78,16 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create announcement (admin only)
-router.post('/create', async (req, res) => {
+router.post('/create', authMiddleware, async (req, res) => {
   try {
-    const { title, content, image_url, scheduled_at, adminId } = req.body;
+    const { title, content, image_url, scheduled_at } = req.body;
 
-    if (!title || !content || !adminId) {
+    if (!title || !content) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Verify admin
-    const adminResult = await query(
-      'SELECT role FROM users WHERE id = $1',
-      [adminId]
-    );
-
-    if (adminResult.rows.length === 0 || !['admin', 'super_admin'].includes(adminResult.rows[0].role)) {
+    // 🔐 Verify admin from JWT session
+    if (!['admin', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Admin privileges required' });
     }
 
@@ -115,22 +110,17 @@ router.post('/create', async (req, res) => {
 });
 
 // Update announcement (admin only)
-router.put('/:id', async (req, res) => {
+router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content, adminId } = req.body;
+    const { title, content } = req.body;
 
-    if (!title || !content || !adminId) {
+    if (!title || !content) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Verify admin
-    const adminResult = await query(
-      'SELECT role FROM users WHERE id = $1',
-      [adminId]
-    );
-
-    if (adminResult.rows.length === 0 || adminResult.rows[0].role !== 'admin') {
+    // 🔐 Verify admin from JWT session
+    if (!['admin', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Admin privileges required' });
     }
 
@@ -158,22 +148,12 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete announcement (admin only)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { adminId } = req.body;
 
-    if (!adminId) {
-      return res.status(400).json({ error: 'Admin ID required' });
-    }
-
-    // Verify admin
-    const adminResult = await query(
-      'SELECT role FROM users WHERE id = $1',
-      [adminId]
-    );
-
-    if (adminResult.rows.length === 0 || adminResult.rows[0].role !== 'admin') {
+    // 🔐 Verify admin from JWT session
+    if (!['admin', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Admin privileges required' });
     }
 

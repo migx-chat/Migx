@@ -5,9 +5,12 @@ const userService = require('../services/userService');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
 const { addNotification } = require('../services/notificationService');
+const authMiddleware = require('../middleware/auth');
 
-router.post('/transfer', async (req, res) => {
-  const { fromUserId, toUserId, amount, message, pin } = req.body;
+router.post('/transfer', authMiddleware, async (req, res) => {
+  // 🔐 Use authenticated user ID from JWT session, not from body
+  const fromUserId = req.user.id;
+  const { toUserId, amount, message, pin } = req.body;
   
   // 🔐 STEP 10: Generate unique request_id for immutable audit logging
   const requestId = crypto.randomBytes(16).toString('hex');

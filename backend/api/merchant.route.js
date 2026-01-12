@@ -3,13 +3,16 @@ const router = express.Router();
 const merchantService = require('../services/merchantService');
 const merchantTagService = require('../services/merchantTagService');
 const userService = require('../services/userService');
+const authMiddleware = require('../middleware/auth');
 
-router.post('/create', async (req, res) => {
+router.post('/create', authMiddleware, async (req, res) => {
   try {
-    const { userId, mentorId, commissionRate = 30 } = req.body;
+    const { userId, commissionRate = 30 } = req.body;
+    // 🔐 Use authenticated user ID as mentor
+    const mentorId = req.user.id;
     
-    if (!userId || !mentorId) {
-      return res.status(400).json({ error: 'User ID and Mentor ID are required' });
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
     }
     
     const isMentor = await userService.isMentor(mentorId);
@@ -34,12 +37,14 @@ router.post('/create', async (req, res) => {
   }
 });
 
-router.post('/disable', async (req, res) => {
+router.post('/disable', authMiddleware, async (req, res) => {
   try {
-    const { merchantId, mentorId } = req.body;
+    const { merchantId } = req.body;
+    // 🔐 Use authenticated user ID as mentor
+    const mentorId = req.user.id;
     
-    if (!merchantId || !mentorId) {
-      return res.status(400).json({ error: 'Merchant ID and Mentor ID are required' });
+    if (!merchantId) {
+      return res.status(400).json({ error: 'Merchant ID is required' });
     }
     
     const result = await merchantService.disableMerchant(merchantId, mentorId);
@@ -58,12 +63,14 @@ router.post('/disable', async (req, res) => {
   }
 });
 
-router.post('/enable', async (req, res) => {
+router.post('/enable', authMiddleware, async (req, res) => {
   try {
-    const { merchantId, mentorId } = req.body;
+    const { merchantId } = req.body;
+    // 🔐 Use authenticated user ID as mentor
+    const mentorId = req.user.id;
     
-    if (!merchantId || !mentorId) {
-      return res.status(400).json({ error: 'Merchant ID and Mentor ID are required' });
+    if (!merchantId) {
+      return res.status(400).json({ error: 'Merchant ID is required' });
     }
     
     const result = await merchantService.enableMerchant(merchantId, mentorId);
