@@ -34,6 +34,10 @@ The `/chat` namespace handles real-time events for room interactions, chat and p
 
 The application includes an XP & Level System, a Merchant Commission System, an Auto Voucher system for credit codes, and a Daily Login Streak System with credit rewards.
 
+### Merchant Tagging System
+
+Merchants can tag users with exactly 5000 IDR game-only credits. Tagged credits are consumed before regular credits when playing games (LowCard, FlagBot, Dice). A 2% commission is generated on tagged credit spending, split equally between merchant (1%) and tagged user (1%). Commissions mature after 24 hours and are automatically paid out via hourly background job. Key tables: `merchant_tags`, `merchant_tag_spends`, `merchant_tag_commissions`. API endpoints: `/api/merchants/tag/:userId`, `/api/merchants/tags/:userId`, `/api/merchants/untag/:tagId`.
+
 ### Security Features
 
 The system incorporates eleven layers of security: strict server-side validation, Redis rate limiting, robust error handling and logging, Redis distributed locks, idempotency tracking, PIN attempt limiting with cooldowns, enhanced error message sanitization, JWT token expiry management, server-side amount authority, an immutable audit log, and device binding to prevent token theft. A centralized logger with data masking prevents data leakage while maintaining audit capability across various logging levels (INFO, WARN, SECURITY, ERROR).
