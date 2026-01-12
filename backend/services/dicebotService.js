@@ -744,7 +744,7 @@ module.exports = {
   rollDice,
   formatDiceTags,
   isDoubleSix,
-  formatIDR,
+  formatCoins,
   getDiceEmoji,
   getDiceCode,
   formatDiceRoll,
