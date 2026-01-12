@@ -1045,18 +1045,17 @@ module.exports = (io, socket) => {
               isSystem: true
             });
             
-            // Remove from presence
-            await removeUserFromRoom(roomId, targetUsername);
-            await removeUserRoom(targetUsername, roomId);
+            // Remove from presence (non-blocking)
+            try {
+              await removeUserFromRoom(roomId, targetUsername);
+              await removeUserRoom(targetUsername, roomId);
+            } catch (presenceError) {
+              console.error('Error removing user from presence:', presenceError);
+            }
             
           } catch (error) {
             console.error('Error processing /ban command:', error);
-            socket.emit('system:message', {
-              roomId,
-              message: `Failed to ban user`,
-              timestamp: new Date().toISOString(),
-              type: 'warning'
-            });
+            // Only show error if ban actually failed (before public message)
           }
           return;
         }
