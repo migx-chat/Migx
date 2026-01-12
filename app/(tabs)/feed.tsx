@@ -514,10 +514,10 @@ export default function FeedScreen() {
     // Get role badge
     const getRoleBadge = (role?: string) => {
       const lowerRole = role?.toLowerCase();
-      if (lowerRole === 'admin') return require('@/assets/badge role/ic_admin.png');
+      if (lowerRole === 'admin' || lowerRole === 'super_admin') return require('@/assets/badge role/ic_admin.png');
       if (lowerRole === 'mentor') return require('@/assets/badge role/ic_mentor.png');
       if (lowerRole === 'merchant') return require('@/assets/badge role/ic_merchant.png');
-      if (lowerRole === 'cs') return require('@/assets/badge role/badge_cs.png');
+      if (lowerRole === 'cs' || lowerRole === 'customer_service') return require('@/assets/badge role/badge_cs.png');
       return require('@/assets/badge role/badge_user.png'); // Default user badge
     };
 
@@ -534,9 +534,9 @@ export default function FeedScreen() {
         }
       }
       const lowerRole = userRole?.toLowerCase();
-      if (lowerRole === 'admin') return '#FF9800'; // Orange for admin
+      if (lowerRole === 'admin' || lowerRole === 'super_admin') return '#FF9800'; // Orange for admin
       if (lowerRole === 'merchant') return '#9C27B0'; // Purple for merchant
-      if (lowerRole === 'cs') return '#4CAF50'; // Green for CS
+      if (lowerRole === 'cs' || lowerRole === 'customer_service') return '#4CAF50'; // Green for CS
       if (lowerRole === 'mentor') return '#FF0000'; // Red for mentor
       return '#2196F3'; // Blue for regular user
     };
