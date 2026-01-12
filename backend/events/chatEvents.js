@@ -143,8 +143,24 @@ module.exports = (io, socket) => {
         // Handle /announce command
         if (cmdKey === 'announce') {
           const roomService = require('../services/roomService');
+          const userService = require('../services/userService');
           const roomInfo = await roomService.getRoomById(roomId);
           const roomName = roomInfo?.name || roomId;
+          
+          // Check permission - only admin, moderator, or room owner
+          const isRoomOwner = roomInfo && roomInfo.owner_id == userId;
+          const isGlobalAdmin = await userService.isAdmin(userId);
+          const isModerator = await roomService.isRoomModerator(roomId, userId);
+          
+          if (!isRoomOwner && !isGlobalAdmin && !isModerator) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Only room owner, admin, or moderator can use /announce`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
 
           if (parts[1]?.toLowerCase() === 'off') {
             await redis.del(`announce:${roomId}`);
