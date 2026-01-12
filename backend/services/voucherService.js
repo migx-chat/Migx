@@ -8,13 +8,14 @@ const VOUCHER_CLAIMED_KEY = (code) => `voucher:claimed:${code}`;
 const VOUCHER_POOL_KEY = 'voucher:pool';
 
 const VOUCHER_CONFIG = {
-  intervalMinutes: 30,
+  intervalMinutes: 1,  // Changed to 1 minute for testing
   expirySeconds: 60,
   totalPool: 500,
   maxClaimers: 40,
   minClaimAmount: 5,
   maxClaimAmount: 50,
-  userCooldownMinutes: 30
+  userCooldownMinutes: 30,
+  targetRoomNames: ['Migx', 'Voucher', 'Cafe gaul indo']  // Only broadcast to these rooms
 };
 
 let voucherInterval = null;
@@ -291,26 +292,22 @@ const broadcastVoucherAnnouncement = async (voucher) => {
   
   ioInstance.emit('system:voucher', announcement);
   
-  const redis = getRedisClient();
+  const pool = require('../db/db');
   try {
-    // Find all active rooms by looking at room presence keys
-    const keys = await redis.keys('room:*:user:*');
-    const roomIds = new Set();
+    // Get target room IDs by name
+    const targetRooms = VOUCHER_CONFIG.targetRoomNames;
+    const placeholders = targetRooms.map((_, i) => `$${i + 1}`).join(', ');
+    const result = await pool.query(
+      `SELECT id, name FROM rooms WHERE name IN (${placeholders})`,
+      targetRooms
+    );
     
-    for (const key of keys) {
-      // Extract roomId from pattern room:{roomId}:user:{userId}
-      const match = key.match(/^room:(\d+):user:/);
-      if (match) {
-        roomIds.add(match[1]);
-      }
-    }
+    console.log(`📢 Broadcasting voucher to ${result.rows.length} target rooms: ${result.rows.map(r => r.name).join(', ')}`);
     
-    console.log(`📢 Broadcasting voucher to ${roomIds.size} active rooms`);
-    
-    for (const roomId of roomIds) {
-      ioInstance.to(`room:${roomId}`).emit('chat:message', {
+    for (const room of result.rows) {
+      ioInstance.to(`room:${room.id}`).emit('chat:message', {
         id: generateMessageId(),
-        roomId,
+        roomId: room.id.toString(),
         message,
         messageType: 'voucher',
         type: 'voucher',
