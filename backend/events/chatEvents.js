@@ -908,6 +908,211 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /ban command - Ban user from room
+        if (cmdKey === 'ban') {
+          const targetUsername = parts[1];
+          if (!targetUsername) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /ban <username>`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          try {
+            const roomService = require('../services/roomService');
+            const userService = require('../services/userService');
+            const { removeUserFromRoom, removeUserRoom } = require('../utils/presence');
+            
+            const room = await roomService.getRoomById(roomId);
+            const isRoomOwner = room && room.owner_id == userId;
+            const isGlobalAdmin = await userService.isAdmin(userId);
+            const isModerator = await roomService.isRoomModerator(roomId, userId);
+            const isRoomAdmin = await roomService.isRoomAdmin(roomId, userId);
+            
+            if (!isRoomOwner && !isGlobalAdmin && !isModerator && !isRoomAdmin) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Only room owner, admin, or moderator can ban users`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            const targetUser = await userService.getUserByUsername(targetUsername);
+            if (!targetUser) {
+              socket.emit('system:message', {
+                roomId,
+                message: `User "${targetUsername}" not found`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Can't ban yourself
+            if (targetUser.id === userId) {
+              socket.emit('system:message', {
+                roomId,
+                message: `You cannot ban yourself`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Can't ban room owner
+            if (room && room.owner_id == targetUser.id) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Cannot ban the room owner`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Determine banner role
+            let bannerRole = 'moderator';
+            if (isRoomOwner) bannerRole = 'owner';
+            else if (isGlobalAdmin || isRoomAdmin) bannerRole = 'administrator';
+            
+            // Ban user
+            await roomService.banUser(roomId, targetUser.id, targetUsername, userId, null);
+            
+            // Send private message to banned user
+            const roomSockets = await io.in(`room:${roomId}`).fetchSockets();
+            for (const targetSocket of roomSockets) {
+              if (targetSocket.username === targetUsername || targetSocket.handshake?.auth?.username === targetUsername) {
+                targetSocket.emit('chat:message', {
+                  id: generateMessageId(),
+                  roomId,
+                  username: room.name,
+                  message: `You has been banned in the Chatroom ${room.name}`,
+                  timestamp: new Date().toISOString(),
+                  type: 'system',
+                  messageType: 'ban',
+                  isPrivate: true
+                });
+                
+                setTimeout(() => {
+                  targetSocket.leave(`room:${roomId}`);
+                  targetSocket.emit('room:banned', {
+                    roomId,
+                    roomName: room.name,
+                    reason: `You has been banned in the Chatroom ${room.name}`
+                  });
+                }, 500);
+              }
+            }
+            
+            // Public message
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              username: room.name,
+              message: `${targetUsername} Has Been banned by ${bannerRole} ${username}`,
+              messageType: 'ban',
+              type: 'system',
+              timestamp: new Date().toISOString(),
+              isSystem: true
+            });
+            
+            // Remove from presence
+            await removeUserFromRoom(roomId, targetUsername);
+            await removeUserRoom(targetUsername, roomId);
+            
+          } catch (error) {
+            console.error('Error processing /ban command:', error);
+            socket.emit('system:message', {
+              roomId,
+              message: `Failed to ban user`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+          }
+          return;
+        }
+
+        // Handle /unban command - Unban user from room
+        if (cmdKey === 'unban') {
+          const targetUsername = parts[1];
+          if (!targetUsername) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /unban <username>`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          try {
+            const roomService = require('../services/roomService');
+            const userService = require('../services/userService');
+            
+            const room = await roomService.getRoomById(roomId);
+            const isRoomOwner = room && room.owner_id == userId;
+            const isGlobalAdmin = await userService.isAdmin(userId);
+            const isModerator = await roomService.isRoomModerator(roomId, userId);
+            const isRoomAdmin = await roomService.isRoomAdmin(roomId, userId);
+            
+            if (!isRoomOwner && !isGlobalAdmin && !isModerator && !isRoomAdmin) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Only room owner, admin, or moderator can unban users`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            const targetUser = await userService.getUserByUsername(targetUsername);
+            if (!targetUser) {
+              socket.emit('system:message', {
+                roomId,
+                message: `User "${targetUsername}" not found`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Determine unbanner role
+            let unbannerRole = 'moderator';
+            if (isRoomOwner) unbannerRole = 'owner';
+            else if (isGlobalAdmin || isRoomAdmin) unbannerRole = 'administrator';
+            
+            // Unban user
+            await roomService.unbanUser(roomId, targetUser.id, targetUsername);
+            
+            // Public message
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              username: room.name,
+              message: `${targetUsername} Has unbanned by ${unbannerRole} ${username}`,
+              messageType: 'unban',
+              type: 'system',
+              timestamp: new Date().toISOString(),
+              isSystem: true
+            });
+            
+          } catch (error) {
+            console.error('Error processing /unban command:', error);
+            socket.emit('system:message', {
+              roomId,
+              message: `Failed to unban user`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+          }
+          return;
+        }
+
         // Handle other MIG33 commands
         const cmd = MIG33_CMD[cmdKey];
         if (cmd) {

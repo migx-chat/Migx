@@ -651,21 +651,70 @@ module.exports = (io, socket) => {
 
   const adminBan = async (data) => {
     try {
-      const { roomId, targetUserId, targetUsername, adminId, reason, duration } = data;
+      const { roomId, targetUserId, targetUsername, adminId, adminUsername, reason, duration } = data;
 
-      const isAdmin = await roomService.isRoomAdmin(roomId, adminId);
-      if (!isAdmin) {
-        socket.emit('error', { message: 'You are not an admin' });
+      const room = await roomService.getRoomById(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
         return;
       }
 
+      const isAdmin = await roomService.isRoomAdmin(roomId, adminId);
+      const isModerator = await roomService.isRoomModerator(roomId, adminId);
+      const isOwner = room.owner_id == adminId;
+      
+      if (!isAdmin && !isModerator) {
+        socket.emit('error', { message: 'You are not authorized to ban users' });
+        return;
+      }
+      
+      let bannerRole = 'moderator';
+      if (isOwner) {
+        bannerRole = 'owner';
+      } else if (isAdmin && !isModerator) {
+        bannerRole = 'administrator';
+      }
+      
+      const bannerName = adminUsername || socket.username || 'Unknown';
+
       await roomService.banUser(roomId, targetUserId, targetUsername, adminId, reason);
 
-      io.to(`room:${roomId}`).emit('system:message', {
+      // Send private message to banned user
+      const roomSockets = await io.in(`room:${roomId}`).fetchSockets();
+      for (const targetSocket of roomSockets) {
+        if (targetSocket.username === targetUsername || targetSocket.handshake?.auth?.username === targetUsername) {
+          targetSocket.emit('chat:message', {
+            id: `ban-private-${Date.now()}`,
+            roomId,
+            username: room.name,
+            message: `You has been banned in the Chatroom ${room.name}`,
+            timestamp: new Date().toISOString(),
+            type: 'system',
+            messageType: 'ban',
+            isPrivate: true
+          });
+          
+          setTimeout(() => {
+            targetSocket.leave(`room:${roomId}`);
+            targetSocket.emit('room:banned', {
+              roomId,
+              roomName: room.name,
+              reason: `You has been banned in the Chatroom ${room.name}`
+            });
+          }, 500);
+        }
+      }
+
+      // Public message
+      io.to(`room:${roomId}`).emit('chat:message', {
+        id: `ban-system-${Date.now()}`,
         roomId,
-        message: `${targetUsername} has been banned from the room${reason ? `: ${reason}` : ''}`,
+        username: room.name,
+        message: `${targetUsername} Has Been banned by ${bannerRole} ${bannerName}`,
         timestamp: new Date().toISOString(),
-        type: 'error'
+        type: 'system',
+        messageType: 'ban',
+        isSystem: true
       });
 
       io.to(`room:${roomId}`).emit('room:user:banned', {
@@ -674,6 +723,10 @@ module.exports = (io, socket) => {
         username: targetUsername,
         reason
       });
+
+      // Remove from presence
+      await removeUserFromRoom(roomId, targetUsername);
+      await removeUserRoom(targetUsername, roomId);
 
       const users = await roomService.getRoomUsers(roomId);
       io.to(`room:${roomId}`).emit('room:users', {
@@ -690,15 +743,45 @@ module.exports = (io, socket) => {
 
   const adminUnban = async (data) => {
     try {
-      const { roomId, targetUserId, targetUsername, adminId } = data;
+      const { roomId, targetUserId, targetUsername, adminId, adminUsername } = data;
 
-      const isAdmin = await roomService.isRoomAdmin(roomId, adminId);
-      if (!isAdmin) {
-        socket.emit('error', { message: 'You are not an admin' });
+      const room = await roomService.getRoomById(roomId);
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
         return;
       }
 
+      const isAdmin = await roomService.isRoomAdmin(roomId, adminId);
+      const isModerator = await roomService.isRoomModerator(roomId, adminId);
+      const isOwner = room.owner_id == adminId;
+      
+      if (!isAdmin && !isModerator) {
+        socket.emit('error', { message: 'You are not authorized to unban users' });
+        return;
+      }
+      
+      let unbannerRole = 'moderator';
+      if (isOwner) {
+        unbannerRole = 'owner';
+      } else if (isAdmin && !isModerator) {
+        unbannerRole = 'administrator';
+      }
+      
+      const unbannerName = adminUsername || socket.username || 'Unknown';
+
       await roomService.unbanUser(roomId, targetUserId, targetUsername);
+
+      // Public message
+      io.to(`room:${roomId}`).emit('chat:message', {
+        id: `unban-system-${Date.now()}`,
+        roomId,
+        username: room.name,
+        message: `${targetUsername} Has unbanned by ${unbannerRole} ${unbannerName}`,
+        timestamp: new Date().toISOString(),
+        type: 'system',
+        messageType: 'unban',
+        isSystem: true
+      });
 
       socket.emit('room:user:unbanned', {
         roomId,

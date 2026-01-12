@@ -1,6 +1,6 @@
 const { getRedisClient } = require('../redis');
 
-const ADMIN_KICK_COOLDOWN = 600; // 10 minutes (for kicked user)
+const ADMIN_KICK_COOLDOWN = 300; // 5 minutes (for kicked user)
 const ADMIN_REJOIN_COOLDOWN = 180; // 3 minutes (admin cannot rejoin after kick)
 const MAX_ADMIN_KICKS = 3;
 
