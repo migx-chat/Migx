@@ -6,6 +6,7 @@ import { parseEmojiMessage } from '@/utils/emojiParser';
 import { roleColors } from '@/utils/roleColors';
 import { cardImages, parseCardTags, hasCardTags } from '@/utils/cardImages';
 import { flagImages, parseFlagTags, hasFlagTags } from '@/utils/flagImages';
+import { diceImages, parseDiceTags, hasDiceTags } from '@/utils/diceImages';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -449,6 +450,40 @@ export const ChatMessage = React.memo(({
     );
   }
 
+  if (hasDiceTags(message)) {
+    const parsedDice = parseDiceTags(message);
+    return (
+      <View style={styles.messageContainer}>
+        <View style={styles.cardMessageWrapper}>
+          <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }, textShadowStyle]}>
+            {username}{hasTopMerchantBadge && <BadgeTop1 />}:{' '}
+          </Text>
+          {parsedDice.map((item) => {
+            if (item.type === 'dice') {
+              const diceImage = diceImages[item.content];
+              if (diceImage) {
+                return (
+                  <Image
+                    key={item.key}
+                    source={diceImage}
+                    style={styles.diceImage}
+                    resizeMode="contain"
+                  />
+                );
+              }
+              return <Text key={item.key} style={[styles.message, { color: getMessageColor() }]}>[{item.content}]</Text>;
+            }
+            return (
+              <Text key={item.key} style={[styles.message, dynamicStyles.message, { color: getMessageColor() }, textShadowStyle]}>
+                {item.content}
+              </Text>
+            );
+          })}
+        </View>
+      </View>
+    );
+  }
+
   const renderMessageContent = (text: string, isBigEmoji: boolean = false, forceFlags: boolean = false) => {
     if (forceFlags || hasFlagTags(text)) {
       const { parts } = parseFlagTags(text);
@@ -650,6 +685,11 @@ const styles = StyleSheet.create({
     width: 18,
     height: 24,
     marginHorizontal: 2,
+  },
+  diceImage: {
+    width: 20,
+    height: 20,
+    marginHorizontal: 1,
   },
   voucherText: {
     fontSize: 13,
