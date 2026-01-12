@@ -191,10 +191,14 @@ module.exports = (io, socket) => {
           const targetUser = parts[2];
           
           // Check if there is a message part (after the first dash)
-          const messageIndex = message.indexOf(' - ');
+          // We need to look for " - " specifically after the targetUser
+          const giftNameIndex = message.indexOf(parts[1]);
+          const targetUserIndex = message.indexOf(parts[2], giftNameIndex + parts[1].length);
+          const messageStartIndex = message.indexOf(' - ', targetUserIndex + parts[2].length);
+          
           let giftMessage = '';
-          if (messageIndex !== -1) {
-            giftMessage = message.substring(messageIndex + 3).trim();
+          if (messageStartIndex !== -1) {
+            giftMessage = message.substring(messageStartIndex + 3).trim();
           }
 
           if (!giftName || !targetUser) {

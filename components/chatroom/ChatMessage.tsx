@@ -333,6 +333,10 @@ export const ChatMessage = React.memo(({
         if (dashIndex !== -1) {
           textContent = afterGift.substring(0, dashIndex);
           comment = afterGift.substring(dashIndex);
+        } else if (afterGift.includes(' >>')) {
+          // Fallback if the dash is somehow missing but the message structure is there
+          const endTagIndex = afterGift.indexOf(' >>');
+          textContent = afterGift.substring(0, endTagIndex);
         }
         
         return (
