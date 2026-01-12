@@ -113,6 +113,64 @@ module.exports = (io, socket) => {
         const parts = message.slice(1).split(' ');
         const cmdKey = parts[0].toLowerCase();
 
+        // Handle /c (claim voucher) command
+        if (cmdKey === 'c') {
+          const voucherService = require('../services/voucherService');
+          const code = parts[1];
+          
+          if (!code) {
+            socket.emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: 'Usage: /c <code>',
+              messageType: 'cmd',
+              type: 'cmd',
+              timestamp: new Date().toISOString()
+            });
+            return;
+          }
+          
+          const result = await voucherService.claimVoucher(userId, code);
+          
+          if (result.success) {
+            socket.emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: `CONGRATULATIONS You have earned ${result.amount} IDR`,
+              messageType: 'cmd',
+              type: 'cmd',
+              messageColor: '#00FF00',
+              timestamp: new Date().toISOString()
+            });
+          } else {
+            let errorMessage = 'Failed to claim voucher';
+            if (result.type === 'expired') {
+              errorMessage = 'Code has expired';
+            } else if (result.type === 'already_claimed') {
+              errorMessage = 'You have already claimed this voucher';
+            } else if (result.type === 'invalid') {
+              errorMessage = 'Invalid voucher code';
+            } else if (result.type === 'cooldown') {
+              errorMessage = `Please wait ${result.remainingMinutes} minute(s) before claiming again`;
+            } else if (result.type === 'busy') {
+              errorMessage = 'Please try again';
+            } else if (result.type === 'empty') {
+              errorMessage = 'Voucher pool is empty';
+            }
+            
+            socket.emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: errorMessage,
+              messageType: 'cmd',
+              type: 'cmd',
+              messageColor: '#FF6B6B',
+              timestamp: new Date().toISOString()
+            });
+          }
+          return;
+        }
+
         // Handle /me command
         if (cmdKey === 'me') {
           const actionText = parts.slice(1).join(' ');
