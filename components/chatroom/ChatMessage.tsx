@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, Dimensions, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, Dimensions, Pressable, Clipboard, Alert } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useThemeCustom } from '@/theme/provider';
 import { parseEmojiMessage } from '@/utils/emojiParser';
 import { roleColors } from '@/utils/roleColors';
@@ -509,15 +510,28 @@ export const ChatMessage = React.memo(({
     });
   };
 
+  const handleLongPress = () => {
+    if (isSystem || isNotice || isPresence || isError) return;
+    
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Clipboard.setString(message);
+    Alert.alert('Success', 'Message copied to clipboard');
+  };
+
   return (
-    <View style={styles.messageContainer}>
+    <TouchableOpacity 
+      style={styles.messageContainer} 
+      onLongPress={handleLongPress}
+      delayLongPress={500}
+      activeOpacity={0.8}
+    >
       <Text style={[styles.messageWrapper, dynamicStyles.messageWrapper]}>
         <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }, textShadowStyle]}>
           {username}{hasTopMerchantBadge && <BadgeTop1 />}:{' '}
         </Text>
         {renderMessageContent(message, bigEmoji, hasFlags)}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 });
 
