@@ -84,15 +84,22 @@ const VoucherMessage = ({ message, voucherCode, voucherCodeColor, expiresIn, tim
   hasBackground?: boolean;
 }) => {
   const { scaleSize } = useThemeCustom();
-  const [countdown, setCountdown] = useState(() => {
-    if (expiresIn) {
+  
+  const calculateInitialCountdown = () => {
+    if (!expiresIn || expiresIn <= 0) return 0;
+    
+    if (timestamp && timestamp.length > 0) {
       const messageTime = new Date(timestamp).getTime();
-      const now = Date.now();
-      const elapsed = Math.floor((now - messageTime) / 1000);
-      return Math.max(0, expiresIn - elapsed);
+      if (!isNaN(messageTime)) {
+        const now = Date.now();
+        const elapsed = Math.floor((now - messageTime) / 1000);
+        return Math.max(0, expiresIn - elapsed);
+      }
     }
-    return 0;
-  });
+    return expiresIn;
+  };
+  
+  const [countdown, setCountdown] = useState(calculateInitialCountdown);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -119,10 +126,6 @@ const VoucherMessage = ({ message, voucherCode, voucherCodeColor, expiresIn, tim
   const codeColor = voucherCodeColor || '#FF0000';
   const codeMatch = message.match(/\/c (\d+)/i);
   const extractedCode = codeMatch ? codeMatch[1] : (voucherCode || '');
-  
-  const messageParts = message.split(/\/c \d+/i);
-  const beforeCode = messageParts[0] || '';
-  const afterCode = messageParts[1] || '';
 
   if (countdown <= 0) {
     return (
@@ -137,11 +140,11 @@ const VoucherMessage = ({ message, voucherCode, voucherCodeColor, expiresIn, tim
   return (
     <View style={styles.messageContainer}>
       <Text style={[styles.voucherText, { fontSize: scaleSize(13) }, textShadowStyle]}>
-        <Text style={{ color: '#FFD700' }}>🎁 </Text>
-        <Text style={{ color: '#FFD700' }}>{beforeCode.replace('🎁 ', '')}</Text>
-        <Text style={{ color: codeColor, fontWeight: 'bold' }}>/c {extractedCode}</Text>
-        <Text style={{ color: '#FFD700' }}>{afterCode}</Text>
+        <Text style={{ color: '#FFD700' }}>🎁 Free! Claim voucher </Text>
+        <Text style={{ color: codeColor, fontWeight: 'bold' }}>{extractedCode}</Text>
         <Text style={{ color: '#FF6B6B', fontWeight: 'bold' }}> [{countdown}s]</Text>
+        <Text style={{ color: '#FFD700' }}> Claim type CMD </Text>
+        <Text style={{ color: codeColor, fontWeight: 'bold' }}>/c {extractedCode}</Text>
       </Text>
     </View>
   );
