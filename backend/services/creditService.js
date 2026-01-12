@@ -3,6 +3,7 @@ const { generateTransactionId } = require('../utils/idGenerator');
 const { checkTransferLimit } = require('../utils/floodControl');
 const { getRedisClient } = require('../redis');
 const logger = require('../utils/logger');
+const { getUserLevel } = require('../utils/xpLeveling');
 
 const transferCredits = async (fromUserId, toUserId, amount, description = null, requestId = null) => {
   const client = await getClient();
@@ -361,10 +362,17 @@ const validateTransfer = async (fromUserId, toUserId, amount) => {
   // Transfer limits
   const MIN_AMOUNT = 1000;
   const MAX_AMOUNT = 1000000;
+  const MIN_LEVEL = 10;
   
   // Self-transfer check (prevent user from sending to themselves)
   if (String(fromUserId) === String(toUserId)) {
     return { valid: false, error: 'Cannot transfer to yourself' };
+  }
+  
+  // Minimum level check (must be level 10 or higher to transfer)
+  const senderLevelData = await getUserLevel(fromUserId);
+  if (senderLevelData.level < MIN_LEVEL) {
+    return { valid: false, error: `Minimum level ${MIN_LEVEL} required to transfer credits. Your level: ${senderLevelData.level}` };
   }
   
   // Amount must be positive
