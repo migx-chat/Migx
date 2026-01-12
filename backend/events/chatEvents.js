@@ -151,7 +151,8 @@ module.exports = (io, socket) => {
             io.to(`room:${roomId}`).emit('chat:message', {
               id: generateMessageId(),
               roomId,
-              message: `${roomName}: ${username} has turned off the announcement.`,
+              username: roomName,
+              message: `${username} has turned off the announcement.`,
               messageType: 'presence',
               type: 'presence',
               timestamp: new Date().toISOString()
