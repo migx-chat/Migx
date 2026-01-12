@@ -71,15 +71,35 @@ const transferCredits = async (fromUserId, toUserId, amount, description = null,
     
     const recipient = toResult.rows[0];
     
-    await client.query(
-      'UPDATE users SET credits = credits - $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+    const deductResult = await client.query(
+      'UPDATE users SET credits = credits - $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING credits',
       [amount, fromUserId]
     );
     
-    await client.query(
-      'UPDATE users SET credits = credits + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+    if (deductResult.rowCount === 0) {
+      await client.query('ROLLBACK');
+      logger.error('TRANSFER_FAILED: Failed to deduct credits from sender', null, { fromUserId, amount });
+      return { success: false, error: 'Failed to deduct credits from sender' };
+    }
+    
+    const addResult = await client.query(
+      'UPDATE users SET credits = credits + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING credits',
       [amount, toUserId]
     );
+    
+    if (addResult.rowCount === 0) {
+      await client.query('ROLLBACK');
+      logger.error('TRANSFER_FAILED: Failed to add credits to recipient', null, { toUserId, amount });
+      return { success: false, error: 'Failed to add credits to recipient' };
+    }
+    
+    logger.info('TRANSFER_VERIFIED', { 
+      fromUserId, 
+      toUserId, 
+      amount, 
+      senderNewBalance: deductResult.rows[0].credits,
+      recipientNewBalance: addResult.rows[0].credits
+    });
     
     await client.query(
       `INSERT INTO credit_logs (from_user_id, to_user_id, from_username, to_username, amount, transaction_type, description, request_id)
