@@ -302,6 +302,18 @@ export const ChatMessage = React.memo(({
     );
   }
 
+  // Handle announcement messages with orange color
+  if (messageType === 'announce' || type === 'announce') {
+    const announceColor = '#FF8C00';
+    return (
+      <View style={styles.messageContainer}>
+        <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: announceColor }, textShadowStyle]}>
+          {message}
+        </Text>
+      </View>
+    );
+  }
+
   const isCommandMessage = isCmd || 
     messageType === 'cmd' || 
     messageType === 'cmdMe' || 

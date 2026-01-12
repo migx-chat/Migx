@@ -178,8 +178,8 @@ module.exports = (io, socket) => {
             id: generateMessageId(),
             roomId,
             message: formattedAnnouncement,
-            messageType: 'cmd',
-            type: 'cmd',
+            messageType: 'announce',
+            type: 'announce',
             timestamp: new Date().toISOString()
           });
           return;
