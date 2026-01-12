@@ -53,16 +53,25 @@ const startJoinTimer = (io, roomId) => {
     
     if (result.started) {
       sendBotMessage(io, roomId, result.message);
-      sendBotMessage(io, roomId, `Players: ${result.playerNames}`);
       
-      setTimeout(() => {
-        sendBotMessage(io, roomId, `ROUND #1: Players, !r to ROLL. 20 seconds.`);
-        startRollTimer(io, roomId);
+      setTimeout(async () => {
+        await startNextRoundFlow(io, roomId);
       }, dicebotService.COUNTDOWN_DELAY);
     }
   }, dicebotService.JOIN_TIMEOUT);
   
   activeTimers.set(joinKey, timer);
+};
+
+const startNextRoundFlow = async (io, roomId) => {
+  const roundResult = await dicebotService.startNextRound(roomId);
+  
+  if (!roundResult) return;
+  
+  sendBotMessage(io, roomId, roundResult.message);
+  sendBotMessage(io, roomId, roundResult.targetMessage);
+  
+  startRollTimer(io, roomId);
 };
 
 const startRollTimer = (io, roomId) => {
@@ -81,12 +90,14 @@ const startRollTimer = (io, roomId) => {
 };
 
 const processRoundEnd = async (io, roomId) => {
-  sendBotMessage(io, roomId, 'Times Up! Rolling dice...');
-  
   const autoRolled = await dicebotService.autoRollForTimeout(roomId);
   for (const roll of autoRolled) {
     sendBotMessage(io, roomId, roll.message);
   }
+  
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  sendBotMessage(io, roomId, 'Looks like everyone has rolled. Tallying roll.');
   
   await new Promise(resolve => setTimeout(resolve, 1000));
   
@@ -99,32 +110,17 @@ const processRoundEnd = async (io, roomId) => {
     return;
   }
   
-  if (result.allImmune) {
+  if (result.allFailed) {
     sendBotMessage(io, roomId, result.message);
     
     setTimeout(async () => {
-      const game = await dicebotService.getActiveGame(roomId);
-      if (game && game.status === 'playing') {
-        sendBotMessage(io, roomId, `ROUND #${result.nextRound}: Players, !r to ROLL. 20 seconds.`);
-        startRollTimer(io, roomId);
-      }
-    }, dicebotService.COUNTDOWN_DELAY);
-    return;
-  }
-  
-  if (result.tie) {
-    sendBotMessage(io, roomId, result.message);
-    sendBotMessage(io, roomId, result.followUp);
-    
-    setTimeout(async () => {
-      startRollTimer(io, roomId);
+      await startNextRoundFlow(io, roomId);
     }, dicebotService.COUNTDOWN_DELAY);
     return;
   }
   
   if (result.gameOver) {
     sendBotMessage(io, roomId, result.message);
-    sendBotMessage(io, roomId, result.followUp);
     
     if (result.playAgain) {
       sendBotMessage(io, roomId, result.playAgain);
@@ -141,18 +137,12 @@ const processRoundEnd = async (io, roomId) => {
     return;
   }
   
-  if (result.eliminated) {
-    for (const msg of result.eliminated) {
-      sendBotMessage(io, roomId, msg);
-    }
+  if (result.roundComplete) {
+    sendBotMessage(io, roomId, result.message);
     sendBotMessage(io, roomId, result.followUp);
     
     setTimeout(async () => {
-      const game = await dicebotService.getActiveGame(roomId);
-      if (game && game.status === 'playing') {
-        sendBotMessage(io, roomId, `ROUND #${result.nextRound}: Players, !r to ROLL. 20 seconds.`);
-        startRollTimer(io, roomId);
-      }
+      await startNextRoundFlow(io, roomId);
     }, dicebotService.COUNTDOWN_DELAY);
   }
 };
@@ -290,7 +280,7 @@ const handleDicebotCommand = async (io, socket, data) => {
         
         setTimeout(async () => {
           await processRoundEnd(io, roomId);
-        }, 1000);
+        }, 500);
       }
     } else {
       socket.emit('chat:message', {

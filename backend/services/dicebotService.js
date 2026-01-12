@@ -23,6 +23,10 @@ const rollDice = () => {
   return { die1, die2, total: die1 + die2 };
 };
 
+const formatDiceTags = (die1, die2) => {
+  return `[DICE:${die1}] [DICE:${die2}]`;
+};
+
 const getUserCredits = async (userId) => {
   try {
     const redis = getRedisClient();
@@ -269,16 +273,16 @@ const startGame = async (roomId, userId, username, amount) => {
     entryAmount,
     pot: entryAmount,
     currentRound: 0,
+    botTarget: null,
     players: [{
       userId: userId,
       username,
       isEliminated: false,
       hasRolled: false,
-      currentRoll: null,
       die1: null,
       die2: null,
       total: null,
-      hasImmunity: false
+      isIn: null
     }],
     startedBy: userId,
     startedByUsername: username,
@@ -288,11 +292,13 @@ const startGame = async (roomId, userId, username, amount) => {
   
   await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
   
+  const mcrAmount = (entryAmount / 1000).toFixed(1);
+  
   return {
     success: true,
     gameId,
     newBalance: deductResult.balance,
-    message: `Game started by ${username}. Enter :j to join the game. Cost: ${entryAmount} IDR [30s]`
+    message: `Game started by ${username}. Enter !j to join the game. Cost: ${mcrAmount} MCR [30s]`
   };
 };
 
@@ -330,11 +336,10 @@ const joinGame = async (roomId, userId, username) => {
     username,
     isEliminated: false,
     hasRolled: false,
-    currentRoll: null,
     die1: null,
     die2: null,
     total: null,
-    hasImmunity: false
+    isIn: null
   });
   game.pot += game.entryAmount;
   
@@ -371,15 +376,7 @@ const beginGame = async (roomId) => {
   }
   
   game.status = 'playing';
-  game.currentRound = 1;
-  
-  for (const player of game.players) {
-    player.hasRolled = false;
-    player.currentRoll = null;
-    player.die1 = null;
-    player.die2 = null;
-    player.total = null;
-  }
+  game.currentRound = 0;
   
   await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
   
@@ -387,10 +384,49 @@ const beginGame = async (roomId) => {
   
   return {
     started: true,
-    message: `Game Starting! Pot: ${game.pot}.0 IDR`,
+    message: `Game begins! Bot rolls first, match or beat total to stay IN!, ready to roll in 3 seconds.`,
     playerNames,
     playerCount: game.players.length,
     pot: game.pot
+  };
+};
+
+const startNextRound = async (roomId) => {
+  const redis = getRedisClient();
+  const gameKey = `dicebot:game:${roomId}`;
+  
+  const gameData = await redis.get(gameKey);
+  if (!gameData) return null;
+  
+  const game = JSON.parse(gameData);
+  
+  if (game.status !== 'playing') return null;
+  
+  game.currentRound++;
+  
+  const { die1, die2, total } = rollDice();
+  game.botTarget = { die1, die2, total };
+  
+  for (const player of game.players) {
+    if (!player.isEliminated) {
+      player.hasRolled = false;
+      player.die1 = null;
+      player.die2 = null;
+      player.total = null;
+      player.isIn = null;
+    }
+  }
+  
+  await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
+  
+  const diceDisplay = formatDiceTags(die1, die2);
+  
+  return {
+    round: game.currentRound,
+    botDice: diceDisplay,
+    botTarget: total,
+    message: `ROUND #${game.currentRound}: Players. !r to ROLL. 20 seconds.`,
+    targetMessage: `Bot rolled: ${diceDisplay} Your target is ${total}!`
   };
 };
 
@@ -409,6 +445,10 @@ const rollPlayerDice = async (roomId, userId, username) => {
     return { success: false, message: 'Game not in rolling phase.' };
   }
   
+  if (!game.botTarget) {
+    return { success: false, message: 'Round not started yet.' };
+  }
+  
   const player = game.players.find(p => p.userId == userId && !p.isEliminated);
   if (!player) {
     return { success: false, message: 'You are not in this game or have been eliminated.' };
@@ -424,13 +464,12 @@ const rollPlayerDice = async (roomId, userId, username) => {
   player.die1 = die1;
   player.die2 = die2;
   player.total = total;
-  
-  const isImmune = isBalakSix(die1, die2);
-  player.hasImmunity = isImmune;
+  player.isIn = total >= game.botTarget.total;
   
   await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
   
-  const diceEmoji = formatDiceRoll(die1, die2);
+  const diceDisplay = formatDiceTags(die1, die2);
+  const status = player.isIn ? 'IN!' : 'OUT!';
   
   const activePlayers = game.players.filter(p => !p.isEliminated);
   const allRolled = activePlayers.every(p => p.hasRolled);
@@ -441,12 +480,10 @@ const rollPlayerDice = async (roomId, userId, username) => {
     die1,
     die2,
     total,
-    diceEmoji,
-    isImmune,
+    diceDisplay,
+    isIn: player.isIn,
     allRolled,
-    message: isImmune 
-      ? `Bot rolls - ${username}: ${diceEmoji} = immunity for the next round!`
-      : `Bot rolls - ${username}: ${diceEmoji} IN!`
+    message: `${username} rolls: ${diceDisplay} ${status}`
   };
 };
 
@@ -460,6 +497,8 @@ const autoRollForTimeout = async (roomId) => {
   const game = JSON.parse(gameData);
   const results = [];
   
+  if (!game.botTarget) return [];
+  
   const activePlayers = game.players.filter(p => !p.isEliminated && !p.hasRolled);
   
   for (const player of activePlayers) {
@@ -469,22 +508,19 @@ const autoRollForTimeout = async (roomId) => {
     player.die1 = die1;
     player.die2 = die2;
     player.total = total;
+    player.isIn = total >= game.botTarget.total;
     
-    const isImmune = isBalakSix(die1, die2);
-    player.hasImmunity = isImmune;
-    
-    const diceEmoji = formatDiceRoll(die1, die2);
+    const diceDisplay = formatDiceTags(die1, die2);
+    const status = player.isIn ? 'IN!' : 'OUT!';
     
     results.push({
       username: player.username,
       die1,
       die2,
       total,
-      diceEmoji,
-      isImmune,
-      message: isImmune 
-        ? `Bot rolls - ${player.username}: ${diceEmoji} = immunity for the next round!`
-        : `Bot rolls - ${player.username}: ${diceEmoji} IN!`
+      diceDisplay,
+      isIn: player.isIn,
+      message: `${player.username} rolls: ${diceDisplay} ${status}`
     });
   }
   
@@ -506,55 +542,31 @@ const tallyRound = async (roomId) => {
   
   const activePlayers = game.players.filter(p => !p.isEliminated);
   
-  if (activePlayers.length <= 1) {
-    return await finalizeGame(roomId);
-  }
+  const survivors = activePlayers.filter(p => p.isIn === true);
+  const eliminated = activePlayers.filter(p => p.isIn === false);
   
-  const nonImmunePlayers = activePlayers.filter(p => !p.hasImmunity);
-  
-  if (nonImmunePlayers.length === 0) {
+  if (survivors.length === 0) {
     for (const player of activePlayers) {
       player.hasRolled = false;
       player.die1 = null;
       player.die2 = null;
       player.total = null;
-      player.hasImmunity = false;
+      player.isIn = null;
     }
-    game.currentRound++;
+    game.botTarget = null;
+    
     await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
     
     return {
-      allImmune: true,
-      message: 'All players have immunity! Re-rolling...',
-      nextRound: game.currentRound
+      allFailed: true,
+      message: "Nobody won, so we'll try again!",
+      nextRound: game.currentRound + 1
     };
   }
   
-  const lowestTotal = Math.min(...nonImmunePlayers.map(p => p.total));
-  
-  const losers = nonImmunePlayers.filter(p => p.total === lowestTotal);
-  
-  if (losers.length > 1) {
-    for (const loser of losers) {
-      loser.hasRolled = false;
-      loser.die1 = null;
-      loser.die2 = null;
-      loser.total = null;
-    }
-    await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
-    
-    const tiedPlayers = losers.map(p => p.username).join(', ');
-    return {
-      tie: true,
-      tiedPlayers: losers.map(p => ({ userId: p.userId, username: p.username })),
-      lowestTotal,
-      message: `Tie! ${tiedPlayers} both rolled ${lowestTotal}. Re-rolling to determine loser...`,
-      followUp: `Tie-breaker: ${tiedPlayers}, use !r to roll again.`
-    };
+  for (const player of eliminated) {
+    player.isEliminated = true;
   }
-  
-  const loser = losers[0];
-  loser.isEliminated = true;
   
   const remainingPlayers = game.players.filter(p => !p.isEliminated);
   
@@ -563,28 +575,20 @@ const tallyRound = async (roomId) => {
     return await finalizeGame(roomId);
   }
   
-  for (const player of game.players) {
-    if (!player.isEliminated) {
-      player.hasRolled = false;
-      player.die1 = null;
-      player.die2 = null;
-      player.total = null;
-      player.hasImmunity = false;
-    }
-  }
+  game.botTarget = null;
   
-  game.currentRound++;
   await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
   
-  const diceEmoji = formatDiceRoll(loser.die1, loser.die2);
+  const playerNames = remainingPlayers.map(p => p.username).join(', ');
   
   return {
-    eliminated: [`Bot rolls - ${loser.username}: ${diceEmoji} OUT!`],
-    eliminatedPlayer: loser.username,
-    lowestTotal,
-    nextRound: game.currentRound,
+    roundComplete: true,
+    eliminatedCount: eliminated.length,
     remainingPlayers: remainingPlayers.length,
-    followUp: `Players, get ready for round ${game.currentRound}!`
+    playerNames,
+    message: `Players are: ${playerNames}`,
+    followUp: `Players [${remainingPlayers.length}], next round starts in 3 seconds.`,
+    nextRound: game.currentRound + 1
   };
 };
 
@@ -621,6 +625,9 @@ const finalizeGame = async (roomId) => {
     await redis.del(gameKey);
   }, 60000);
   
+  const mcrWinnings = (winnings / 1000).toFixed(1);
+  const mcrEntry = (MIN_ENTRY / 1000).toFixed(1);
+  
   return {
     gameOver: true,
     winnerId: winner.userId,
@@ -629,9 +636,8 @@ const finalizeGame = async (roomId) => {
     winnings,
     houseFee,
     newBalance: addResult.balance,
-    message: `Dice game over! ${winner.username} WINS ${winnings} IDR!`,
-    followUp: `CONGRATS!`,
-    playAgain: `Play now: !start to enter. Cost: ${MIN_ENTRY} IDR.\nFor custom entry, !start [amount]`
+    message: `Dice game over! ${winner.username} WINS ${mcrWinnings} MCR!\nCONGRATS!`,
+    playAgain: `Play now: !start to enter. Cost: ${mcrEntry} MCR.\nFor custom entry, !start [amount]`
   };
 };
 
@@ -669,6 +675,7 @@ module.exports = {
   MAX_ENTRY,
   HOUSE_FEE_PERCENT,
   rollDice,
+  formatDiceTags,
   getDiceEmoji,
   getDiceCode,
   formatDiceRoll,
@@ -688,6 +695,7 @@ module.exports = {
   startGame,
   joinGame,
   beginGame,
+  startNextRound,
   rollPlayerDice,
   autoRollForTimeout,
   tallyRound,
