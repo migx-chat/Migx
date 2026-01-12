@@ -275,7 +275,7 @@ router.post('/tag', async (req, res) => {
     res.json({
       success: true,
       tag: result.tag,
-      message: `Successfully tagged ${targetUsername} with ${merchantTagService.TAG_AMOUNT} IDR`
+      message: `Successfully tagged ${targetUsername} with ${merchantTagService.TAG_AMOUNT} COINS`
     });
   } catch (error) {
     console.error('Tag user error:', error);
@@ -374,7 +374,7 @@ router.delete('/tag/:userId/:tagId', async (req, res) => {
     res.json({
       success: true,
       refundedAmount: result.refundedAmount,
-      message: `Tag removed. ${result.refundedAmount} IDR refunded to your account.`
+      message: `Tag removed. ${result.refundedAmount} COINS refunded to your account.`
     });
   } catch (error) {
     console.error('Remove tag error:', error);

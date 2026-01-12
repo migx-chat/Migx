@@ -20,8 +20,8 @@ const runPayoutJob = async () => {
     if (result.success) {
       if (result.processed > 0) {
         console.log(`[COMMISSION PAYOUT JOB] Processed ${result.processed} commissions`);
-        console.log(`[COMMISSION PAYOUT JOB] Merchant payouts: ${result.totalMerchantPayout} IDR`);
-        console.log(`[COMMISSION PAYOUT JOB] User payouts: ${result.totalUserPayout} IDR`);
+        console.log(`[COMMISSION PAYOUT JOB] Merchant payouts: ${result.totalMerchantPayout} COINS`);
+        console.log(`[COMMISSION PAYOUT JOB] User payouts: ${result.totalUserPayout} COINS`);
         console.log(`[COMMISSION PAYOUT JOB] Batch ID: ${result.batchId}`);
       } else {
         console.log('[COMMISSION PAYOUT JOB] No matured commissions to process');

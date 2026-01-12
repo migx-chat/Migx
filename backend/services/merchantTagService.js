@@ -55,7 +55,7 @@ const tagUser = async (merchantUserId, targetUsername) => {
     const merchantBalance = await creditService.getBalance(merchantUserId);
     if (merchantBalance < TAG_AMOUNT) {
       await dbClient.query('ROLLBACK');
-      return { success: false, error: `Insufficient credits. You need ${TAG_AMOUNT} IDR` };
+      return { success: false, error: `Insufficient credits. You need ${TAG_AMOUNT} COINS` };
     }
     
     const slotResult = await dbClient.query(
@@ -68,7 +68,7 @@ const tagUser = async (merchantUserId, targetUsername) => {
       merchantUserId,
       TAG_AMOUNT,
       'merchant_tag',
-      `Tagged user ${targetUser.username} with ${TAG_AMOUNT} IDR`
+      `Tagged user ${targetUser.username} with ${TAG_AMOUNT} COINS`
     );
     
     if (!deductResult.success) {

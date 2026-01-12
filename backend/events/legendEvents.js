@@ -308,7 +308,7 @@ const handleLegendCommand = async (io, socket, data) => {
     if (isNaN(betAmount) || betAmount < legendService.MIN_BET) {
       socket.emit('system:message', {
         roomId,
-        message: `Minimum bet is ${legendService.MIN_BET} IDR`,
+        message: `Minimum bet is ${legendService.MIN_BET} COINS`,
         timestamp: new Date().toISOString(),
         type: 'warning'
       });
@@ -318,7 +318,7 @@ const handleLegendCommand = async (io, socket, data) => {
     if (userBalance < betAmount) {
       socket.emit('system:message', {
         roomId,
-        message: `Not enough credits. Your balance: ${userBalance} IDR`,
+        message: `Not enough credits. Your balance: ${userBalance} COINS`,
         timestamp: new Date().toISOString(),
         type: 'warning'
       });

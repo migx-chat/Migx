@@ -142,7 +142,7 @@ module.exports = (io, socket) => {
             socket.emit('chat:message', {
               id: generateMessageId(),
               roomId,
-              message: `CONGRATULATIONS You have earned ${result.amount} IDR`,
+              message: `CONGRATULATIONS You have earned ${result.amount} COINS`,
               messageType: 'cmd',
               type: 'cmd',
               messageColor: '#00FF00',
@@ -520,7 +520,7 @@ module.exports = (io, socket) => {
             if (newBalance === null) {
               socket.emit('system:message', {
                 roomId,
-                message: `Not enough credits. Gift costs ${gift.price} IDR.`,
+                message: `Not enough credits. Gift costs ${gift.price} COINS.`,
                 timestamp: new Date().toISOString(),
                 type: 'warning'
               });
@@ -673,7 +673,7 @@ module.exports = (io, socket) => {
             if (newBalance === null) {
               socket.emit('system:message', {
                 roomId,
-                message: `Not enough credits. Shower costs ${totalCost} IDR (${recipients.length} users × ${gift.price} IDR).`,
+                message: `Not enough credits. Shower costs ${totalCost} COINS (${recipients.length} users × ${gift.price} COINS).`,
                 timestamp: new Date().toISOString(),
                 type: 'warning'
               });

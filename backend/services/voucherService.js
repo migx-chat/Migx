@@ -275,7 +275,7 @@ const broadcastVoucherAnnouncement = async (voucher) => {
     return;
   }
   
-  const message = `🎁 FREE CREDIT!! Total IDR ${voucher.totalPool.toLocaleString()}! CMD type /c ${voucher.code} to claim`;
+  const message = `🎁 FREE CREDIT!! Total ${voucher.totalPool.toLocaleString()} COINS! CMD type /c ${voucher.code} to claim`;
   
   const announcement = {
     id: generateMessageId(),
@@ -324,7 +324,7 @@ const broadcastVoucherAnnouncement = async (voucher) => {
     console.error('Error broadcasting to rooms:', error);
   }
   
-  console.log(`📢 Voucher broadcast: ${voucher.code} - Pool IDR ${voucher.totalPool} for ${VOUCHER_CONFIG.maxClaimers} users`);
+  console.log(`📢 Voucher broadcast: ${voucher.code} - Pool ${voucher.totalPool} COINS for ${VOUCHER_CONFIG.maxClaimers} users`);
 };
 
 const startVoucherGenerator = (io) => {
@@ -345,7 +345,7 @@ const startVoucherGenerator = (io) => {
   
   voucherInterval = setInterval(generateAndBroadcast, VOUCHER_CONFIG.intervalMinutes * 60 * 1000);
   
-  console.log(`🎫 Voucher generator started - every ${VOUCHER_CONFIG.intervalMinutes} minutes, pool: ${VOUCHER_CONFIG.totalPool} IDR`);
+  console.log(`🎫 Voucher generator started - every ${VOUCHER_CONFIG.intervalMinutes} minutes, pool: ${VOUCHER_CONFIG.totalPool} COINS`);
 };
 
 const stopVoucherGenerator = () => {

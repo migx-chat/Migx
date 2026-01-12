@@ -2,7 +2,7 @@ const { getRedisClient } = require('../redis');
 
 const VOTE_KICK_DURATION = 60; // 60 seconds
 const VOTE_KICK_COOLDOWN = 120; // 2 minutes
-const VOTE_KICK_PAYMENT = 500; // 500 IDR to initiate vote kick
+const VOTE_KICK_PAYMENT = 500; // 500 COINS to initiate vote kick
 const VOTE_UPDATE_INTERVALS = [60, 40, 20, 0];
 
 const activeVotes = new Map();
@@ -26,13 +26,13 @@ async function startVoteKick(io, roomId, starterUsername, targetUsername, roomUs
     return { success: false, error: 'A vote to kick this user is already in progress.' };
   }
 
-  // Check and deduct payment (500 IDR)
+  // Check and deduct payment (500 COINS)
   const userService = require('../services/userService');
   const starterCredits = await userService.getUserCredits(starterUserId);
   if (starterCredits < VOTE_KICK_PAYMENT) {
     return { 
       success: false, 
-      error: `Not enough credits. Need IDR 500 to start vote kick (you have IDR ${starterCredits}).`,
+      error: `Not enough credits. Need 500 COINS to start vote kick (you have ${starterCredits} COINS).`,
       insufficientCredit: true
     };
   }

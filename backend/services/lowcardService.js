@@ -272,14 +272,14 @@ const startGame = async (roomId, userId, username, amount) => {
   const requestedAmount = parseInt(amount) || minEntry;
   
   if (requestedAmount < minEntry) {
-    return { success: false, message: `Minimal ${minEntry.toLocaleString()} IDR to start game.` };
+    return { success: false, message: `Minimal ${minEntry.toLocaleString()} COINS to start game.` };
   }
   
   const entryAmount = Math.min(MAX_ENTRY, requestedAmount);
   
   const deductResult = await deductCredits(userId, entryAmount, username, `LowCard Bet - Start game`);
   if (!deductResult.success) {
-    return { success: false, message: `Not enough credits. You need ${entryAmount} IDR to start.` };
+    return { success: false, message: `Not enough credits. You need ${entryAmount} COINS to start.` };
   }
   
   const gameId = Date.now();
@@ -316,7 +316,7 @@ const startGame = async (roomId, userId, username, amount) => {
     success: true,
     gameId,
     newBalance: deductResult.balance,
-    message: `LowCard started by ${username}. Enter !j to join the game. Cost: ${entryAmount}.0 IDR [30s]`
+    message: `LowCard started by ${username}. Enter !j to join the game. Cost: ${entryAmount}.0 COINS [30s]`
   };
 };
 
@@ -346,7 +346,7 @@ const joinGame = async (roomId, userId, username) => {
   
   const deductResult = await deductCredits(userId, game.entryAmount, username, `LowCard Bet - Join game`);
   if (!deductResult.success) {
-    return { success: false, message: `Not enough credits. Entry costs ${game.entryAmount} IDR.` };
+    return { success: false, message: `Not enough credits. Entry costs ${game.entryAmount} COINS.` };
   }
   
   game.players.push({
@@ -574,7 +574,7 @@ const tallyRound = async (roomId) => {
     const commission = Math.floor(game.pot * 0.05);
     const winnings = game.pot - commission;
     
-    const creditResult = await addCredits(winner.userId, winnings, winner.username, `LowCard Win - Pot ${game.pot} IDR`);
+    const creditResult = await addCredits(winner.userId, winnings, winner.username, `LowCard Win - Pot ${game.pot} COINS`);
     
     await query(
       `UPDATE lowcard_games SET status = 'finished', winner_id = $1, winner_username = $2, pot_amount = $3, finished_at = NOW()
@@ -597,8 +597,8 @@ const tallyRound = async (roomId) => {
       winnerId: winner.userId,
       winnings,
       newBalance: creditResult.balance,
-      message: `LowCard game over! ${winner.username} WINS ${winnings.toFixed(1)} IDR! CONGRATS!`,
-      followUp: `Play now: !start to enter. Cost: ${game.entryAmount}.0 IDR. For custom entry, !start [amount]`
+      message: `LowCard game over! ${winner.username} WINS ${winnings.toFixed(1)} COINS! CONGRATS!`,
+      followUp: `Play now: !start to enter. Cost: ${game.entryAmount}.0 COINS. For custom entry, !start [amount]`
     };
   }
   

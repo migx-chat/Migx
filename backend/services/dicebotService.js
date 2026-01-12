@@ -31,7 +31,7 @@ const isDoubleSix = (die1, die2) => {
   return die1 === 6 && die2 === 6;
 };
 
-const formatIDR = (amount) => {
+const formatCoins = (amount) => {
   return amount.toLocaleString('id-ID');
 };
 
@@ -262,14 +262,14 @@ const startGame = async (roomId, userId, username, amount) => {
   const requestedAmount = parseInt(amount) || MIN_ENTRY;
   
   if (requestedAmount < MIN_ENTRY) {
-    return { success: false, message: `Minimal ${formatIDR(MIN_ENTRY)} IDR to start game.` };
+    return { success: false, message: `Minimal ${formatCoins(MIN_ENTRY)} COINS to start game.` };
   }
   
   const entryAmount = Math.min(MAX_ENTRY, requestedAmount);
   
   const deductResult = await deductCredits(userId, entryAmount, username, `DiceBot Bet - Start game`);
   if (!deductResult.success) {
-    return { success: false, message: `Not enough credits. You need ${formatIDR(entryAmount)} IDR to start.` };
+    return { success: false, message: `Not enough credits. You need ${formatCoins(entryAmount)} COINS to start.` };
   }
   
   const gameId = Date.now();
@@ -306,7 +306,7 @@ const startGame = async (roomId, userId, username, amount) => {
     success: true,
     gameId,
     newBalance: deductResult.balance,
-    message: `Game started by ${username}. Enter !j to join the game. Cost: ${formatIDR(entryAmount)} IDR [30s]`
+    message: `Game started by ${username}. Enter !j to join the game. Cost: ${formatCoins(entryAmount)} COINS [30s]`
   };
 };
 
@@ -336,7 +336,7 @@ const joinGame = async (roomId, userId, username) => {
   
   const deductResult = await deductCredits(userId, game.entryAmount, username, `DiceBot Bet - Join game`);
   if (!deductResult.success) {
-    return { success: false, message: `Not enough credits. Entry costs ${formatIDR(game.entryAmount)} IDR.` };
+    return { success: false, message: `Not enough credits. Entry costs ${formatCoins(game.entryAmount)} COINS.` };
   }
   
   game.players.push({
@@ -680,7 +680,7 @@ const finalizeGame = async (roomId) => {
   const houseFee = Math.floor(game.pot * HOUSE_FEE_PERCENT / 100);
   const winnings = game.pot - houseFee;
   
-  const addResult = await addCredits(winner.userId, winnings, winner.username, `DiceBot Win - ${winnings} IDR`);
+  const addResult = await addCredits(winner.userId, winnings, winner.username, `DiceBot Win - ${winnings} COINS`);
   
   game.status = 'finished';
   game.winnerId = winner.userId;
@@ -703,8 +703,8 @@ const finalizeGame = async (roomId) => {
     winnings,
     houseFee,
     newBalance: addResult.balance,
-    message: `Dice game over! ${winner.username} WINS ${formatIDR(winnings)} IDR!\nCONGRATS!`,
-    playAgain: `Play now: !start to enter. Cost: ${formatIDR(MIN_ENTRY)} IDR.\nFor custom entry, !start [amount]`
+    message: `Dice game over! ${winner.username} WINS ${formatCoins(winnings)} COINS!\nCONGRATS!`,
+    playAgain: `Play now: !start to enter. Cost: ${formatCoins(MIN_ENTRY)} COINS.\nFor custom entry, !start [amount]`
   };
 };
 

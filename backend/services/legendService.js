@@ -106,7 +106,7 @@ const placeBet = async (roomId, userId, username, groupCode, amount) => {
   
   const betAmount = parseInt(amount);
   if (isNaN(betAmount) || betAmount < MIN_BET) {
-    return { success: false, error: `Minimum bet is ${MIN_BET} IDR` };
+    return { success: false, error: `Minimum bet is ${MIN_BET} COINS` };
   }
   
   const betData = {

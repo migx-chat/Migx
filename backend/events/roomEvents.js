@@ -988,7 +988,7 @@ module.exports = (io, socket) => {
             id: generateMessageId(),
             roomId,
             username: room.name,
-            message: `✅ You started a vote to kick ${targetUsername}. Paid 500 IDR. ${result.votesNeeded - 1} votes needed to kick.`,
+            message: `✅ You started a vote to kick ${targetUsername}. Paid 500 COINS. ${result.votesNeeded - 1} votes needed to kick.`,
             timestamp: new Date().toISOString(),
             type: 'notice',
             messageType: 'cmdKick',

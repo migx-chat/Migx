@@ -151,7 +151,7 @@ const transferCredits = async (fromUserId, toUserId, amount, description = null,
     
     // 🔔 Send notification to recipient
     try {
-      const notificationMessage = `You have received credit of ${amount.toLocaleString()} IDR from ${sender.username}`;
+      const notificationMessage = `You have received credit of ${amount.toLocaleString()} COINS from ${sender.username}`;
       await client.query(
         `INSERT INTO notifications (user_id, type, message, data)
          VALUES ($1, 'credit', $2, $3)`,
