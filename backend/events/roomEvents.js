@@ -162,8 +162,11 @@ module.exports = (io, socket) => {
           console.log('Moderator check error:', modErr.message);
         }
         
-        // Block entry if below minimum level and not owner/moderator
-        if (!isOwner && !isModerator && userLevel < room.min_level) {
+        // Check if user has special role that bypasses level requirement
+        const hasSpecialRole = role === 'admin' || role === 'super_admin' || role === 'cs';
+        
+        // Block entry if below minimum level and not owner/moderator/special role
+        if (!isOwner && !isModerator && !hasSpecialRole && userLevel < room.min_level) {
           socket.emit('system:message', {
             roomId,
             message: `Unable to join chat room. Minimum level is ${room.min_level}. Your level: ${userLevel}`,

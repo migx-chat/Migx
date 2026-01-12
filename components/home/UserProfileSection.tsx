@@ -274,7 +274,7 @@ export function UserProfileSection({
             </View>
           </View>
           <Text style={styles.creditBalance}>
-            [Rp {formatCredits(credits)}]
+            [coins {formatCredits(credits)}]
           </Text>
         </View>
       </View>
