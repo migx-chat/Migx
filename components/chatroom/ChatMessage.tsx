@@ -322,8 +322,18 @@ export const ChatMessage = React.memo(({
       if (match) {
         const giftImageUrl = match[1];
         const isImageUrl = giftImageUrl.startsWith('http');
-        const beforeGift = message.split(giftImageRegex)[0];
-        const afterGift = message.split(giftImageRegex)[2];
+        const parts = message.split(giftImageRegex);
+        const beforeGift = parts[0];
+        const afterGift = parts[2];
+        
+        // Check for comment (it starts with " - ")
+        let textContent = afterGift;
+        let comment = '';
+        const dashIndex = afterGift.indexOf(' - ');
+        if (dashIndex !== -1) {
+          textContent = afterGift.substring(0, dashIndex);
+          comment = afterGift.substring(dashIndex);
+        }
         
         return (
           <View style={[styles.messageContainer, styles.giftMessageContainer]}>
@@ -342,8 +352,13 @@ export const ChatMessage = React.memo(({
               </Text>
             )}
             <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: textColor }, textShadowStyle]}>
-              {afterGift}
+              {textContent}
             </Text>
+            {comment ? (
+              <Text style={[styles.cmdText, dynamicStyles.cmdText, { color: textColor, fontStyle: 'italic' }, textShadowStyle]}>
+                {comment}
+              </Text>
+            ) : null}
           </View>
         );
       }
