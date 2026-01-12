@@ -324,24 +324,41 @@ const getCommissionHistory = async (merchantUserId, limit = 50, offset = 0) => {
        JOIN merchant_tags mt ON mtc.merchant_tag_id = mt.id
        JOIN users u ON mtc.tagged_user_id = u.id
        JOIN merchant_tag_spends mts ON mtc.merchant_tag_spend_id = mts.id
-       WHERE mt.merchant_user_id = $1 AND mtc.status = 'paid'
-       ORDER BY mtc.paid_at DESC
+       WHERE mt.merchant_user_id = $1
+       ORDER BY mtc.created_at DESC
        LIMIT $2 OFFSET $3`,
       [merchantUserId, limit, offset]
     );
     
     const totalResult = await query(
-      `SELECT COALESCE(SUM(mtc.merchant_commission), 0) as total_paid
+      `SELECT 
+         COALESCE(SUM(CASE WHEN mtc.status = 'paid' THEN mtc.merchant_commission ELSE 0 END), 0) as total_paid,
+         COALESCE(SUM(CASE WHEN mtc.status = 'pending' THEN mtc.merchant_commission ELSE 0 END), 0) as total_pending,
+         COALESCE(SUM(mtc.merchant_commission), 0) as total_all
        FROM merchant_tag_commissions mtc
        JOIN merchant_tags mt ON mtc.merchant_tag_id = mt.id
-       WHERE mt.merchant_user_id = $1 AND mtc.status = 'paid'`,
+       WHERE mt.merchant_user_id = $1`,
       [merchantUserId]
     );
     
+    const commissions = result.rows.map(c => ({
+      id: c.id,
+      username: c.tagged_username,
+      gameType: c.game_type,
+      spendAmount: parseInt(c.spend_amount),
+      merchantCommission: parseInt(c.merchant_commission),
+      status: c.status,
+      matureAt: c.mature_at,
+      paidAt: c.paid_at,
+      createdAt: c.created_at
+    }));
+    
     return {
       success: true,
-      commissions: result.rows,
+      commissions,
       totalPaid: parseInt(totalResult.rows[0]?.total_paid || 0),
+      totalPending: parseInt(totalResult.rows[0]?.total_pending || 0),
+      totalCommission: parseInt(totalResult.rows[0]?.total_all || 0),
       count: result.rows.length
     };
   } catch (error) {

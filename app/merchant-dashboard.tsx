@@ -21,6 +21,27 @@ interface DashboardData {
   totalRechargeThisMonth: number;
 }
 
+interface TaggedUser {
+  id: number;
+  slot: number;
+  username: string;
+  amount: number;
+  remainingBalance: number;
+  totalSpent: number;
+  status: string;
+  taggedAt: string;
+}
+
+interface TagCommission {
+  id: number;
+  username: string;
+  spendAmount: number;
+  merchantCommission: number;
+  status: string;
+  matureAt: string;
+  createdAt: string;
+}
+
 interface Commission {
   id: number;
   username: string;
@@ -54,8 +75,11 @@ export default function MerchantDashboard() {
   const [rechargeHistory, setRechargeHistory] = useState<RechargeHistory[]>([]);
   const [transferStatus, setTransferStatus] = useState<TransferStatus | null>(null);
   const [totalCommission, setTotalCommission] = useState(0);
-  const [activeTab, setActiveTab] = useState<'overview' | 'commissions' | 'recharge'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'commissions' | 'recharge' | 'tags'>('overview');
   const [userId, setUserId] = useState<string | null>(null);
+  const [taggedUsers, setTaggedUsers] = useState<TaggedUser[]>([]);
+  const [tagCommissions, setTagCommissions] = useState<TagCommission[]>([]);
+  const [totalTagCommission, setTotalTagCommission] = useState(0);
 
   useEffect(() => {
     loadData();
@@ -77,11 +101,13 @@ export default function MerchantDashboard() {
       const token = await AsyncStorage.getItem('auth_token');
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [dashboardRes, commissionsRes, rechargeRes, transferRes] = await Promise.all([
+      const [dashboardRes, commissionsRes, rechargeRes, transferRes, tagsRes, tagCommRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/merchant/dashboard/${uid}`, { headers }),
         axios.get(`${API_BASE_URL}/api/merchant/commissions/${uid}`, { headers }),
         axios.get(`${API_BASE_URL}/api/merchant/recharge-history/${uid}`, { headers }),
-        axios.get(`${API_BASE_URL}/api/merchant/transfer-status/${uid}`, { headers }).catch(() => ({ data: { success: false } }))
+        axios.get(`${API_BASE_URL}/api/merchant/transfer-status/${uid}`, { headers }).catch(() => ({ data: { success: false } })),
+        axios.get(`${API_BASE_URL}/api/merchant/tags/${uid}`, { headers }).catch(() => ({ data: { success: false, tags: [] } })),
+        axios.get(`${API_BASE_URL}/api/merchant/tag-commissions/history/${uid}`, { headers }).catch(() => ({ data: { success: false, commissions: [], totalCommission: 0 } }))
       ]);
 
       if (dashboardRes.data.success) {
@@ -99,6 +125,15 @@ export default function MerchantDashboard() {
       
       if (transferRes.data.success) {
         setTransferStatus(transferRes.data);
+      }
+
+      if (tagsRes.data.success) {
+        setTaggedUsers(tagsRes.data.tags || []);
+      }
+
+      if (tagCommRes.data.success) {
+        setTagCommissions(tagCommRes.data.commissions || []);
+        setTotalTagCommission(tagCommRes.data.totalCommission || 0);
       }
     } catch (error) {
       console.error('Error loading merchant dashboard:', error);
@@ -227,8 +262,26 @@ export default function MerchantDashboard() {
             {formatNumber(totalCommission)} Credits
           </Text>
           <Text style={[styles.cardSubtitle, { color: theme.secondary }]}>
-            Komisi 10% dari kemenangan user yang tag @{dashboard.username} saat menang game
+            Komisi dari user yang tag @{dashboard.username} saat menang game
           </Text>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: theme.card }]}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="pricetag-outline" size={24} color="#00BCD4" />
+            <Text style={[styles.cardTitle, { color: theme.text }]}>Komisi Tag Merchant</Text>
+          </View>
+          <Text style={[styles.bigNumber, { color: '#00BCD4' }]}>
+            {formatNumber(totalTagCommission)} Credits
+          </Text>
+          <Text style={[styles.cardSubtitle, { color: theme.secondary }]}>
+            Komisi 1% dari user yang Anda tag saat main game (matang setelah 24 jam)
+          </Text>
+          <View style={styles.tagSummary}>
+            <Text style={[styles.tagCount, { color: theme.text }]}>
+              {taggedUsers.length} user ditag
+            </Text>
+          </View>
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.card }]}>
@@ -336,6 +389,70 @@ export default function MerchantDashboard() {
     />
   );
 
+  const renderTags = () => (
+    <FlatList
+      data={taggedUsers}
+      keyExtractor={(item) => item.id.toString()}
+      contentContainerStyle={styles.listContent}
+      ListHeaderComponent={() => (
+        <View style={[styles.summaryCard, { backgroundColor: '#00BCD420' }]}>
+          <Text style={[styles.summaryLabel, { color: theme.secondary }]}>Total Komisi Tag</Text>
+          <Text style={[styles.summaryValue, { color: '#00BCD4' }]}>
+            {formatNumber(totalTagCommission)} Credits
+          </Text>
+          <Text style={[styles.summarySubtext, { color: theme.secondary }]}>
+            {taggedUsers.length} user ditag | Komisi 1% per user
+          </Text>
+        </View>
+      )}
+      ListEmptyComponent={() => (
+        <View style={styles.emptyState}>
+          <Ionicons name="pricetag-outline" size={48} color={theme.secondary} />
+          <Text style={[styles.emptyText, { color: theme.secondary }]}>
+            Belum ada user yang ditag
+          </Text>
+          <Text style={[styles.emptySubtext, { color: theme.secondary }]}>
+            Ketik /tag [username] di chat untuk tag user dengan 5000 IDR
+          </Text>
+        </View>
+      )}
+      renderItem={({ item }) => (
+        <View style={[styles.tagItem, { backgroundColor: theme.card }]}>
+          <View style={styles.tagLeft}>
+            <View style={[styles.tagSlotBadge, { backgroundColor: '#00BCD420' }]}>
+              <Text style={{ color: '#00BCD4', fontWeight: '700' }}>#{item.slot}</Text>
+            </View>
+            <View style={styles.tagInfo}>
+              <Text style={[styles.tagUsername, { color: theme.text }]}>{item.username}</Text>
+              <Text style={[styles.tagDate, { color: theme.secondary }]}>
+                Ditag: {new Date(item.taggedAt).toLocaleDateString('id-ID')}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.tagRight}>
+            <Text style={[styles.tagBalance, { color: item.remainingBalance > 0 ? '#4CAF50' : '#F44336' }]}>
+              {formatNumber(item.remainingBalance)} IDR
+            </Text>
+            <Text style={[styles.tagSpent, { color: theme.secondary }]}>
+              Spent: {formatNumber(item.totalSpent)}
+            </Text>
+            <View style={[styles.tagStatusBadge, { 
+              backgroundColor: item.status === 'active' ? '#4CAF5020' : '#F4433620' 
+            }]}>
+              <Text style={{ 
+                color: item.status === 'active' ? '#4CAF50' : '#F44336',
+                fontSize: 10,
+                fontWeight: '600'
+              }}>
+                {item.status === 'active' ? 'ACTIVE' : 'EXHAUSTED'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+    />
+  );
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: theme.background }]}>
@@ -401,11 +518,26 @@ export default function MerchantDashboard() {
               { color: activeTab === 'recharge' ? '#2196F3' : theme.secondary }
             ]}>Recharge</Text>
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'tags' && styles.activeTab]}
+            onPress={() => setActiveTab('tags')}
+          >
+            <Ionicons 
+              name="pricetag-outline" 
+              size={20} 
+              color={activeTab === 'tags' ? '#00BCD4' : theme.secondary} 
+            />
+            <Text style={[
+              styles.tabText, 
+              { color: activeTab === 'tags' ? '#00BCD4' : theme.secondary }
+            ]}>Tags</Text>
+          </TouchableOpacity>
         </View>
 
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'commissions' && renderCommissions()}
         {activeTab === 'recharge' && renderRechargeHistory()}
+        {activeTab === 'tags' && renderTags()}
       </SafeAreaView>
     </View>
   );
@@ -655,5 +787,68 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     minWidth: 40,
     textAlign: 'right',
+  },
+  tagSummary: {
+    marginTop: 8,
+  },
+  tagCount: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  summarySubtext: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  emptySubtext: {
+    fontSize: 12,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  tagItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  tagLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  tagSlotBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tagInfo: {
+    gap: 2,
+  },
+  tagUsername: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  tagDate: {
+    fontSize: 11,
+  },
+  tagRight: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  tagBalance: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  tagSpent: {
+    fontSize: 11,
+  },
+  tagStatusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 2,
   },
 });
