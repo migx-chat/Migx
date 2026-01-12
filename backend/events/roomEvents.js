@@ -37,20 +37,9 @@ const createSystemMessage = (roomId, message) => ({
   type: 'system'
 });
 
-// Helper function to format "has left" message with level and badge
-const formatLeftMessage = (username, level, role) => {
-  const badgeMap = {
-    'super_admin': '[SA]',
-    'admin': '[ADMIN]',
-    'moderator': '[MOD]',
-    'merchant': '[MERCHANT]',
-    'vip': '[VIP]'
-  };
-  
-  const badge = badgeMap[role] || '';
-  if (badge) {
-    return `${username} [${level}] ${badge} has left`;
-  }
+// Helper function to format "has left" message with level
+// Note: Badge images are rendered by frontend based on userType field
+const formatLeftMessage = (username, level) => {
   return `${username} [${level}] has left`;
 };
 
@@ -542,7 +531,7 @@ module.exports = (io, socket) => {
         const userLevel = userLevelData?.level || 1;
         const user = await userService.getUserById(presenceUserId);
         const userType = user?.role || 'normal';
-        const leftMsg = formatLeftMessage(username, userLevel, userType);
+        const leftMsg = formatLeftMessage(username, userLevel);
         const leftMessage = {
           id: `presence-left-${Date.now()}-${Math.random()}`,
           roomId,
@@ -1241,7 +1230,7 @@ module.exports = (io, socket) => {
           const userLevel = userLevelData?.level || 1;
           const user = await userService.getUserById(userId);
           const userType = user?.role || 'normal';
-          const leftMsg = formatLeftMessage(username, userLevel, userType);
+          const leftMsg = formatLeftMessage(username, userLevel);
           
           io.to(`room:${currentRoomId}`).emit('chat:message', {
             id: `presence-left-${Date.now()}-${Math.random()}`,
@@ -1481,7 +1470,7 @@ module.exports = (io, socket) => {
                 const user = await userService.getUserById(userId !== 'unknown' ? userId : null);
                 const userType = user?.role || 'normal';
 
-                const leftMsg = formatLeftMessage(username, userLevel, userType);
+                const leftMsg = formatLeftMessage(username, userLevel);
                 const leftMessage = {
                   id: `presence-left-${Date.now()}-${Math.random()}`,
                   roomId: currentRoomId,
