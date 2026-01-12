@@ -37,6 +37,23 @@ const createSystemMessage = (roomId, message) => ({
   type: 'system'
 });
 
+// Helper function to format "has left" message with level and badge
+const formatLeftMessage = (username, level, role) => {
+  const badgeMap = {
+    'super_admin': '[SA]',
+    'admin': '[ADMIN]',
+    'moderator': '[MOD]',
+    'merchant': '[MERCHANT]',
+    'vip': '[VIP]'
+  };
+  
+  const badge = badgeMap[role] || '';
+  if (badge) {
+    return `${username} [${level}] ${badge} has left`;
+  }
+  return `${username} [${level}] has left`;
+};
+
 const disconnectTimers = new Map();
 
 module.exports = (io, socket) => {
@@ -525,7 +542,7 @@ module.exports = (io, socket) => {
         const userLevel = userLevelData?.level || 1;
         const user = await userService.getUserById(presenceUserId);
         const userType = user?.role || 'normal';
-        const leftMsg = `${username} [${userLevel}] has left`;
+        const leftMsg = formatLeftMessage(username, userLevel, userType);
         const leftMessage = {
           id: `presence-left-${Date.now()}-${Math.random()}`,
           roomId,
@@ -1216,6 +1233,35 @@ module.exports = (io, socket) => {
         const redis = getRedisClient();
         await redis.sRem(`room:users:${currentRoomId}`, username);
 
+        // Broadcast "has left" message with level and badge
+        const isInvisibleAdmin = socket.invisible === true;
+        if (!isInvisibleAdmin) {
+          const room = await roomService.getRoomById(currentRoomId);
+          const userLevelData = await getUserLevel(userId);
+          const userLevel = userLevelData?.level || 1;
+          const user = await userService.getUserById(userId);
+          const userType = user?.role || 'normal';
+          const leftMsg = formatLeftMessage(username, userLevel, userType);
+          
+          io.to(`room:${currentRoomId}`).emit('chat:message', {
+            id: `presence-left-${Date.now()}-${Math.random()}`,
+            roomId: currentRoomId,
+            username: room?.name || 'Room',
+            message: leftMsg,
+            timestamp: new Date().toISOString(),
+            type: 'presence',
+            messageType: 'presence',
+            userType: userType
+          });
+          
+          const updatedUsers = await getRoomPresenceUsers(currentRoomId);
+          io.to(`room:${currentRoomId}`).emit('room:user:left', {
+            roomId: currentRoomId,
+            username,
+            users: updatedUsers
+          });
+        }
+
         console.log(`✅ User ${username} successfully logged out from room ${currentRoomId}`);
       }
     } catch (error) {
@@ -1429,11 +1475,13 @@ module.exports = (io, socket) => {
               // Skip left message for invisible admins
               const isInvisibleAdmin = socket.invisible === true;
               if (!isInvisibleAdmin) {
-                // Get user level for leave message
+                // Get user level and role for leave message
                 const userLevelData = await getUserLevel(userId !== 'unknown' ? userId : null);
                 const userLevel = userLevelData?.level || 1;
+                const user = await userService.getUserById(userId !== 'unknown' ? userId : null);
+                const userType = user?.role || 'normal';
 
-                const leftMsg = `${username} [${userLevel}] has left`;
+                const leftMsg = formatLeftMessage(username, userLevel, userType);
                 const leftMessage = {
                   id: `presence-left-${Date.now()}-${Math.random()}`,
                   roomId: currentRoomId,
@@ -1441,7 +1489,8 @@ module.exports = (io, socket) => {
                   message: leftMsg,
                   timestamp: new Date().toISOString(),
                   type: 'presence',
-                  messageType: 'presence'
+                  messageType: 'presence',
+                  userType: userType
                 };
 
                 io.to(`room:${currentRoomId}`).emit('chat:message', leftMessage);
