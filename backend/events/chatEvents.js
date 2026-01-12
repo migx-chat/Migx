@@ -661,7 +661,7 @@ module.exports = (io, socket) => {
             }
             
             // Get all users in room from Redis
-            const roomParticipants = await redis.smembers(`room:${roomId}:users`);
+            const roomParticipants = await redis.sMembers(`room:${roomId}:users`);
             
             // Filter out sender
             const recipients = roomParticipants.filter(u => u.toLowerCase() !== username.toLowerCase());
