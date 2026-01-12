@@ -10,6 +10,8 @@ const streakService = require('../services/streakService');
 const logger = require('../utils/logger');
 const sessionService = require('../services/sessionService');
 const { getRedisClient } = require('../redis');
+const creditService = require('../services/creditService');
+const { query } = require('../db/db');
 
 // Username validation regex (MIG33 rules)
 const usernameRegex = /^[a-z][a-z0-9._]{5,11}$/;
@@ -98,6 +100,45 @@ router.post('/login', async (req, res, next) => {
       console.error('Error updating streak:', err);
     }
 
+    // 🎁 New account bonus - Give 500 coins on first login
+    let newAccountBonus = null;
+    try {
+      const bonusCheck = await query(
+        'SELECT new_account_bonus_claimed FROM users WHERE id = $1',
+        [user.id]
+      );
+      
+      if (bonusCheck.rows.length > 0 && !bonusCheck.rows[0].new_account_bonus_claimed) {
+        const NEW_ACCOUNT_BONUS = 500;
+        
+        // Add 500 coins to user
+        await creditService.addCredits(user.id, NEW_ACCOUNT_BONUS, 'New account bonus');
+        
+        // Mark bonus as claimed
+        await query(
+          'UPDATE users SET new_account_bonus_claimed = TRUE WHERE id = $1',
+          [user.id]
+        );
+        
+        // Get updated credits
+        const updatedUser = await userService.getUserById(user.id);
+        user.credits = updatedUser.credits;
+        
+        newAccountBonus = {
+          amount: NEW_ACCOUNT_BONUS,
+          message: 'You get 500 coins reward new account'
+        };
+        
+        logger.info('NEW_ACCOUNT_BONUS: User received welcome bonus', { 
+          userId: user.id, 
+          username: user.username,
+          amount: NEW_ACCOUNT_BONUS 
+        });
+      }
+    } catch (err) {
+      console.error('Error processing new account bonus:', err);
+    }
+
     // 🔐 SID-based JWT - Create sessions in Redis
     const deviceId = req.headers['x-device-id'] || null;
     
@@ -170,7 +211,8 @@ router.post('/login', async (req, res, next) => {
         streakReward: streakInfo.reward || 0
       },
       rememberMe: rememberMe || false,
-      streakMessage: streakInfo.message
+      streakMessage: streakInfo.message,
+      newAccountBonus: newAccountBonus
     });
 
   } catch (error) {
