@@ -1595,6 +1595,23 @@ module.exports = (io, socket) => {
       console.log('📤 Sending message with color:', username, usernameColor);
       io.to(`room:${roomId}`).emit('chat:message', messageData);
       
+      // Send ACK to sender for message confirmation
+      socket.emit('chat:ack', { 
+        clientMsgId: clientMsgId || messageData.id,
+        serverId: messageData.id,
+        status: 'sent'
+      });
+      
+      // Save to Redis for quick backlog retrieval (TTL 1 hour)
+      try {
+        const msgKey = `room:messages:${roomId}`;
+        await redis.lpush(msgKey, JSON.stringify(messageData));
+        await redis.ltrim(msgKey, 0, 99); // Keep last 100 messages
+        await redis.expire(msgKey, 3600); // 1 hour TTL
+      } catch (redisErr) {
+        console.error('Error saving message to Redis:', redisErr);
+      }
+      
       // Save message to database for history (async, don't wait)
       // Include clientMsgId for proper deduplication when loading history
       messageService.saveMessage(roomId, userId, username, message, 'chat', clientMsgId || messageData.id)
