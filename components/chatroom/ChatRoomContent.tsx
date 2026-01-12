@@ -22,6 +22,10 @@ interface Message {
   topLikeRewardExpiry?: string;
   bigEmoji?: boolean;
   hasFlags?: boolean;
+  voucherCode?: string;
+  voucherCodeColor?: string;
+  expiresIn?: number;
+  timestamp?: string;
 }
 
 interface ChatRoomContentProps {
@@ -68,7 +72,7 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 85, backg
           usernameColor={item.usernameColor}
           messageColor={item.messageColor}
           message={item.message}
-          timestamp=""
+          timestamp={item.timestamp || ""}
           isSystem={item.isSystem}
           isNotice={item.isNotice}
           isCmd={item.isCmd}
@@ -84,6 +88,9 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 85, backg
           hasBackground={!!backgroundImage}
           bigEmoji={item.bigEmoji}
           hasFlags={item.hasFlags}
+          voucherCode={item.voucherCode}
+          voucherCodeColor={item.voucherCodeColor}
+          expiresIn={item.expiresIn}
         />
       )}
       contentContainerStyle={[styles.container, { paddingTop: totalBottomPadding }]}
