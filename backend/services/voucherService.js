@@ -8,7 +8,7 @@ const VOUCHER_CLAIMED_KEY = (code) => `voucher:claimed:${code}`;
 const VOUCHER_POOL_KEY = 'voucher:pool';
 
 const VOUCHER_CONFIG = {
-  intervalMinutes: 1,  // Changed to 1 minute for testing
+  intervalMinutes: 30,  // Voucher appears every 30 minutes
   expirySeconds: 60,
   totalPool: 500,
   maxClaimers: 40,
