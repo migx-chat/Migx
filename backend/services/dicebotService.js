@@ -2,6 +2,13 @@ const { query } = require('../db/db');
 const { getRedisClient } = require('../redis');
 const logger = require('../utils/logger');
 const merchantTagService = require('./merchantTagService');
+const { 
+  getDiceEmoji, 
+  getDiceCode, 
+  formatDiceRoll, 
+  formatDiceRollEmoji, 
+  isBalakSix 
+} = require('../utils/diceMapping');
 
 const JOIN_TIMEOUT = 30000;
 const ROLL_TIMEOUT = 20000;
@@ -10,21 +17,11 @@ const MIN_ENTRY = 1000;
 const MAX_ENTRY = 100000;
 const HOUSE_FEE_PERCENT = 10;
 
-const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-
 const rollDice = () => {
   const die1 = Math.floor(Math.random() * 6) + 1;
   const die2 = Math.floor(Math.random() * 6) + 1;
   return { die1, die2, total: die1 + die2 };
 };
-
-const getDiceEmoji = (value) => DICE_FACES[value - 1] || '?';
-
-const formatDiceRoll = (die1, die2) => {
-  return `${getDiceEmoji(die1)} ${getDiceEmoji(die2)}`;
-};
-
-const isBalakSix = (die1, die2) => die1 === 6 && die2 === 6;
 
 const getUserCredits = async (userId) => {
   try {
@@ -673,7 +670,9 @@ module.exports = {
   HOUSE_FEE_PERCENT,
   rollDice,
   getDiceEmoji,
+  getDiceCode,
   formatDiceRoll,
+  formatDiceRollEmoji,
   isBalakSix,
   getUserCredits,
   deductCredits,
