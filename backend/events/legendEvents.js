@@ -1,5 +1,6 @@
 const legendService = require('../services/legendService');
 const creditService = require('../services/creditService');
+const merchantTagService = require('../services/merchantTagService');
 const { generateMessageId } = require('../utils/idGenerator');
 
 const activeTimers = new Map();
@@ -324,15 +325,29 @@ const handleLegendCommand = async (io, socket, data) => {
       return true;
     }
     
-    const deductResult = await creditService.deductCredits(userId, betAmount, 'flagbot_bet', `Bet on FlagBot game`);
-    if (!deductResult.success) {
-      socket.emit('system:message', {
-        roomId,
-        message: deductResult.error || "Failed to place bet",
-        timestamp: new Date().toISOString(),
-        type: 'warning'
-      });
-      return true;
+    const taggedBalance = await merchantTagService.getTaggedBalance(userId);
+    let usedTaggedCredits = 0;
+    let remainingAmount = betAmount;
+    
+    if (taggedBalance > 0) {
+      const consumeResult = await merchantTagService.consumeForGame(userId, 'flagbot', betAmount);
+      if (consumeResult.success) {
+        usedTaggedCredits = consumeResult.usedTaggedCredits || 0;
+        remainingAmount = consumeResult.remainingAmount;
+      }
+    }
+    
+    if (remainingAmount > 0) {
+      const deductResult = await creditService.deductCredits(userId, remainingAmount, 'flagbot_bet', `Bet on FlagBot game`);
+      if (!deductResult.success) {
+        socket.emit('system:message', {
+          roomId,
+          message: deductResult.error || "Failed to place bet",
+          timestamp: new Date().toISOString(),
+          type: 'warning'
+        });
+        return true;
+      }
     }
     
     const result = await legendService.placeBet(roomId, userId, username, groupCode, betAmount);

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const merchantService = require('../services/merchantService');
+const merchantTagService = require('../services/merchantTagService');
 const userService = require('../services/userService');
 
 router.post('/create', async (req, res) => {
@@ -254,6 +255,161 @@ router.get('/transfer-status/:userId', async (req, res) => {
   } catch (error) {
     console.error('Get transfer status error:', error);
     res.status(500).json({ error: 'Failed to get transfer status' });
+  }
+});
+
+router.post('/tag', async (req, res) => {
+  try {
+    const { merchantUserId, targetUsername } = req.body;
+    
+    if (!merchantUserId || !targetUsername) {
+      return res.status(400).json({ error: 'Merchant user ID and target username are required' });
+    }
+    
+    const result = await merchantTagService.tagUser(merchantUserId, targetUsername);
+    
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    
+    res.json({
+      success: true,
+      tag: result.tag,
+      message: `Successfully tagged ${targetUsername} with ${merchantTagService.TAG_AMOUNT} IDR`
+    });
+  } catch (error) {
+    console.error('Tag user error:', error);
+    res.status(500).json({ error: 'Failed to tag user' });
+  }
+});
+
+router.get('/tags/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await merchantTagService.getTaggedUsers(userId);
+    
+    if (!result.success) {
+      return res.status(404).json({ error: result.error });
+    }
+    
+    const formattedList = result.tags.map(tag => 
+      `Tag ${tag.slot} [${tag.username}]`
+    );
+    
+    res.json({
+      success: true,
+      tags: result.tags,
+      formattedList,
+      count: result.tags.length
+    });
+  } catch (error) {
+    console.error('Get tagged users error:', error);
+    res.status(500).json({ error: 'Failed to get tagged users' });
+  }
+});
+
+router.get('/tags/:userId/:tagId/spend', async (req, res) => {
+  try {
+    const { tagId } = req.params;
+    const result = await merchantTagService.getTagSpendHistory(tagId);
+    
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Get tag spend history error:', error);
+    res.status(500).json({ error: 'Failed to get spend history' });
+  }
+});
+
+router.get('/tag-commissions/pending/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await merchantTagService.getPendingCommissions(userId);
+    
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Get pending commissions error:', error);
+    res.status(500).json({ error: 'Failed to get pending commissions' });
+  }
+});
+
+router.get('/tag-commissions/history/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+    
+    const result = await merchantTagService.getCommissionHistory(
+      userId,
+      parseInt(limit),
+      parseInt(offset)
+    );
+    
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Get commission history error:', error);
+    res.status(500).json({ error: 'Failed to get commission history' });
+  }
+});
+
+router.delete('/tag/:userId/:tagId', async (req, res) => {
+  try {
+    const { userId, tagId } = req.params;
+    const result = await merchantTagService.removeTag(parseInt(userId), parseInt(tagId));
+    
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    
+    res.json({
+      success: true,
+      refundedAmount: result.refundedAmount,
+      message: `Tag removed. ${result.refundedAmount} IDR refunded to your account.`
+    });
+  } catch (error) {
+    console.error('Remove tag error:', error);
+    res.status(500).json({ error: 'Failed to remove tag' });
+  }
+});
+
+router.get('/tagged-balance/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const balance = await merchantTagService.getTaggedBalance(parseInt(userId));
+    
+    res.json({
+      success: true,
+      taggedBalance: balance
+    });
+  } catch (error) {
+    console.error('Get tagged balance error:', error);
+    res.status(500).json({ error: 'Failed to get tagged balance' });
+  }
+});
+
+router.get('/user-commissions/pending/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await merchantTagService.getUserPendingCommissions(parseInt(userId));
+    
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Get user pending commissions error:', error);
+    res.status(500).json({ error: 'Failed to get pending commissions' });
   }
 });
 

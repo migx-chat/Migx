@@ -9,6 +9,7 @@ const path = require('path'); // Import path module
 const { connectRedis } = require('./redis');
 const { initDatabase } = require('./db/db');
 const { startPresenceCleanup } = require('./jobs/presenceCleanup');
+const { startCommissionPayoutJob } = require('./jobs/commissionPayoutJob');
 const { setSession, setPresence } = require('./utils/redisUtils');
 
 const authRoutes = require('./api/auth.route');
@@ -550,6 +551,10 @@ const startServer = async () => {
       // Start gift queue processor for async DB persistence
       const giftQueueService = require('./services/giftQueueService');
       giftQueueService.startGiftQueueProcessor();
+      
+      // Start merchant tag commission payout job (every hour)
+      startCommissionPayoutJob();
+      console.log('💰 Commission payout job started (interval: 1 hour, 24h maturity)');
       console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║           MIG33 Clone Backend Server                  ║

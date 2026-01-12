@@ -374,6 +374,76 @@ CREATE INDEX IF NOT EXISTS idx_lowcard_players_game_id ON lowcard_players(game_i
 CREATE INDEX IF NOT EXISTS idx_lowcard_players_user_id ON lowcard_players(user_id);
 CREATE INDEX IF NOT EXISTS idx_lowcard_history_winner ON lowcard_history(winner_id);
 
+-- Merchant Tags table (for tagging users with 5000 IDR)
+CREATE TABLE IF NOT EXISTS merchant_tags (
+  id BIGSERIAL PRIMARY KEY,
+  merchant_id BIGINT REFERENCES merchants(id) ON DELETE CASCADE,
+  merchant_user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+  tagged_user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+  tagged_username VARCHAR(50) NOT NULL,
+  tag_slot INT NOT NULL,
+  amount BIGINT DEFAULT 5000,
+  remaining_balance BIGINT DEFAULT 5000,
+  total_spent BIGINT DEFAULT 0,
+  status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'exhausted')),
+  tagged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(merchant_id, tag_slot),
+  UNIQUE(merchant_id, tagged_user_id)
+);
+
+-- Merchant Tag Spends table (tracks game spending from tagged credits)
+CREATE TABLE IF NOT EXISTS merchant_tag_spends (
+  id BIGSERIAL PRIMARY KEY,
+  merchant_tag_id BIGINT REFERENCES merchant_tags(id) ON DELETE CASCADE,
+  merchant_id BIGINT REFERENCES merchants(id) ON DELETE CASCADE,
+  tagged_user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+  game_type VARCHAR(30) NOT NULL CHECK (game_type IN ('lowcard', 'flagbot', 'dice')),
+  spend_amount BIGINT NOT NULL,
+  game_session_id VARCHAR(100),
+  spent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Merchant Tag Commissions table (tracks pending and paid commissions)
+CREATE TABLE IF NOT EXISTS merchant_tag_commissions (
+  id BIGSERIAL PRIMARY KEY,
+  merchant_tag_spend_id BIGINT REFERENCES merchant_tag_spends(id) ON DELETE CASCADE,
+  merchant_tag_id BIGINT REFERENCES merchant_tags(id) ON DELETE CASCADE,
+  merchant_id BIGINT REFERENCES merchants(id) ON DELETE CASCADE,
+  merchant_user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+  tagged_user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+  spend_amount BIGINT NOT NULL,
+  merchant_commission BIGINT NOT NULL,
+  user_commission BIGINT NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'queued', 'paid')),
+  mature_at TIMESTAMP NOT NULL,
+  paid_at TIMESTAMP,
+  payout_batch_id VARCHAR(100),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Merchant Commission Payouts table (audit log for payouts)
+CREATE TABLE IF NOT EXISTS merchant_commission_payouts (
+  id BIGSERIAL PRIMARY KEY,
+  batch_id VARCHAR(100) UNIQUE NOT NULL,
+  merchant_id BIGINT REFERENCES merchants(id) ON DELETE CASCADE,
+  total_merchant_payout BIGINT NOT NULL,
+  total_user_payout BIGINT NOT NULL,
+  commissions_count INT NOT NULL,
+  processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  note TEXT
+);
+
+-- Indexes for merchant tag tables
+CREATE INDEX IF NOT EXISTS idx_merchant_tags_merchant_id ON merchant_tags(merchant_id);
+CREATE INDEX IF NOT EXISTS idx_merchant_tags_tagged_user_id ON merchant_tags(tagged_user_id);
+CREATE INDEX IF NOT EXISTS idx_merchant_tags_status ON merchant_tags(status);
+CREATE INDEX IF NOT EXISTS idx_merchant_tag_spends_merchant_tag_id ON merchant_tag_spends(merchant_tag_id);
+CREATE INDEX IF NOT EXISTS idx_merchant_tag_spends_game_type ON merchant_tag_spends(game_type);
+CREATE INDEX IF NOT EXISTS idx_merchant_tag_commissions_status ON merchant_tag_commissions(status);
+CREATE INDEX IF NOT EXISTS idx_merchant_tag_commissions_mature_at ON merchant_tag_commissions(mature_at);
+CREATE INDEX IF NOT EXISTS idx_merchant_tag_commissions_merchant_id ON merchant_tag_commissions(merchant_id);
+
 -- Insert default rooms (only if they don't exist)
 INSERT INTO rooms (name, description, max_users, room_code) VALUES
   ('Indonesia', 'Welcome to Indonesia room', 100, 'MIGX-00001'),

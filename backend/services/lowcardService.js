@@ -1,6 +1,7 @@
 const { query } = require('../db/db');
 const { getRedisClient } = require('../redis');
 const logger = require('../utils/logger');
+const merchantTagService = require('./merchantTagService');
 
 const CARD_SUITS = ['h', 'd', 'c', 's'];
 const CARD_VALUES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
@@ -74,17 +75,41 @@ const logGameTransaction = async (userId, username, amount, transactionType, des
   }
 };
 
-const deductCredits = async (userId, amount, username = null, reason = null) => {
+const deductCredits = async (userId, amount, username = null, reason = null, gameSessionId = null) => {
   try {
     const redis = getRedisClient();
+    
+    const taggedBalance = await merchantTagService.getTaggedBalance(userId);
+    let usedTaggedCredits = 0;
+    let remainingAmount = amount;
+    
+    if (taggedBalance > 0) {
+      const consumeResult = await merchantTagService.consumeForGame(userId, 'lowcard', amount, gameSessionId);
+      if (consumeResult.success) {
+        usedTaggedCredits = consumeResult.usedTaggedCredits || 0;
+        remainingAmount = consumeResult.remainingAmount;
+        if (usedTaggedCredits > 0) {
+          logger.info('LOWCARD_TAGGED_CREDITS_USED', { userId, usedTaggedCredits, remainingAmount });
+        }
+      }
+    }
+    
+    if (remainingAmount <= 0) {
+      const current = await getUserCredits(userId);
+      if (username && reason) {
+        await logGameTransaction(userId, username, -amount, 'game_bet', `${reason} (Tagged Credits)`);
+      }
+      return { success: true, balance: current, usedTaggedCredits };
+    }
+    
     const current = await getUserCredits(userId);
-    if (current < amount) {
+    if (current < remainingAmount) {
       return { success: false, balance: current };
     }
     
     const result = await query(
       'UPDATE users SET credits = credits - $1 WHERE id = $2 AND credits >= $1 RETURNING credits',
-      [amount, userId]
+      [remainingAmount, userId]
     );
     
     if (result.rows.length === 0) {
@@ -95,10 +120,11 @@ const deductCredits = async (userId, amount, username = null, reason = null) => 
     await redis.set(`credits:${userId}`, newBalance, 'EX', 300);
     
     if (username && reason) {
-      await logGameTransaction(userId, username, -amount, 'game_bet', reason);
+      const desc = usedTaggedCredits > 0 ? `${reason} (${usedTaggedCredits} tagged + ${remainingAmount} regular)` : reason;
+      await logGameTransaction(userId, username, -amount, 'game_bet', desc);
     }
     
-    return { success: true, balance: newBalance };
+    return { success: true, balance: newBalance, usedTaggedCredits };
   } catch (error) {
     logger.error('LOWCARD_DEDUCT_CREDITS_ERROR', error);
     return { success: false, balance: 0 };
