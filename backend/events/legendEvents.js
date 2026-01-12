@@ -293,6 +293,18 @@ const handleLegendCommand = async (io, socket, data) => {
       return true;
     }
     
+    // Check if game is active and in betting phase
+    const currentGame = await legendService.getGameState(roomId);
+    if (!currentGame || currentGame.phase !== 'betting') {
+      socket.emit('system:message', {
+        roomId,
+        message: "No active betting phase. Type !fg to start a game first.",
+        timestamp: new Date().toISOString(),
+        type: 'warning'
+      });
+      return true;
+    }
+    
     const userBalance = await creditService.getBalance(userId);
     const betAmount = parseInt(amount);
     
@@ -319,6 +331,7 @@ const handleLegendCommand = async (io, socket, data) => {
     const taggedBalance = await merchantTagService.getTaggedBalance(userId);
     let usedTaggedCredits = 0;
     let remainingAmount = betAmount;
+    let newBalance = userBalance - betAmount;
     
     if (taggedBalance > 0) {
       const consumeResult = await merchantTagService.consumeForGame(userId, 'flagbot', betAmount);
@@ -339,6 +352,7 @@ const handleLegendCommand = async (io, socket, data) => {
         });
         return true;
       }
+      newBalance = deductResult.newBalance;
     }
     
     const result = await legendService.placeBet(roomId, userId, username, groupCode, betAmount);
@@ -354,7 +368,7 @@ const handleLegendCommand = async (io, socket, data) => {
       return true;
     }
     
-    socket.emit('credits:updated', { balance: deductResult.newBalance });
+    socket.emit('credits:updated', { balance: newBalance });
     
     sendBotMessage(io, roomId, `${username} placed ${betAmount} on ${result.bet.groupName}.\nTotal bid: ${result.totalBid}`);
     return true;
