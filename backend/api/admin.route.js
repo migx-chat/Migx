@@ -467,12 +467,20 @@ router.post('/rooms/create', superAdminMiddleware, async (req, res) => {
     if (!name || !max_users) {
       return res.status(400).json({ error: 'Name and capacity are required' });
     }
+    
+    // Check if non-superadmin is trying to add a game room
+    // The superAdminMiddleware already ensures only super_admin can reach here,
+    // so we just need to make sure 'game' category is allowed.
+    // The user's request is "game bisa di add ke room global", which usually means
+    // category can be 'game' or 'global'.
+    
+    const validCategory = category || 'global';
 
     const result = await db.query(
       `INSERT INTO rooms (name, description, max_users, category, owner_id, owner_name, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
        RETURNING *`,
-      [name, description, max_users, category || 'global', owner_id || null, owner_name || null]
+      [name, description, max_users, validCategory, owner_id || null, owner_name || null]
     );
 
     res.status(201).json({ message: 'Room created successfully', room: result.rows[0] });

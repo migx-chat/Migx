@@ -478,6 +478,18 @@ router.post('/create', async (req, res) => {
       });
     }
     
+    // Check user role - only super_admin can add game category
+    if (category === 'game') {
+      const userService = require('../services/userService');
+      const user = await userService.getUserById(ownerId);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({
+          success: false,
+          error: 'Only Super Admin can add game to a room'
+        });
+      }
+    }
+    
     // Create room dengan maxUsers fixed 25
     const room = await roomService.createRoom(
       name.trim(), 
