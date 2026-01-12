@@ -152,8 +152,8 @@ module.exports = (io, socket) => {
               id: generateMessageId(),
               roomId,
               message: `${roomName}: ${username} has turned off the announcement.`,
-              messageType: 'system',
-              type: 'system',
+              messageType: 'presence',
+              type: 'presence',
               timestamp: new Date().toISOString()
             });
             return;
