@@ -186,13 +186,13 @@ const handleDicebotCommand = async (io, socket, data) => {
         return true;
       }
       
-      if (action === 'on') {
+      if (action === 'add') {
         const result = await dicebotService.addBotToRoom(roomId);
         sendBotMessage(io, roomId, result.message);
         return true;
       }
       
-      if (action === 'off') {
+      if (action === 'remove') {
         clearGameTimers(roomId);
         const result = await dicebotService.removeBotFromRoom(roomId);
         sendBotMessage(io, roomId, result.message);
@@ -201,7 +201,7 @@ const handleDicebotCommand = async (io, socket, data) => {
       
       socket.emit('system:message', {
         roomId,
-        message: 'Usage: /bot dicebot on|off',
+        message: 'Usage: /bot dice add|remove',
         timestamp: new Date().toISOString(),
         type: 'info'
       });

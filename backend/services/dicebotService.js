@@ -189,7 +189,7 @@ const addBotToRoom = async (roomId) => {
     createdAt: new Date().toISOString()
   }), 'EX', 86400 * 7);
   
-  return { success: true, message: '[PVT] DiceBot is running. Min: 1000 IDR' };
+  return { success: true, message: '[PVT] You started the game. Please wait 3s.' };
 };
 
 const removeBotFromRoom = async (roomId) => {
@@ -295,7 +295,7 @@ const startGame = async (roomId, userId, username, amount) => {
     success: true,
     gameId,
     newBalance: deductResult.balance,
-    message: `DiceBot started by ${username}. Enter !j to join the game. Cost: ${entryAmount}.0 IDR [30s]`
+    message: `Game started by ${username}. Enter :j to join the game. Cost: ${entryAmount} IDR [30s]`
   };
 };
 
