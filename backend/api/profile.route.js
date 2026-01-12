@@ -326,7 +326,7 @@ router.delete('/posts/:postId', async (req, res) => {
 
 router.post('/gifts/send', async (req, res) => {
   try {
-    const { senderId, receiverId, giftName, giftIcon, giftCost } = req.body;
+    const { senderId, receiverId, giftName, giftIcon, giftCost, senderUsername } = req.body;
     
     if (!senderId || !receiverId || !giftName) {
       return res.status(400).json({ error: 'Sender ID, receiver ID, and gift name are required' });
@@ -336,6 +336,51 @@ router.post('/gifts/send', async (req, res) => {
     
     if (!gift) {
       return res.status(500).json({ error: 'Failed to send gift' });
+    }
+    
+    // Send real-time notification to receiver
+    try {
+      const notificationService = require('../services/notificationService');
+      const { getRedisClient } = require('../redis');
+      const crypto = require('crypto');
+      const redis = getRedisClient();
+      
+      // Get receiver username
+      const { query } = require('../db/db');
+      const receiverResult = await query('SELECT username FROM users WHERE id = $1', [receiverId]);
+      const receiverUsername = receiverResult.rows[0]?.username;
+      
+      if (receiverUsername) {
+        const giftNotification = {
+          id: crypto.randomBytes(8).toString('hex'),
+          type: 'gift',
+          from: senderUsername || 'Someone',
+          fromUserId: senderId,
+          message: `${senderUsername || 'Someone'} sent you a gift [${giftName}]`,
+          giftName: giftName,
+          giftImage: giftIcon
+        };
+        
+        // Save to Redis for persistence
+        await notificationService.addNotification(receiverUsername, giftNotification);
+        
+        // Emit real-time notification for sound
+        const receiverSocketId = await redis.get(`socket:${receiverUsername}`);
+        if (receiverSocketId) {
+          const { io } = require('../server');
+          if (io) {
+            io.to(receiverSocketId).emit('notif:gift', {
+              ...giftNotification,
+              timestamp: Date.now()
+            });
+          }
+        }
+        
+        console.log(`🎁 Gift notification sent to ${receiverUsername} from ${senderUsername}`);
+      }
+    } catch (notifError) {
+      console.error('⚠️ Error sending gift notification:', notifError.message);
+      // Don't fail the gift request if notification fails
     }
     
     res.json({

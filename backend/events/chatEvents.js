@@ -562,15 +562,27 @@ module.exports = (io, socket) => {
             // Emit balance update to sender immediately
             socket.emit('credits:updated', { balance: newBalance });
             
-            // Emit gift notification to receiver for sound
+            // Save gift notification to Redis for persistence + emit for real-time
+            const notificationService = require('../services/notificationService');
+            const crypto = require('crypto');
+            const giftNotification = {
+              id: crypto.randomBytes(8).toString('hex'),
+              type: 'gift',
+              from: username,
+              fromUserId: userId,
+              message: `${username} sent you a gift [${gift.name}]`,
+              giftName: gift.name,
+              giftImage: gift.image_url
+            };
+            
+            // Save to Redis for persistence (so it appears in notification modal)
+            await notificationService.addNotification(targetUser, giftNotification);
+            
+            // Emit real-time notification for sound
             const receiverSocketId = await redis.get(`socket:${targetUser}`);
             if (receiverSocketId) {
               io.to(receiverSocketId).emit('notif:gift', {
-                type: 'gift',
-                from: username,
-                message: `${username} sent you a gift [${gift.name}]`,
-                giftName: gift.name,
-                giftImage: gift.image_url,
+                ...giftNotification,
                 timestamp: Date.now()
               });
             }
