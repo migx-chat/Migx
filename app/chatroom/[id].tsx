@@ -820,8 +820,22 @@ export default function ChatRoomScreen() {
 
   const handleOpenParticipants = () => setParticipantsModalVisible(!participantsModalVisible);
 
-  const handleUserMenuPress = (username: string) => {
-    console.log('User menu pressed:', username);
+  const handleUserMenuPress = (username: string, action: string) => {
+    console.log('User menu pressed:', username, 'action:', action);
+    
+    if (action === 'kick' && socket && currentActiveRoomId) {
+      // Send kick command via socket
+      socket.emit('chat:message', {
+        roomId: currentActiveRoomId,
+        userId: userInfo?.id,
+        username: currentUsername,
+        message: `/kick ${username}`,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Close modals
+      setParticipantsModalVisible(false);
+    }
   };
 
   const handleMenuItemPress = (action: string) => {
