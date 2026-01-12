@@ -163,13 +163,16 @@ const handleLowcardCommand = async (io, socket, data) => {
         return true;
       }
       
-      const isRoomAdmin = await lowcardService.isRoomAdmin(roomId, userId);
-      if (!isRoomAdmin) {
-        socket.emit('system:message', {
+      const userService = require('../services/userService');
+      const user = await userService.getUserById(userId);
+      if (!user || user.role !== 'super_admin') {
+        socket.emit('chat:message', {
+          id: generateMessageId(),
           roomId,
-          message: 'Only room owner/admin can manage LowCardBot.',
-          timestamp: new Date().toISOString(),
-          type: 'warning'
+          message: 'Error: You dont have permission to perform this action.',
+          messageType: 'error',
+          type: 'error',
+          timestamp: new Date().toISOString()
         });
         return true;
       }

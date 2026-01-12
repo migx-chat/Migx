@@ -126,13 +126,17 @@ const handleLegendCommand = async (io, socket, data) => {
   const lowerMessage = message.toLowerCase().trim();
   
   if (lowerMessage === '/bot flagh add' || lowerMessage === '/add bot flagh') {
-    const hasPermission = await isRoomAdminOrMod(roomId, userId);
-    if (!hasPermission) {
-      socket.emit('system:message', {
+    const userService = require('../services/userService');
+    const user = await userService.getUserById(userId);
+    
+    if (!user || user.role !== 'super_admin') {
+      io.to(`room:${roomId}`).emit('chat:message', {
+        id: generateMessageId(),
         roomId,
-        message: "Only admin, owner, or moderator can add bot",
-        timestamp: new Date().toISOString(),
-        type: 'warning'
+        message: 'Error: You dont have permission to perform this action.',
+        messageType: 'error',
+        type: 'error',
+        timestamp: new Date().toISOString()
       });
       return true;
     }
