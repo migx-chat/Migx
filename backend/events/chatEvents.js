@@ -189,10 +189,18 @@ module.exports = (io, socket) => {
         if (cmdKey === 'gift') {
           const giftName = parts[1];
           const targetUser = parts[2];
+          
+          // Check if there is a message part (after the first dash)
+          const messageIndex = message.indexOf(' - ');
+          let giftMessage = '';
+          if (messageIndex !== -1) {
+            giftMessage = message.substring(messageIndex + 3).trim();
+          }
+
           if (!giftName || !targetUser) {
             socket.emit('system:message', {
               roomId,
-              message: `Usage: /gift <giftname> <username>`,
+              message: `Usage: /gift <giftname> <username> [- <message>]`,
               timestamp: new Date().toISOString(),
               type: 'warning'
             });
@@ -262,11 +270,18 @@ module.exports = (io, socket) => {
             const senderLevel = senderData?.level || 1;
             const receiverLevel = targetUserData?.level || 1;
             
+            // Format gift message string
+            let broadcastMessage = `<< ${username} [${senderLevel}] gives a ${gift.name} [GIFT_IMAGE:${gift.image_url || '🎁'}] to ${targetUser} [${receiverLevel}]`;
+            if (giftMessage) {
+              broadcastMessage += ` - ${giftMessage}`;
+            }
+            broadcastMessage += ` >>`;
+
             // Immediately broadcast gift message (real-time)
             io.to(`room:${roomId}`).emit('chat:message', {
               id: generateMessageId(),
               roomId,
-              message: `<< ${username} [${senderLevel}] gives a ${gift.name} [GIFT_IMAGE:${gift.image_url || '🎁'}] to ${targetUser} [${receiverLevel}] >>`,
+              message: broadcastMessage,
               messageType: 'cmdGift',
               type: 'cmdGift',
               giftData: {
@@ -276,7 +291,8 @@ module.exports = (io, socket) => {
                 sender: username,
                 senderLevel: senderLevel,
                 receiver: targetUser,
-                receiverLevel: receiverLevel
+                receiverLevel: receiverLevel,
+                comment: giftMessage
               },
               timestamp: new Date().toISOString()
             });
