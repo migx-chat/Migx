@@ -34,7 +34,7 @@ interface ChatRoomContentProps {
   backgroundImage?: string;
 }
 
-export const ChatRoomContent = React.memo(({ messages, bottomPadding = 100, backgroundImage }: ChatRoomContentProps) => {
+export const ChatRoomContent = React.memo(({ messages, bottomPadding = 115, backgroundImage }: ChatRoomContentProps) => {
   const flatListRef = useRef<FlatList>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   
