@@ -122,6 +122,9 @@ const transferCredits = async (fromUserId, toUserId, amount, description = null,
       const redis = getRedisClient();
       await redis.del(`credits:${fromUserId}`);
       await redis.del(`credits:${toUserId}`);
+      // Also delete the specific key used by giftQueueService
+      await redis.del(`user:${fromUserId}:credits`);
+      await redis.del(`user:${toUserId}:credits`);
     } catch (cacheError) {
       logger.error('CACHE_INVALIDATION_ERROR', cacheError);
     }
@@ -209,6 +212,8 @@ const addCredits = async (userId, amount, transactionType = 'topup', description
     try {
       const redis = getRedisClient();
       await redis.del(`credits:${userId}`);
+      // Also delete the specific key used by giftQueueService
+      await redis.del(`user:${userId}:credits`);
     } catch (cacheError) {
       logger.error('CACHE_INVALIDATION_ERROR', cacheError);
     }
@@ -265,6 +270,8 @@ const deductCredits = async (userId, amount, transactionType = 'game_spend', des
     try {
       const redis = getRedisClient();
       await redis.del(`credits:${userId}`);
+      // Also delete the specific key used by giftQueueService
+      await redis.del(`user:${userId}:credits`);
     } catch (cacheError) {
       logger.error('CACHE_INVALIDATION_ERROR', cacheError);
     }
