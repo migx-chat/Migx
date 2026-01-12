@@ -156,17 +156,6 @@ const handleDicebotCommand = async (io, socket, data) => {
     const action = parts[1]?.toLowerCase();
     
     if (subCmd === 'dicebot' || subCmd === 'dice') {
-      const isManaged = await dicebotService.isRoomManaged(roomId);
-      if (!isManaged) {
-        socket.emit('system:message', {
-          roomId,
-          message: 'DiceBot can only be used in managed rooms.',
-          timestamp: new Date().toISOString(),
-          type: 'warning'
-        });
-        return true;
-      }
-      
       const userService = require('../services/userService');
       const user = await userService.getUserById(userId);
       if (!user || user.role !== 'super_admin') {

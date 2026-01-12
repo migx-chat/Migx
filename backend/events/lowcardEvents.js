@@ -152,17 +152,6 @@ const handleLowcardCommand = async (io, socket, data) => {
     const action = parts[1]?.toLowerCase();
     
     if (subCmd === 'lowcard') {
-      const isManaged = await lowcardService.isRoomManaged(roomId);
-      if (!isManaged) {
-        socket.emit('system:message', {
-          roomId,
-          message: 'LowCardBot can only be used in managed rooms.',
-          timestamp: new Date().toISOString(),
-          type: 'warning'
-        });
-        return true;
-      }
-      
       const userService = require('../services/userService');
       const user = await userService.getUserById(userId);
       if (!user || user.role !== 'super_admin') {
