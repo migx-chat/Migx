@@ -302,10 +302,13 @@ const broadcastVoucherAnnouncement = async (voucher) => {
       targetRooms
     );
     
-    console.log(`📢 Broadcasting voucher to ${result.rows.length} target rooms: ${result.rows.map(r => r.name).join(', ')}`);
+    console.log(`📢 Broadcasting voucher to ${result.rows.length} target rooms: ${result.rows.map(r => `${r.name}(${r.id})`).join(', ')}`);
     
     for (const room of result.rows) {
-      ioInstance.to(`room:${room.id}`).emit('chat:message', {
+      const roomSocketId = `room:${room.id}`;
+      console.log(`📢 Emitting voucher to socket room: ${roomSocketId}`);
+      
+      ioInstance.to(roomSocketId).emit('chat:message', {
         id: generateMessageId(),
         roomId: room.id.toString(),
         message,
@@ -313,7 +316,8 @@ const broadcastVoucherAnnouncement = async (voucher) => {
         type: 'voucher',
         voucherCode: voucher.code,
         voucherCodeColor: '#FF0000',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        expiresIn: VOUCHER_CONFIG.expirySeconds
       });
     }
   } catch (error) {

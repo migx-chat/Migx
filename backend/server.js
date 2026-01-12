@@ -532,7 +532,7 @@ const startServer = async () => {
       // Start presence cleanup job (Step 3️⃣)
       startPresenceCleanup(io);
 
-      voucherService.startVoucherGenerator(io);
+      voucherService.startVoucherGenerator(io.of('/chat'));
       
       // Start merchant expiry check job (every hour)
       const merchantService = require('./services/merchantService');
