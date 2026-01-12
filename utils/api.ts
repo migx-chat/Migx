@@ -116,6 +116,18 @@ export const API_ENDPOINTS = {
   },
 };
 
+let currentRoomId: string | null = null;
+let lastMessageId: string | null = null;
+let isReconnecting = false;
+
+export const setCurrentRoom = (roomId: string | null) => {
+  currentRoomId = roomId;
+};
+
+export const setLastMessageId = (msgId: string) => {
+  lastMessageId = msgId;
+};
+
 export const createSocket = () => {
   console.log('🔧 Creating Socket.IO connection...');
   console.log('API_BASE_URL:', API_BASE_URL);
@@ -130,13 +142,36 @@ export const createSocket = () => {
     transports: ['websocket'],
     reconnection: true,
     reconnectionDelay: 1000,
-    reconnectionAttempts: 5,
-    timeout: 10000,
-    forceNew: true
+    reconnectionDelayMax: 5000,
+    reconnectionAttempts: Infinity,
+    timeout: 20000,
+    forceNew: false
   });
 
-  socket.on('connect', () => {
+  socket.on('connect', async () => {
     console.log('✅ Socket.IO connected to backend! ID:', socket?.id);
+    
+    if (isReconnecting && currentRoomId) {
+      console.log('🔄 Reconnecting - silent rejoin to room:', currentRoomId);
+      const userData = await AsyncStorage.getItem('user_data');
+      if (userData) {
+        const { id, username } = JSON.parse(userData);
+        socket.emit('room:silent_rejoin', {
+          roomId: currentRoomId,
+          userId: id,
+          username: username,
+          lastMessageId: lastMessageId
+        });
+      }
+    }
+    isReconnecting = false;
+  });
+
+  socket.on('disconnect', (reason: string) => {
+    console.log('🔌 Socket disconnected:', reason);
+    if (reason !== 'io client disconnect') {
+      isReconnecting = true;
+    }
   });
 
   socket.on('connect_error', (err: Error) => {
@@ -175,13 +210,18 @@ export const getChatSocket = async () => {
       transports: ['websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
-      timeout: 10000,
-      forceNew: true
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: Infinity,
+      timeout: 20000,
+      forceNew: false
     });
 
     chatSocket.on('connect', () => {
       console.log(`✅ Chat socket connected to /chat namespace! ID: ${chatSocket?.id}`);
+    });
+
+    chatSocket.on('disconnect', (reason: string) => {
+      console.log('🔌 Chat socket disconnected:', reason);
     });
 
     chatSocket.on('connect_error', (err: Error) => {
