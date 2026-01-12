@@ -812,7 +812,8 @@ module.exports = (io, socket) => {
 
             const response = `** Username: ${targetUser.username}, Level ${levelData.level}, Gender: ${gender}, Country: ${country}, Chatting in, ${chatStatus} **`;
 
-            io.to(`room:${roomId}`).emit('chat:message', {
+            // Private message - only visible to the user who sent the command
+            socket.emit('chat:message', {
               id: generateMessageId(),
               roomId,
               message: response,
