@@ -191,6 +191,12 @@ router.get('/', authMiddleware, async (req, res) => {
         post.likes_count = likesCount;
         post.is_liked = isLiked;
         
+        // Get comments count from Redis
+        const commentsKey = `feed:${post.id}:comments`;
+        const commentsData = await redis.get(commentsKey);
+        const commentsArray = commentsData ? JSON.parse(commentsData) : [];
+        post.comments_count = commentsArray.length;
+        
         return post;
       } catch (e) {
         console.error(`Error refreshing user data for post:`, e.message);
