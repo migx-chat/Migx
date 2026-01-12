@@ -48,9 +48,45 @@ module.exports = (io, socket) => {
         return;
       }
 
-      // Check if user is silenced
+      // Check if user or room is silenced
       const { getRedisClient } = require('../redis');
       const redis = getRedisClient();
+      
+      // Check room-wide silence
+      const isRoomSilenced = await redis.exists(`room:silence:${roomId}`);
+      if (isRoomSilenced) {
+        // Allow owner/admin/mod to still chat during room silence
+        const roomService = require('../services/roomService');
+        const userService = require('../services/userService');
+        const roomInfo = await roomService.getRoomById(roomId);
+        const isRoomOwner = roomInfo && roomInfo.owner_id == userId;
+        const isGlobalAdmin = await userService.isAdmin(userId);
+        const isModerator = await roomService.isRoomModerator(roomId, userId);
+        
+        if (!isRoomOwner && !isGlobalAdmin && !isModerator) {
+          socket.emit('system:message', {
+            roomId,
+            message: `Chat room is currently silenced. Please wait.`,
+            timestamp: new Date().toISOString(),
+            type: 'warning'
+          });
+          return;
+        }
+      }
+      
+      // Check individual user silence
+      const isUserSilenced = await redis.exists(`user:silence:${roomId}:${userId}`);
+      if (isUserSilenced) {
+        socket.emit('system:message', {
+          roomId,
+          message: `You are silenced and cannot send messages.`,
+          timestamp: new Date().toISOString(),
+          type: 'warning'
+        });
+        return;
+      }
+      
+      // Legacy silence check
       const isSilenced = await redis.exists(`silence:${roomId}:${userId}`);
       if (isSilenced) {
         socket.emit('system:message', {
@@ -198,6 +234,148 @@ module.exports = (io, socket) => {
             type: 'announce',
             timestamp: new Date().toISOString()
           });
+          return;
+        }
+
+        // Handle /silence command
+        if (cmdKey === 'silence') {
+          const roomService = require('../services/roomService');
+          const userService = require('../services/userService');
+          const roomInfo = await roomService.getRoomById(roomId);
+          const roomName = roomInfo?.name || roomId;
+          
+          // Check permission - only admin, moderator, or room owner
+          const isRoomOwner = roomInfo && roomInfo.owner_id == userId;
+          const isGlobalAdmin = await userService.isAdmin(userId);
+          const isModerator = await roomService.isRoomModerator(roomId, userId);
+          
+          if (!isRoomOwner && !isGlobalAdmin && !isModerator) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Only room owner, admin, or moderator can use /silence`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          const arg1 = parts[1];
+          const arg2 = parts[2];
+          
+          if (!arg1) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /silence <time> or /silence <username> <time>`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          // Parse time from string like "20s", "5m", "1h"
+          const parseTime = (timeStr) => {
+            if (!timeStr) return null;
+            const match = timeStr.match(/^(\d+)(s|m|h)?$/i);
+            if (!match) return null;
+            const value = parseInt(match[1]);
+            const unit = (match[2] || 's').toLowerCase();
+            switch (unit) {
+              case 's': return value;
+              case 'm': return value * 60;
+              case 'h': return value * 3600;
+              default: return value;
+            }
+          };
+
+          // Check if arg1 is a time (like "20s") or username
+          const isTimeFormat = /^\d+(s|m|h)?$/i.test(arg1);
+          
+          if (isTimeFormat) {
+            // Silence entire room: /silence 20s
+            const seconds = parseTime(arg1);
+            if (!seconds || seconds < 1 || seconds > 3600) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Invalid time. Use 1s-3600s (1 hour max)`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            await redis.set(`room:silence:${roomId}`, '1', 'EX', seconds);
+            
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              username: roomName,
+              message: `Chat room has been silenced by ${username} for ${arg1}`,
+              messageType: 'system',
+              type: 'system',
+              timestamp: new Date().toISOString(),
+              isSystem: true
+            });
+          } else {
+            // Silence specific user: /silence username 20s
+            const targetUsername = arg1;
+            const timeStr = arg2;
+            
+            if (!timeStr) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Usage: /silence <username> <time> (e.g. /silence john 20s)`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            const seconds = parseTime(timeStr);
+            if (!seconds || seconds < 1 || seconds > 3600) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Invalid time. Use 1s-3600s (1 hour max)`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            const targetUser = await userService.getUserByUsername(targetUsername);
+            if (!targetUser) {
+              socket.emit('system:message', {
+                roomId,
+                message: `User "${targetUsername}" not found`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Can't silence room owner
+            if (roomInfo && roomInfo.owner_id == targetUser.id) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Cannot silence the room owner`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            await redis.set(`user:silence:${roomId}:${targetUser.id}`, '1', 'EX', seconds);
+            
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              username: roomName,
+              message: `${targetUsername} has been silenced for ${timeStr}`,
+              messageType: 'system',
+              type: 'system',
+              timestamp: new Date().toISOString(),
+              isSystem: true
+            });
+          }
           return;
         }
 
