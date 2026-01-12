@@ -514,8 +514,8 @@ export const ChatMessage = React.memo(({
     if (isSystem || isNotice || isPresence || isError) return;
     
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Clipboard.setString(message);
-    Alert.alert('Success', 'Message copied to clipboard');
+    Clipboard.setString(`${username}: ${message}`);
+    Alert.alert('Success', 'Message with username copied to clipboard');
   };
 
   return (
