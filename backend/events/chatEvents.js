@@ -7,6 +7,7 @@ const claimService = require('../services/claimService');
 const voucherService = require('../services/voucherService');
 const { handleLowcardCommand } = require('./lowcardEvents');
 const { handleLegendCommand } = require('./legendEvents');
+const { handleDicebotCommand } = require('./dicebotEvents');
 
 module.exports = (io, socket) => {
   const sendMessage = async (data) => {
@@ -98,8 +99,13 @@ module.exports = (io, socket) => {
         return;
       }
 
-      // Check for LowCard bot commands (!start, !j, !d, /bot lowcard)
+      // Check for bot commands (!start, !j, !d, !r, /bot)
       if (message.startsWith('!') || message.startsWith('/bot ')) {
+        // Check for DiceBot commands first (!start, !j, !r, /bot dicebot)
+        const dicebotHandled = await handleDicebotCommand(io, socket, { roomId, userId, username, message });
+        if (dicebotHandled) return;
+        
+        // Check for LowCard bot commands (!start, !j, !d, /bot lowcard)
         const handled = await handleLowcardCommand(io, socket, { roomId, userId, username, message });
         if (handled) return;
         
