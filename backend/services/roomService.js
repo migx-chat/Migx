@@ -454,6 +454,32 @@ const deleteUserRoomHistory = async (userId, roomId) => {
   }
 };
 
+const setRoomMinLevel = async (roomId, level) => {
+  try {
+    const result = await query(
+      `UPDATE rooms SET min_level = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
+      [level, roomId]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error setting room min level:', error);
+    throw error;
+  }
+};
+
+const getRoomMinLevel = async (roomId) => {
+  try {
+    const result = await query(
+      `SELECT min_level FROM rooms WHERE id = $1`,
+      [roomId]
+    );
+    return result.rows[0]?.min_level || 1;
+  } catch (error) {
+    console.error('Error getting room min level:', error);
+    return 1;
+  }
+};
+
 module.exports = {
   createRoom,
   getRoomById,
@@ -479,5 +505,7 @@ module.exports = {
   isUserBanned,
   saveRoomHistory,
   getUserRoomHistory,
-  deleteUserRoomHistory
+  deleteUserRoomHistory,
+  setRoomMinLevel,
+  getRoomMinLevel
 };

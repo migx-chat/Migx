@@ -1584,6 +1584,85 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /setlvl command - Set minimum level for room (admin/super_admin only)
+        if (cmdKey === 'setlvl') {
+          const levelStr = parts[1];
+          if (!levelStr) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /setlvl <number>`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          const level = parseInt(levelStr, 10);
+          if (isNaN(level) || level < 1 || level > 100) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Invalid level. Please enter a number between 1 and 100`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          try {
+            const roomService = require('../services/roomService');
+            const userService = require('../services/userService');
+            
+            const user = await userService.getUserById(userId);
+            const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
+            
+            if (!isAdmin) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Only admin can set room level`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            const room = await roomService.getRoomById(roomId);
+            if (!room) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Room not found`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Update room min_level
+            await roomService.setRoomMinLevel(roomId, level);
+            
+            // Broadcast message
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              username: room.name,
+              message: `${room.name} Has set level ${level} by administrator ${username}`,
+              messageType: 'system',
+              type: 'system',
+              timestamp: new Date().toISOString(),
+              isSystem: true
+            });
+            
+          } catch (error) {
+            console.error('Error processing /setlvl command:', error);
+            socket.emit('system:message', {
+              roomId,
+              message: `Failed to set room level`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+          }
+          return;
+        }
+
         // Handle other MIG33 commands
         const cmd = MIG33_CMD[cmdKey];
         if (cmd) {
