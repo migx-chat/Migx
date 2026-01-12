@@ -76,11 +76,14 @@ const tagUser = async (merchantUserId, targetUsername) => {
       return { success: false, error: deductResult.error };
     }
     
+    const expiredAt = new Date();
+    expiredAt.setMonth(expiredAt.getMonth() + 1);
+    
     const tagResult = await dbClient.query(
-      `INSERT INTO merchant_tags (merchant_id, merchant_user_id, tagged_user_id, tagged_username, tag_slot, amount, remaining_balance, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
+      `INSERT INTO merchant_tags (merchant_id, merchant_user_id, tagged_user_id, tagged_username, tag_slot, amount, remaining_balance, status, expired_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8)
        RETURNING *`,
-      [merchant.id, merchantUserId, targetUser.id, targetUser.username, nextSlot, TAG_AMOUNT, TAG_AMOUNT]
+      [merchant.id, merchantUserId, targetUser.id, targetUser.username, nextSlot, TAG_AMOUNT, TAG_AMOUNT, expiredAt]
     );
     
     const newTag = tagResult.rows[0];
@@ -148,7 +151,8 @@ const getTaggedUsers = async (merchantUserId) => {
       remainingBalance: parseInt(tag.remaining_balance),
       totalSpent: parseInt(tag.total_spent),
       status: tag.status,
-      taggedAt: tag.tagged_at
+      taggedAt: tag.tagged_at,
+      expiredAt: tag.expired_at
     }));
     
     return { success: true, tags };

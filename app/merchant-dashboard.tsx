@@ -31,6 +31,7 @@ interface TaggedUser {
   totalSpent: number;
   status: string;
   taggedAt: string;
+  expiredAt: string | null;
 }
 
 interface TagCommission {
@@ -428,6 +429,11 @@ export default function MerchantDashboard() {
               <Text style={[styles.tagDate, { color: theme.secondary }]}>
                 Ditag: {new Date(item.taggedAt).toLocaleDateString('id-ID')}
               </Text>
+              {item.expiredAt && (
+                <Text style={[styles.tagDate, { color: '#FF9800' }]}>
+                  Expired: {new Date(item.expiredAt).toLocaleDateString('id-ID')}
+                </Text>
+              )}
             </View>
           </View>
           <View style={styles.tagRight}>
