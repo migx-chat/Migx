@@ -58,7 +58,9 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 100, back
   }, []);
   
   const reversedMessages = [...messages].reverse();
-  const totalBottomPadding = bottomPadding + keyboardHeight;
+  // Add extra padding when keyboard is visible (20px more space)
+  const keyboardExtraPadding = keyboardHeight > 0 ? 20 : 0;
+  const totalBottomPadding = bottomPadding + keyboardHeight + keyboardExtraPadding;
 
   const renderFlatList = () => (
     <FlatList
