@@ -15,7 +15,7 @@ const VOUCHER_CONFIG = {
   minClaimAmount: 5,
   maxClaimAmount: 50,
   userCooldownMinutes: 30,
-  targetRoomNames: ['Migx', 'Voucher', 'Cafe gaul indo']  // Only broadcast to these rooms
+  targetRoomNames: ['Migx', 'Voucher', 'Cafe Gaul Indo']  // Only broadcast to these rooms
 };
 
 let voucherInterval = null;
