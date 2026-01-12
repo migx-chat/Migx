@@ -874,6 +874,24 @@ module.exports = (io, socket) => {
               type: 'cmd',
               timestamp: new Date().toISOString()
             });
+
+            // Send notification to target user
+            const notificationService = require('../services/notificationService');
+            const followNotification = {
+              type: 'follow',
+              fromUserId: userId,
+              fromUsername: username,
+              message: `${username} is now following you`
+            };
+            await notificationService.addNotification(targetUser.username, followNotification);
+
+            // Emit real-time notification to target user if online
+            io.to(`user:${targetUser.id}`).emit('notif:follow', {
+              fromUserId: userId,
+              fromUsername: username,
+              message: `${username} is now following you`,
+              timestamp: new Date().toISOString()
+            });
           } catch (error) {
             console.error('Error processing /f:', error);
             socket.emit('system:message', {
