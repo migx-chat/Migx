@@ -14,12 +14,17 @@ const createMerchant = async (userId, mentorId, commissionRate = 30) => {
     }
     
     const existingMerchant = await query(
-      'SELECT id FROM merchants WHERE user_id = $1',
+      `SELECT m.id, m.active, m.expired_at, u.username as created_by_username
+       FROM merchants m
+       LEFT JOIN users u ON m.created_by = u.id
+       WHERE m.user_id = $1`,
       [userId]
     );
     
     if (existingMerchant.rows.length > 0) {
-      return { success: false, error: 'User is already a merchant' };
+      const existing = existingMerchant.rows[0];
+      const createdBy = existing.created_by_username || 'mentor lain';
+      return { success: false, error: `User sudah terdaftar sebagai merchant oleh ${createdBy}` };
     }
     
     await query(
