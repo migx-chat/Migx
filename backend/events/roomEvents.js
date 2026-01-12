@@ -96,6 +96,26 @@ module.exports = (io, socket) => {
         });
         return;
       }
+      
+      // Check if user is temporarily kicked from this room (5 minutes)
+      const kickKey = `kick:${roomId}:${userId}`;
+      const isKicked = await redisClient.exists(kickKey);
+      if (isKicked) {
+        const ttl = await redisClient.ttl(kickKey);
+        const minutes = Math.ceil(ttl / 60);
+        socket.emit('room:join:error', {
+          roomId,
+          message: `You were kicked from this room. Please wait ${minutes} minute(s) before rejoining.`,
+          type: 'kicked'
+        });
+        socket.emit('room:join:rejected', {
+          roomId,
+          reason: `Kicked from room. Wait ${minutes} minute(s).`,
+          type: 'kicked',
+          remainingSeconds: ttl
+        });
+        return;
+      }
 
       // Check if user is banned (skip ban check for now as banService needs to be fixed)
       try {

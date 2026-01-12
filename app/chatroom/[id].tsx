@@ -335,6 +335,21 @@ export default function ChatRoomScreen() {
           ]);
         }
       });
+      
+      // Handle user:kicked event - force user to leave room
+      newSocket.on('user:kicked', (data: { roomId: string; kickedUserId: number; kickedUsername: string; kickedBy: string; message: string }) => {
+        console.log('👢 User kicked event received:', data);
+        if (data.kickedUsername === currentUsername) {
+          Alert.alert('Kicked', data.message || 'You have been kicked from the room', [
+            { text: 'OK', onPress: () => {
+              // Close the room tab and navigate back
+              const { closeRoom } = useRoomTabsStore.getState();
+              closeRoom(parseInt(data.roomId));
+              router.back();
+            }},
+          ]);
+        }
+      });
 
       newSocket.on('room:participants:update', (data: { roomId: string; participants: string[] }) => {
         console.log('🔄 Participants update received:', data);

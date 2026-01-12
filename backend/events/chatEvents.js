@@ -1026,14 +1026,39 @@ module.exports = (io, socket) => {
               return;
             }
 
-            // Emit kick event to target user
-            io.to(`room:${roomId}`).emit('user:kicked', {
-              roomId,
-              kickedUserId: targetUser.id,
-              kickedUsername: targetUsername,
-              kickedBy: username
-            });
-
+            // Find target user's socket and force them to leave
+            const roomSockets = await io.in(`room:${roomId}`).fetchSockets();
+            const targetSocket = roomSockets.find(s => s.username === targetUsername || s.userId == targetUser.id);
+            
+            if (targetSocket) {
+              // Force leave the socket room
+              targetSocket.leave(`room:${roomId}`);
+              
+              // Clear their room state
+              targetSocket.currentRoomId = null;
+              
+              // Emit kicked event directly to the target user
+              targetSocket.emit('user:kicked', {
+                roomId,
+                kickedUserId: targetUser.id,
+                kickedUsername: targetUsername,
+                kickedBy: username,
+                message: `You were kicked from the room by ${username}`
+              });
+            }
+            
+            // Remove from presence and participants
+            const { removeUserPresence, removeRoomParticipant, getRoomPresenceUsers } = require('../utils/redisPresence');
+            await removeUserPresence(roomId, targetUser.id);
+            await removeRoomParticipant(roomId, targetUsername);
+            
+            // Set temporary kick ban (5 minutes)
+            const { getRedisClient } = require('../redis');
+            const redis = getRedisClient();
+            const kickKey = `kick:${roomId}:${targetUser.id}`;
+            await redis.setEx(kickKey, 300, 'kicked'); // 5 minutes
+            
+            // Broadcast kicked message to remaining users
             io.to(`room:${roomId}`).emit('chat:message', {
               id: generateMessageId(),
               roomId,
@@ -1042,6 +1067,16 @@ module.exports = (io, socket) => {
               type: 'cmd',
               timestamp: new Date().toISOString()
             });
+            
+            // Update participants list
+            const updatedUsers = await getRoomPresenceUsers(roomId);
+            io.to(`room:${roomId}`).emit('room:user:left', {
+              roomId,
+              username: targetUsername,
+              users: updatedUsers
+            });
+            
+            console.log(`👢 User ${targetUsername} kicked from room ${roomId} by ${username}`);
           } catch (error) {
             console.error('Error processing /kick:', error);
             socket.emit('system:message', {
