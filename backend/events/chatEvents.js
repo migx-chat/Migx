@@ -151,9 +151,9 @@ module.exports = (io, socket) => {
             io.to(`room:${roomId}`).emit('chat:message', {
               id: generateMessageId(),
               roomId,
-              message: `[${roomName}]: ${username} has turned off the announcement.`,
-              messageType: 'cmd',
-              type: 'cmd',
+              message: `${roomName}: ${username} has turned off the announcement.`,
+              messageType: 'system',
+              type: 'system',
               timestamp: new Date().toISOString()
             });
             return;
