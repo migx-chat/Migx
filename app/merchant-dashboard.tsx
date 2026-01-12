@@ -250,7 +250,7 @@ export default function MerchantDashboard() {
             <Text style={[styles.cardSubtitle, { color: theme.secondary }]}>
               {transferStatus.percentage >= 100 
                 ? 'Target tercapai! Langganan akan diperpanjang otomatis.'
-                : `Kurang ${formatNumber(transferStatus.remaining)} IDR dari mentor untuk perpanjang otomatis`}
+                : `Kurang ${formatNumber(transferStatus.remaining)} COINS dari mentor untuk perpanjang otomatis`}
             </Text>
           </View>
         )}
@@ -414,7 +414,7 @@ export default function MerchantDashboard() {
             Belum ada user yang ditag
           </Text>
           <Text style={[styles.emptySubtext, { color: theme.secondary }]}>
-            Ketik /tag [username] di chat untuk tag user dengan 5000 IDR
+            Ketik /tag [username] di chat untuk tag user dengan 5000 COINS
           </Text>
         </View>
       )}
@@ -438,7 +438,7 @@ export default function MerchantDashboard() {
           </View>
           <View style={styles.tagRight}>
             <Text style={[styles.tagBalance, { color: item.remainingBalance > 0 ? '#4CAF50' : '#F44336' }]}>
-              {formatNumber(item.remainingBalance)} IDR
+              {formatNumber(item.remainingBalance)} COINS
             </Text>
             <Text style={[styles.tagSpent, { color: theme.secondary }]}>
               Spent: {formatNumber(item.totalSpent)}

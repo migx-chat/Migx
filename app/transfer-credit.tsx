@@ -40,7 +40,7 @@ const HistoryIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: str
   </Svg>
 );
 
-const formatIDR = (num: number): string => {
+const formatCoins = (num: number): string => {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 };
 
@@ -201,8 +201,8 @@ export default function TransferCreditScreen() {
       <SafeAreaView style={styles.safeArea}>
         {/* Coin Balance */}
         <View style={[styles.balanceContainer, { backgroundColor: theme.card }]}>
-          <Text style={[styles.balanceLabel, { color: theme.secondary }]}>IDR Balance</Text>
-          <Text style={[styles.balanceAmount, { color: theme.text }]}>Rp {formatIDR(coinBalance)}</Text>
+          <Text style={[styles.balanceLabel, { color: theme.secondary }]}>COINS Balance</Text>
+          <Text style={[styles.balanceAmount, { color: theme.text }]}>{formatCoins(coinBalance)} COINS</Text>
         </View>
 
         {/* Transfer Form */}
@@ -228,12 +228,12 @@ export default function TransferCreditScreen() {
           <View style={styles.inputGroup}>
             <Text style={[styles.inputLabel, { color: theme.text }]}>Amount</Text>
             <View style={[styles.amountInputWrapper, { borderColor: theme.border, backgroundColor: theme.card }]}>
-              <Text style={[styles.currencyPrefix, { color: theme.text }]}>Rp</Text>
+              <Text style={[styles.currencyPrefix, { color: theme.text }]}></Text>
               <TextInput
                 style={[styles.amountInput, { color: theme.text }]}
                 placeholder="0"
                 placeholderTextColor={theme.secondary}
-                value={amount ? formatIDR(parseInt(amount, 10)) : ''}
+                value={amount ? formatCoins(parseInt(amount, 10)) : ''}
                 onChangeText={(newValue) => {
                   const numOnly = newValue.replace(/\D/g, '');
                   setAmount(numOnly);

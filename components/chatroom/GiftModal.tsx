@@ -124,7 +124,7 @@ export function GiftModal({ visible, onClose }: GiftModalProps) {
                         {gift.name}
                       </Text>
                       <Text style={[styles.giftPrice, { color: theme.text }]}>
-                        {gift.price} IDR
+                        {gift.price} COINS
                       </Text>
                     </View>
                   ))}

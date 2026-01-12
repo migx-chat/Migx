@@ -648,7 +648,7 @@ export default function ChatRoomScreen() {
   }, [socket, currentUserId, currentUsername, currentActiveRoomId]);
 
   const handleSelectUserToKick = (target: string) => {
-    Alert.alert('Start Vote Kick', `Kick ${target} for 500 IDR?`, [
+    Alert.alert('Start Vote Kick', `Kick ${target} for 500 COINS?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Start Vote', onPress: () => handleStartKick(target) },
     ]);

@@ -48,7 +48,7 @@ export function AddCoinModal({
         <View style={[styles.formModal, { backgroundColor: theme.card }]}>
           <Text style={[styles.modalTitle, { color: theme.text }]}>Add Coin</Text>
           <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
-            Add coins to user for IDR transfer
+            Add coins to user account
           </Text>
 
           <TextInput
