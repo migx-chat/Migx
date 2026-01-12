@@ -12,6 +12,7 @@ const sessionService = require('../services/sessionService');
 const { getRedisClient } = require('../redis');
 const creditService = require('../services/creditService');
 const { query } = require('../db/db');
+const notificationService = require('../services/notificationService');
 
 // Username validation regex (MIG33 rules)
 const usernameRegex = /^[a-z][a-z0-9._]{5,11}$/;
@@ -101,7 +102,6 @@ router.post('/login', async (req, res, next) => {
     }
 
     // 🎁 New account bonus - Give 500 coins on first login
-    let newAccountBonus = null;
     try {
       const bonusCheck = await query(
         'SELECT new_account_bonus_claimed FROM users WHERE id = $1',
@@ -124,10 +124,13 @@ router.post('/login', async (req, res, next) => {
         const updatedUser = await userService.getUserById(user.id);
         user.credits = updatedUser.credits;
         
-        newAccountBonus = {
+        // Add notification to bell icon
+        await notificationService.addNotification(user.username, {
+          type: 'credit',
+          message: 'You get 500 coins reward new account',
           amount: NEW_ACCOUNT_BONUS,
-          message: 'You get 500 coins reward new account'
-        };
+          fromUsername: 'System'
+        });
         
         logger.info('NEW_ACCOUNT_BONUS: User received welcome bonus', { 
           userId: user.id, 
@@ -211,8 +214,7 @@ router.post('/login', async (req, res, next) => {
         streakReward: streakInfo.reward || 0
       },
       rememberMe: rememberMe || false,
-      streakMessage: streakInfo.message,
-      newAccountBonus: newAccountBonus
+      streakMessage: streakInfo.message
     });
 
   } catch (error) {

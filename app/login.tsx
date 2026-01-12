@@ -142,17 +142,7 @@ export default function LoginScreen() {
         
         console.log('💾 Storing user_data for user:', userDataToStore.username);
         await AsyncStorage.setItem('user_data', JSON.stringify(userDataToStore));
-        
-        // Show new account bonus notification if applicable
-        if (data.newAccountBonus) {
-          Alert.alert(
-            '🎁 Welcome Bonus!',
-            data.newAccountBonus.message,
-            [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
-          );
-        } else {
-          router.replace('/(tabs)');
-        }
+        router.replace('/(tabs)');
       } else {
         Alert.alert('Login Failed', data.error || 'Invalid credentials');
       }
