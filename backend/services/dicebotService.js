@@ -27,6 +27,14 @@ const formatDiceTags = (die1, die2) => {
   return `[DICE:${die1}] [DICE:${die2}]`;
 };
 
+const isDoubleSix = (die1, die2) => {
+  return die1 === 6 && die2 === 6;
+};
+
+const formatIDR = (amount) => {
+  return amount.toLocaleString('id-ID');
+};
+
 const getUserCredits = async (userId) => {
   try {
     const redis = getRedisClient();
@@ -254,14 +262,14 @@ const startGame = async (roomId, userId, username, amount) => {
   const requestedAmount = parseInt(amount) || MIN_ENTRY;
   
   if (requestedAmount < MIN_ENTRY) {
-    return { success: false, message: `Minimal ${MIN_ENTRY.toLocaleString()} IDR to start game.` };
+    return { success: false, message: `Minimal ${formatIDR(MIN_ENTRY)} IDR to start game.` };
   }
   
   const entryAmount = Math.min(MAX_ENTRY, requestedAmount);
   
   const deductResult = await deductCredits(userId, entryAmount, username, `DiceBot Bet - Start game`);
   if (!deductResult.success) {
-    return { success: false, message: `Not enough credits. You need ${entryAmount} IDR to start.` };
+    return { success: false, message: `Not enough credits. You need ${formatIDR(entryAmount)} IDR to start.` };
   }
   
   const gameId = Date.now();
@@ -282,7 +290,9 @@ const startGame = async (roomId, userId, username, amount) => {
       die1: null,
       die2: null,
       total: null,
-      isIn: null
+      isIn: null,
+      hasImmunity: false,
+      earnedImmunity: false
     }],
     startedBy: userId,
     startedByUsername: username,
@@ -292,13 +302,11 @@ const startGame = async (roomId, userId, username, amount) => {
   
   await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
   
-  const mcrAmount = (entryAmount / 1000).toFixed(1);
-  
   return {
     success: true,
     gameId,
     newBalance: deductResult.balance,
-    message: `Game started by ${username}. Enter !j to join the game. Cost: ${mcrAmount} MCR [30s]`
+    message: `Game started by ${username}. Enter !j to join the game. Cost: ${formatIDR(entryAmount)} IDR [30s]`
   };
 };
 
@@ -328,7 +336,7 @@ const joinGame = async (roomId, userId, username) => {
   
   const deductResult = await deductCredits(userId, game.entryAmount, username, `DiceBot Bet - Join game`);
   if (!deductResult.success) {
-    return { success: false, message: `Not enough credits. Entry costs ${game.entryAmount} IDR.` };
+    return { success: false, message: `Not enough credits. Entry costs ${formatIDR(game.entryAmount)} IDR.` };
   }
   
   game.players.push({
@@ -339,7 +347,9 @@ const joinGame = async (roomId, userId, username) => {
     die1: null,
     die2: null,
     total: null,
-    isIn: null
+    isIn: null,
+    hasImmunity: false,
+    earnedImmunity: false
   });
   game.pot += game.entryAmount;
   
@@ -409,6 +419,10 @@ const startNextRound = async (roomId) => {
   
   for (const player of game.players) {
     if (!player.isEliminated) {
+      if (player.earnedImmunity) {
+        player.hasImmunity = true;
+        player.earnedImmunity = false;
+      }
       player.hasRolled = false;
       player.die1 = null;
       player.die2 = null;
@@ -464,12 +478,35 @@ const rollPlayerDice = async (roomId, userId, username) => {
   player.die1 = die1;
   player.die2 = die2;
   player.total = total;
-  player.isIn = total >= game.botTarget.total;
+  
+  const meetsTarget = total >= game.botTarget.total;
+  const gotDoubleSix = isDoubleSix(die1, die2);
+  
+  if (gotDoubleSix) {
+    player.earnedImmunity = true;
+  }
+  
+  if (meetsTarget || player.hasImmunity) {
+    player.isIn = true;
+  } else {
+    player.isIn = false;
+  }
   
   await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
   
   const diceDisplay = formatDiceTags(die1, die2);
-  const status = player.isIn ? 'IN!' : 'OUT!';
+  
+  let status;
+  let immunityMessage = '';
+  
+  if (gotDoubleSix) {
+    status = 'IN!';
+    immunityMessage = ' IMMUNITY for next round!';
+  } else if (player.hasImmunity && !meetsTarget) {
+    status = 'IMMUNE - stays IN!';
+  } else {
+    status = player.isIn ? 'IN!' : 'OUT!';
+  }
   
   const activePlayers = game.players.filter(p => !p.isEliminated);
   const allRolled = activePlayers.every(p => p.hasRolled);
@@ -482,8 +519,10 @@ const rollPlayerDice = async (roomId, userId, username) => {
     total,
     diceDisplay,
     isIn: player.isIn,
+    gotDoubleSix,
+    usedImmunity: player.hasImmunity && !meetsTarget,
     allRolled,
-    message: `${username} rolls: ${diceDisplay} ${status}`
+    message: `${username} rolls: ${diceDisplay} ${status}${immunityMessage}`
   };
 };
 
@@ -508,10 +547,33 @@ const autoRollForTimeout = async (roomId) => {
     player.die1 = die1;
     player.die2 = die2;
     player.total = total;
-    player.isIn = total >= game.botTarget.total;
+    
+    const meetsTarget = total >= game.botTarget.total;
+    const gotDoubleSix = isDoubleSix(die1, die2);
+    
+    if (gotDoubleSix) {
+      player.earnedImmunity = true;
+    }
+    
+    if (meetsTarget || player.hasImmunity) {
+      player.isIn = true;
+    } else {
+      player.isIn = false;
+    }
     
     const diceDisplay = formatDiceTags(die1, die2);
-    const status = player.isIn ? 'IN!' : 'OUT!';
+    
+    let status;
+    let immunityMessage = '';
+    
+    if (gotDoubleSix) {
+      status = 'IN!';
+      immunityMessage = ' IMMUNITY for next round!';
+    } else if (player.hasImmunity && !meetsTarget) {
+      status = 'IMMUNE - stays IN!';
+    } else {
+      status = player.isIn ? 'IN!' : 'OUT!';
+    }
     
     results.push({
       username: player.username,
@@ -520,7 +582,9 @@ const autoRollForTimeout = async (roomId) => {
       total,
       diceDisplay,
       isIn: player.isIn,
-      message: `${player.username} rolls: ${diceDisplay} ${status}`
+      gotDoubleSix,
+      usedImmunity: player.hasImmunity && !meetsTarget,
+      message: `${player.username} rolls: ${diceDisplay} ${status}${immunityMessage}`
     });
   }
   
@@ -544,6 +608,12 @@ const tallyRound = async (roomId) => {
   
   const survivors = activePlayers.filter(p => p.isIn === true);
   const eliminated = activePlayers.filter(p => p.isIn === false);
+  
+  for (const player of activePlayers) {
+    if (player.hasImmunity) {
+      player.hasImmunity = false;
+    }
+  }
   
   if (survivors.length === 0) {
     for (const player of activePlayers) {
@@ -625,9 +695,6 @@ const finalizeGame = async (roomId) => {
     await redis.del(gameKey);
   }, 60000);
   
-  const mcrWinnings = (winnings / 1000).toFixed(1);
-  const mcrEntry = (MIN_ENTRY / 1000).toFixed(1);
-  
   return {
     gameOver: true,
     winnerId: winner.userId,
@@ -636,8 +703,8 @@ const finalizeGame = async (roomId) => {
     winnings,
     houseFee,
     newBalance: addResult.balance,
-    message: `Dice game over! ${winner.username} WINS ${mcrWinnings} MCR!\nCONGRATS!`,
-    playAgain: `Play now: !start to enter. Cost: ${mcrEntry} MCR.\nFor custom entry, !start [amount]`
+    message: `Dice game over! ${winner.username} WINS ${formatIDR(winnings)} IDR!\nCONGRATS!`,
+    playAgain: `Play now: !start to enter. Cost: ${formatIDR(MIN_ENTRY)} IDR.\nFor custom entry, !start [amount]`
   };
 };
 
@@ -676,6 +743,8 @@ module.exports = {
   HOUSE_FEE_PERCENT,
   rollDice,
   formatDiceTags,
+  isDoubleSix,
+  formatIDR,
   getDiceEmoji,
   getDiceCode,
   formatDiceRoll,
