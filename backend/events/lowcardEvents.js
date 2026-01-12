@@ -154,11 +154,11 @@ const handleLowcardCommand = async (io, socket, data) => {
     if (subCmd === 'lowcard') {
       const userService = require('../services/userService');
       const user = await userService.getUserById(userId);
-      if (!user || user.role !== 'super_admin') {
+      if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
         socket.emit('chat:message', {
           id: generateMessageId(),
           roomId,
-          message: 'Error: You dont have permission to perform this action.',
+          message: 'Error: Only admin can perform this action.',
           messageType: 'error',
           type: 'error',
           timestamp: new Date().toISOString()
@@ -225,13 +225,14 @@ const handleLowcardCommand = async (io, socket, data) => {
         return false;
       }
       
-      const isAdmin = await lowcardService.isSystemAdmin(userId);
-      const isRoomAdmin = await lowcardService.isRoomAdmin(roomId, userId);
+      const userService = require('../services/userService');
+      const user = await userService.getUserById(userId);
+      const isAdminRole = user && (user.role === 'admin' || user.role === 'super_admin');
       
-      if (!isAdmin && !isRoomAdmin) {
+      if (!isAdminRole) {
         socket.emit('system:message', {
           roomId,
-          message: 'Only admins can stop the game.',
+          message: 'Only admin can stop the game.',
           timestamp: new Date().toISOString(),
           type: 'warning'
         });

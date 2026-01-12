@@ -158,11 +158,11 @@ const handleDicebotCommand = async (io, socket, data) => {
     if (subCmd === 'dicebot' || subCmd === 'dice') {
       const userService = require('../services/userService');
       const user = await userService.getUserById(userId);
-      if (!user || user.role !== 'super_admin') {
+      if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
         socket.emit('chat:message', {
           id: generateMessageId(),
           roomId,
-          message: 'Error: You dont have permission to perform this action.',
+          message: 'Error: Only admin can perform this action.',
           messageType: 'error',
           type: 'error',
           timestamp: new Date().toISOString()

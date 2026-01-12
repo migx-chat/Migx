@@ -106,19 +106,10 @@ const endBettingPhase = async (io, roomId) => {
   sendBotMessage(io, roomId, "FlagBot ready for the next round. Type !fg to start.");
 };
 
-const isRoomAdminOrMod = async (roomId, userId) => {
-  const roomService = require('../services/roomService');
-  const moderatorService = require('../services/moderatorService');
+const isSystemAdminOnly = async (userId) => {
   const userService = require('../services/userService');
-  
   const user = await userService.getUserById(userId);
-  if (user?.role === 'admin') return true;
-  
-  const room = await roomService.getRoomById(roomId);
-  if (room && room.owner_id == userId) return true;
-  
-  const isMod = await moderatorService.isModerator(roomId, userId);
-  return isMod;
+  return user && (user.role === 'admin' || user.role === 'super_admin');
 };
 
 const handleLegendCommand = async (io, socket, data) => {
@@ -130,11 +121,11 @@ const handleLegendCommand = async (io, socket, data) => {
     const userService = require('../services/userService');
     const user = await userService.getUserById(userId);
     
-    if (!user || user.role !== 'super_admin') {
+    if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
       io.to(`room:${roomId}`).emit('chat:message', {
         id: generateMessageId(),
         roomId,
-        message: 'Error: You dont have permission to perform this action.',
+        message: 'Error: Only admin can perform this action.',
         messageType: 'error',
         type: 'error',
         timestamp: new Date().toISOString()
@@ -172,11 +163,11 @@ const handleLegendCommand = async (io, socket, data) => {
   }
   
   if (lowerMessage === '/bot flagh off') {
-    const hasPermission = await isRoomAdminOrMod(roomId, userId);
+    const hasPermission = await isSystemAdminOnly(userId);
     if (!hasPermission) {
       socket.emit('system:message', {
         roomId,
-        message: "Only admin, owner, or moderator can remove bot",
+        message: "Only admin can remove bot",
         timestamp: new Date().toISOString(),
         type: 'warning'
       });
@@ -212,11 +203,11 @@ const handleLegendCommand = async (io, socket, data) => {
   }
   
   if (lowerMessage === '/bot stop flagh') {
-    const hasPermission = await isRoomAdminOrMod(roomId, userId);
+    const hasPermission = await isSystemAdminOnly(userId);
     if (!hasPermission) {
       socket.emit('system:message', {
         roomId,
-        message: "Only admin, owner, or moderator can stop the game",
+        message: "Only admin can stop the game",
         timestamp: new Date().toISOString(),
         type: 'warning'
       });
