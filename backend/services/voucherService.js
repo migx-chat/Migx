@@ -293,9 +293,21 @@ const broadcastVoucherAnnouncement = async (voucher) => {
   
   const redis = getRedisClient();
   try {
-    const keys = await redis.keys('room:users:*');
+    // Find all active rooms by looking at room presence keys
+    const keys = await redis.keys('room:*:user:*');
+    const roomIds = new Set();
+    
     for (const key of keys) {
-      const roomId = key.replace('room:users:', '');
+      // Extract roomId from pattern room:{roomId}:user:{userId}
+      const match = key.match(/^room:(\d+):user:/);
+      if (match) {
+        roomIds.add(match[1]);
+      }
+    }
+    
+    console.log(`📢 Broadcasting voucher to ${roomIds.size} active rooms`);
+    
+    for (const roomId of roomIds) {
       ioInstance.to(`room:${roomId}`).emit('chat:message', {
         id: generateMessageId(),
         roomId,
