@@ -553,7 +553,11 @@ const getFullHistory = async (userId, limit = 100) => {
         const isFlagbot = g.transaction_type.startsWith('flagbot_');
         const isWin = g.transaction_type === 'game_win' || g.transaction_type === 'flagbot_win';
         const isRefund = g.transaction_type === 'game_refund' || g.transaction_type === 'flagbot_refund';
-        const gameName = isFlagbot ? 'FlagBot' : 'LowCard';
+        const isDiceBot = g.description && g.description.includes('DiceBot');
+        
+        let gameName = 'LowCard';
+        if (isFlagbot) gameName = 'FlagBot';
+        else if (isDiceBot) gameName = 'DiceBot';
         
         return {
           ...g,
@@ -564,7 +568,7 @@ const getFullHistory = async (userId, limit = 100) => {
             : isRefund ? `${gameName} Refund` 
             : `${gameName} Bet`
           ),
-          display_amount: isWin || isRefund ? g.amount : -g.amount
+          display_amount: g.amount
         };
       }),
       ...gifts.rows.map(g => ({
