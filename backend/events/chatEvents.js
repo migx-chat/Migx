@@ -494,6 +494,13 @@ module.exports = (io, socket) => {
                 timestamp: new Date().toISOString(),
                 isSystem: true
               });
+              
+              // Emit real-time unsilence event directly to the user
+              io.to(`user:${targetUser.id}`).emit('user:unsilenced', {
+                roomId,
+                userId: targetUser.id,
+                username: targetUsername
+              });
             } else {
               socket.emit('system:message', {
                 roomId,
@@ -518,6 +525,9 @@ module.exports = (io, socket) => {
                 timestamp: new Date().toISOString(),
                 isSystem: true
               });
+              
+              // Emit real-time room unsilence event to all users in room
+              io.to(`room:${roomId}`).emit('room:unsilenced', { roomId });
             } else {
               socket.emit('system:message', {
                 roomId,
