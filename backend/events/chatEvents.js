@@ -530,6 +530,110 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /lock command - lock room (only mods can enter)
+        if (cmdKey === 'lock') {
+          const roomService = require('../services/roomService');
+          const userService = require('../services/userService');
+          const roomInfo = await roomService.getRoomById(roomId);
+          const roomName = roomInfo?.name || roomId;
+          
+          // Check permission - only admin, moderator, or room owner
+          const isRoomOwner = roomInfo && roomInfo.owner_id == userId;
+          const isGlobalAdmin = await userService.isAdmin(userId);
+          const isModerator = await roomService.isRoomModerator(roomId, userId);
+          
+          if (!isRoomOwner && !isGlobalAdmin && !isModerator) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Only room owner, admin, or moderator can use /lock`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          // Check if already locked
+          if (roomInfo.is_locked) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Room is already locked`,
+              timestamp: new Date().toISOString(),
+              type: 'info'
+            });
+            return;
+          }
+
+          // Lock the room
+          await roomService.setRoomLocked(roomId, true);
+          
+          io.to(`room:${roomId}`).emit('chat:message', {
+            id: generateMessageId(),
+            roomId,
+            username: roomName,
+            message: `🔒 Room has been locked by ${username}. Only moderators can enter.`,
+            messageType: 'system',
+            type: 'system',
+            timestamp: new Date().toISOString(),
+            isSystem: true
+          });
+
+          // Emit room:locked event for real-time UI update
+          io.to(`room:${roomId}`).emit('room:locked', { roomId, isLocked: true });
+          return;
+        }
+
+        // Handle /unlock command - unlock room
+        if (cmdKey === 'unlock') {
+          const roomService = require('../services/roomService');
+          const userService = require('../services/userService');
+          const roomInfo = await roomService.getRoomById(roomId);
+          const roomName = roomInfo?.name || roomId;
+          
+          // Check permission - only admin, moderator, or room owner
+          const isRoomOwner = roomInfo && roomInfo.owner_id == userId;
+          const isGlobalAdmin = await userService.isAdmin(userId);
+          const isModerator = await roomService.isRoomModerator(roomId, userId);
+          
+          if (!isRoomOwner && !isGlobalAdmin && !isModerator) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Only room owner, admin, or moderator can use /unlock`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          // Check if already unlocked
+          if (!roomInfo.is_locked) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Room is already unlocked`,
+              timestamp: new Date().toISOString(),
+              type: 'info'
+            });
+            return;
+          }
+
+          // Unlock the room
+          await roomService.setRoomLocked(roomId, false);
+          
+          io.to(`room:${roomId}`).emit('chat:message', {
+            id: generateMessageId(),
+            roomId,
+            username: roomName,
+            message: `🔓 Room has been unlocked by ${username}. Everyone can enter now.`,
+            messageType: 'system',
+            type: 'system',
+            timestamp: new Date().toISOString(),
+            isSystem: true
+          });
+
+          // Emit room:unlocked event for real-time UI update
+          io.to(`room:${roomId}`).emit('room:unlocked', { roomId, isLocked: false });
+          return;
+        }
+
         // Handle /gift command (Redis-first with async DB persistence)
         if (cmdKey === 'gift') {
           const giftName = parts[1];

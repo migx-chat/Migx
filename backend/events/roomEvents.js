@@ -184,6 +184,39 @@ module.exports = (io, socket) => {
         }
       }
 
+      // Check if room is locked (only mods/owner/admin can enter)
+      if (room.is_locked) {
+        const isOwner = room.owner_id == userId || room.created_by == userId;
+        const isGlobalAdmin = role === 'admin' || role === 'super_admin' || role === 'cs';
+        
+        let isModerator = false;
+        try {
+          const db = require('../db/db');
+          const modCheck = await db.query(
+            'SELECT 1 FROM room_moderators WHERE room_id = $1 AND user_id = $2',
+            [roomId, userId]
+          );
+          isModerator = modCheck.rows.length > 0;
+        } catch (modErr) {
+          console.log('Moderator check error:', modErr.message);
+        }
+        
+        if (!isOwner && !isModerator && !isGlobalAdmin) {
+          socket.emit('system:message', {
+            roomId,
+            message: '🔒 This room is locked. Only moderators can enter.',
+            timestamp: new Date().toISOString(),
+            type: 'error'
+          });
+          socket.emit('room:join:rejected', {
+            roomId,
+            reason: 'Room is locked',
+            type: 'room_locked'
+          });
+          return;
+        }
+      }
+
       // Check room capacity using Redis presence (admin can bypass)
       const currentUserCount = await getRoomUserCount(roomId);
       const isAdmin = role === 'admin' || role === 'super_admin';

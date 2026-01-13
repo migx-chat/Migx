@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   description TEXT,
   max_users INTEGER DEFAULT 25,
   is_private BOOLEAN DEFAULT FALSE,
+  is_locked BOOLEAN DEFAULT FALSE,
   password VARCHAR(100),
   room_code VARCHAR(20),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

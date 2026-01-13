@@ -480,6 +480,19 @@ const getRoomMinLevel = async (roomId) => {
   }
 };
 
+const setRoomLocked = async (roomId, isLocked) => {
+  try {
+    const result = await query(
+      `UPDATE rooms SET is_locked = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
+      [isLocked, roomId]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error setting room locked status:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   createRoom,
   getRoomById,
@@ -507,5 +520,6 @@ module.exports = {
   getUserRoomHistory,
   deleteUserRoomHistory,
   setRoomMinLevel,
-  getRoomMinLevel
+  getRoomMinLevel,
+  setRoomLocked
 };
