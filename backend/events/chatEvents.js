@@ -427,6 +427,18 @@ module.exports = (io, socket) => {
               return;
             }
             
+            // Can't silence admin, super_admin, or customer_service
+            const protectedRoles = ['admin', 'super_admin', 'customer_service'];
+            if (protectedRoles.includes(targetUser.role)) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Cannot silence ${targetUsername}. Admins and staff cannot be silenced.`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
             await redis.set(`user:silence:${roomId}:${targetUser.id}`, '1', 'EX', seconds);
             
             io.to(`room:${roomId}`).emit('chat:message', {
