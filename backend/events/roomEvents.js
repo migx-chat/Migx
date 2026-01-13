@@ -187,7 +187,7 @@ module.exports = (io, socket) => {
       // Check if room is locked (only mods/owner/admin can enter)
       if (room.is_locked) {
         const isOwner = room.owner_id == userId || room.created_by == userId;
-        const isGlobalAdmin = role === 'admin' || role === 'super_admin' || role === 'cs';
+        const isGlobalAdmin = role === 'admin' || role === 'super_admin' || role === 'customer_service';
         
         let isModerator = false;
         try {
