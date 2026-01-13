@@ -121,7 +121,7 @@ router.post('/login', authLimiter, async (req, res, next) => {
         const NEW_ACCOUNT_BONUS = 500;
         
         // Add 500 coins to user
-        await creditService.addCredits(user.id, NEW_ACCOUNT_BONUS, 'New account bonus');
+        await creditService.addCredits(user.id, NEW_ACCOUNT_BONUS, 'reward', 'New account bonus');
         
         // Mark bonus as claimed
         await query(
