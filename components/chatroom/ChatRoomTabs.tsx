@@ -13,7 +13,7 @@ interface ChatRoomTabsProps {
 }
 
 export function ChatRoomTabs({
-  bottomPadding = 70,
+  bottomPadding = 90,
   renderVoteButton,
 }: ChatRoomTabsProps) {
   const openRooms = useOpenRooms();

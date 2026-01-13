@@ -35,7 +35,6 @@ const MemoizedChatContent = React.memo(({
 }) => (
   <ChatRoomContent 
     messages={messages} 
-    roomInfo={null}
     bottomPadding={bottomPadding}
   />
 ), (prevProps, nextProps) => {
@@ -50,7 +49,7 @@ export function ChatTabsContainer({
   roomTabs,
   activeIndex,
   onIndexChange,
-  bottomPadding = 70,
+  bottomPadding = 90,
   renderVoteButton,
 }: ChatTabsContainerProps) {
   const flatListRef = useRef<FlatList>(null);
