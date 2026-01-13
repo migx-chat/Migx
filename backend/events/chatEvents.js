@@ -481,9 +481,13 @@ module.exports = (io, socket) => {
             }
             
             const wassilenced = await redis.exists(`user:silence:${roomId}:${targetUser.id}`);
-            await redis.del(`user:silence:${roomId}:${targetUser.id}`);
+            const wasLegacySilenced = await redis.exists(`silence:${roomId}:${targetUser.id}`);
             
-            if (wassilenced) {
+            // Delete both new and legacy silence keys
+            await redis.del(`user:silence:${roomId}:${targetUser.id}`);
+            await redis.del(`silence:${roomId}:${targetUser.id}`);
+            
+            if (wassilenced || wasLegacySilenced) {
               io.to(`room:${roomId}`).emit('chat:message', {
                 id: generateMessageId(),
                 roomId,
