@@ -387,6 +387,22 @@ module.exports = (io, socket) => {
               });
             }, 300);
           }
+          
+          // Send bot welcome message for game rooms
+          const roomNameLower = room.name.toLowerCase();
+          if (roomNameLower.includes('lowcard')) {
+            setTimeout(() => {
+              socket.emit('chat:message', {
+                id: Date.now().toString() + '-bot',
+                roomId,
+                username: 'LowCardBot',
+                message: '[PVT] Play now: !start to enter. Cost: 1000 COINS. For custom entry, !start [amount]',
+                timestamp: new Date().toISOString(),
+                type: 'bot',
+                messageType: 'bot'
+              });
+            }, 400);
+          }
         }, 200);
       } else {
         console.log(`🔇 [Room ${roomId}] Silent reconnect - skipping welcome messages for ${username}`);
