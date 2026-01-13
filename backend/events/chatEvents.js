@@ -1837,8 +1837,8 @@ module.exports = (io, socket) => {
       // Save to Redis for quick backlog retrieval (TTL 1 hour)
       try {
         const msgKey = `room:messages:${roomId}`;
-        await redis.lpush(msgKey, JSON.stringify(messageData));
-        await redis.ltrim(msgKey, 0, 99); // Keep last 100 messages
+        await redis.lPush(msgKey, JSON.stringify(messageData));
+        await redis.lTrim(msgKey, 0, 99); // Keep last 100 messages
         await redis.expire(msgKey, 3600); // 1 hour TTL
       } catch (redisErr) {
         console.error('Error saving message to Redis:', redisErr);
@@ -1888,7 +1888,7 @@ module.exports = (io, socket) => {
       const { getRedisClient } = require('../redis');
       const redis = getRedisClient();
       const msgKey = `room:messages:${roomId}`;
-      const messages = await redis.lrange(msgKey, 0, 49);
+      const messages = await redis.lRange(msgKey, 0, 49);
       
       if (messages && messages.length > 0) {
         let backlog = messages

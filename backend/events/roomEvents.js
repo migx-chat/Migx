@@ -1156,7 +1156,7 @@ module.exports = (io, socket) => {
         const { getRedisClient } = require('../redis');
         const redis = getRedisClient();
         const msgKey = `room:messages:${roomId}`;
-        const messages = await redis.lrange(msgKey, 0, 49); // Get last 50 messages
+        const messages = await redis.lRange(msgKey, 0, 49); // Get last 50 messages
         
         if (messages && messages.length > 0) {
           const backlog = messages

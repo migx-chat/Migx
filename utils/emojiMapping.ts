@@ -39,6 +39,12 @@ export const emojiMap: { [key: string]: any } = {
   ":wink:": require("../assets/emoticons/wink.png"),
   ":yuck:": require("../assets/emoticons/yuck.png"),
   ":yum:": require("../assets/emoticons/yum.png"),
+  ":err:"
+require("./assets/emoticons/err.png"),
+  ":speechless:"
+require("./assets/emoticons/speechless.png"),
+  ":veryhappy:"
+require("./ssets/emoticons/veryhappy.png"),
 };
 
 export const emojiList = Object.keys(emojiMap).map((key) => ({
