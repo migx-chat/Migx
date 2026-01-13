@@ -443,6 +443,93 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /unsilence command
+        if (cmdKey === 'unsilence') {
+          const roomService = require('../services/roomService');
+          const userService = require('../services/userService');
+          const roomInfo = await roomService.getRoomById(roomId);
+          const roomName = roomInfo?.name || roomId;
+          
+          // Check permission - only admin, moderator, or room owner
+          const isRoomOwner = roomInfo && roomInfo.owner_id == userId;
+          const isGlobalAdmin = await userService.isAdmin(userId);
+          const isModerator = await roomService.isRoomModerator(roomId, userId);
+          
+          if (!isRoomOwner && !isGlobalAdmin && !isModerator) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Only room owner, admin, or moderator can use /unsilence`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          const targetUsername = parts[1];
+          
+          if (targetUsername) {
+            // Unsilence specific user: /unsilence username
+            const targetUser = await userService.getUserByUsername(targetUsername);
+            if (!targetUser) {
+              socket.emit('system:message', {
+                roomId,
+                message: `User "${targetUsername}" not found`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            const wassilenced = await redis.exists(`user:silence:${roomId}:${targetUser.id}`);
+            await redis.del(`user:silence:${roomId}:${targetUser.id}`);
+            
+            if (wassilenced) {
+              io.to(`room:${roomId}`).emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                username: roomName,
+                message: `${targetUsername} has been unsilenced by ${username}`,
+                messageType: 'system',
+                type: 'system',
+                timestamp: new Date().toISOString(),
+                isSystem: true
+              });
+            } else {
+              socket.emit('system:message', {
+                roomId,
+                message: `${targetUsername} is not silenced`,
+                timestamp: new Date().toISOString(),
+                type: 'info'
+              });
+            }
+          } else {
+            // Unsilence entire room: /unsilence
+            const wasSilenced = await redis.exists(`room:silence:${roomId}`);
+            await redis.del(`room:silence:${roomId}`);
+            
+            if (wasSilenced) {
+              io.to(`room:${roomId}`).emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                username: roomName,
+                message: `Chat room has been unsilenced by ${username}`,
+                messageType: 'system',
+                type: 'system',
+                timestamp: new Date().toISOString(),
+                isSystem: true
+              });
+            } else {
+              socket.emit('system:message', {
+                roomId,
+                message: `Chat room is not silenced`,
+                timestamp: new Date().toISOString(),
+                type: 'info'
+              });
+            }
+          }
+          return;
+        }
+
         // Handle /gift command (Redis-first with async DB persistence)
         if (cmdKey === 'gift') {
           const giftName = parts[1];
