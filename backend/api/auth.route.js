@@ -13,6 +13,15 @@ const { getRedisClient } = require('../redis');
 const creditService = require('../services/creditService');
 const { query } = require('../db/db');
 const notificationService = require('../services/notificationService');
+const { authLimiter, registerLimiter, otpLimiter } = require('../middleware/rateLimiter');
+
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error('JWT_SECRET must be set with at least 32 characters');
+  }
+  return secret;
+};
 
 // Username validation regex (MIG33 rules)
 const usernameRegex = /^[a-z][a-z0-9._]{5,11}$/;
@@ -26,7 +35,7 @@ function generateActivationToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
-router.post('/login', async (req, res, next) => {
+router.post('/login', authLimiter, async (req, res, next) => {
   try {
     const { username, password, rememberMe, invisible } = req.body;
     
@@ -169,7 +178,7 @@ router.post('/login', async (req, res, next) => {
         sid: accessSid,
         type: 'access'
       },
-      process.env.JWT_SECRET || 'migx-secret-key-2024',
+      getJwtSecret(),
       { expiresIn: '24h' }
     );
 
@@ -178,7 +187,7 @@ router.post('/login', async (req, res, next) => {
         sid: refreshSid,
         type: 'refresh'
       },
-      process.env.JWT_SECRET || 'migx-secret-key-2024',
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -235,13 +244,9 @@ router.post('/refresh', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Refresh token required' });
     }
 
-    // Verify refresh token JWT
     let decoded;
     try {
-      decoded = jwt.verify(
-        refreshToken,
-        process.env.JWT_SECRET || 'migx-secret-key-2024'
-      );
+      decoded = jwt.verify(refreshToken, getJwtSecret());
     } catch (error) {
       return res.status(401).json({ success: false, error: 'Invalid or expired refresh token' });
     }
@@ -274,17 +279,14 @@ router.post('/refresh', async (req, res) => {
       ip: clientIp
     }, 'access');
 
-    // Generate new access token with SID
     const newAccessToken = jwt.sign(
       { 
         sid: newAccessSid,
         type: 'access'
       },
-      process.env.JWT_SECRET || 'migx-secret-key-2024',
+      getJwtSecret(),
       { expiresIn: '24h' }
     );
-
-    console.log('✅ Access token refreshed for user:', refreshSession.userId);
 
     res.status(200).json({
       success: true,
@@ -302,11 +304,8 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
-router.post('/register', async (req, res, next) => {
+router.post('/register', registerLimiter, async (req, res, next) => {
   try {
-    console.log('REGISTER REQUEST RECEIVED:', { 
-      body: { ...req.body, password: '[HIDDEN]' } 
-    });
 
     const { username, password, email, country, gender } = req.body;
 
@@ -553,8 +552,7 @@ router.post('/change-password', async (req, res) => {
   }
 });
 
-// Send email OTP
-router.post('/send-email-otp', async (req, res) => {
+router.post('/send-email-otp', otpLimiter, async (req, res) => {
   try {
     const { userId, oldEmail, newEmail } = req.body;
 
@@ -597,12 +595,9 @@ router.post('/send-email-otp', async (req, res) => {
   }
 });
 
-// Verify OTP for registration
-router.post('/verify-otp', async (req, res) => {
+router.post('/verify-otp', otpLimiter, async (req, res) => {
   try {
     const { userId, otp } = req.body;
-
-    console.log('VERIFY OTP REQUEST:', { userId, otp: otp ? 'provided' : 'missing' });
 
     if (!userId || !otp) {
       return res.status(400).json({ success: false, error: 'User ID and OTP are required' });
@@ -619,17 +614,13 @@ router.post('/verify-otp', async (req, res) => {
 
     const isValidOtp = await userService.verifyRegistrationOtp(userId, otp);
     if (!isValidOtp) {
-      console.log('VERIFY OTP FAILED: Invalid or expired OTP');
       return res.status(400).json({ success: false, error: 'Invalid or expired OTP' });
     }
 
     const activationResult = await userService.activateUserById(userId);
     if (!activationResult.success) {
-      console.log('VERIFY OTP FAILED: Activation failed');
       return res.status(500).json({ success: false, error: activationResult.error || 'Activation failed' });
     }
-
-    console.log('VERIFY OTP SUCCESS: Account activated for user:', userId);
 
     const levelData = await getUserLevel(userId);
 
@@ -658,8 +649,7 @@ router.post('/verify-otp', async (req, res) => {
   }
 });
 
-// Resend OTP for registration
-router.post('/resend-otp', async (req, res) => {
+router.post('/resend-otp', otpLimiter, async (req, res) => {
   try {
     const { userId } = req.body;
 

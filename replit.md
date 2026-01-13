@@ -46,6 +46,26 @@ Merchants can tag users with exactly 5000 COINS game-only credits. Tagged credit
 
 The system incorporates eleven layers of security: strict server-side validation, Redis rate limiting, robust error handling and logging, Redis distributed locks, idempotency tracking, PIN attempt limiting with cooldowns, enhanced error message sanitization, JWT token expiry management, server-side amount authority, an immutable audit log, and device binding to prevent token theft. A centralized logger with data masking prevents data leakage while maintaining audit capability across various logging levels (INFO, WARN, SECURITY, ERROR).
 
+### Production Configuration
+
+Required environment variables for production deployment:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NODE_ENV` | Set to `production` for production mode | Yes |
+| `JWT_SECRET` | Strong secret key (min 32 characters) for JWT signing | Yes |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins | Recommended |
+| `DATABASE_URL` | PostgreSQL connection string with SSL | Yes |
+| `REDIS_URL` | Redis Cloud connection string | Yes |
+
+Production security features:
+- JWT secret validation: Server refuses to start if secret is missing or too short
+- CORS restriction: Only whitelisted origins allowed in production
+- Rate limiting: Login (10/15min), Register (5/hour), OTP (5/10min)
+- SSL certificate validation: Enabled for database connections
+- Schema auto-init: Disabled in production (use migrations)
+- Error sanitization: Detailed errors hidden from users in production
+
 # External Dependencies
 
 ## Core Expo Modules

@@ -3,15 +3,20 @@ const db = require('../db/db');
 const logger = require('../utils/logger');
 const sessionService = require('../services/sessionService');
 
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    logger.error('SECURITY_CRITICAL: JWT_SECRET not set or too short (min 32 chars)');
+    throw new Error('JWT_SECRET environment variable must be set with at least 32 characters');
+  }
+  return secret;
+};
+
 async function authMiddleware(req, res, next) {
   const authHeader = req.headers['authorization'];
   
   if (!authHeader) {
-    if (req.path.includes('/feed')) {
-      console.log('[AUTH] Feed request without token');
-    } else {
-      logger.warn('AUTH_FAILED: Missing authorization header', { endpoint: req.path });
-    }
+    logger.warn('AUTH_FAILED: Missing authorization header', { endpoint: req.path });
     return res.status(401).json({ 
       success: false,
       error: 'Authentication token missing. Please login again.',
@@ -20,11 +25,7 @@ async function authMiddleware(req, res, next) {
   }
 
   if (!authHeader.startsWith('Bearer ')) {
-    if (req.path.includes('/feed')) {
-      console.log('[AUTH] Feed request with invalid Bearer format');
-    } else {
-      logger.warn('AUTH_FAILED: Invalid Bearer format', { endpoint: req.path });
-    }
+    logger.warn('AUTH_FAILED: Invalid Bearer format', { endpoint: req.path });
     return res.status(401).json({ 
       success: false,
       error: 'Invalid authorization format. Please login again.',
@@ -35,11 +36,7 @@ async function authMiddleware(req, res, next) {
   const token = authHeader.split(' ')[1];
   
   if (!token || token.trim() === '') {
-    if (req.path.includes('/feed')) {
-      console.log('[AUTH] Feed request with empty token');
-    } else {
-      logger.warn('AUTH_FAILED: Empty token', { endpoint: req.path });
-    }
+    logger.warn('AUTH_FAILED: Empty token', { endpoint: req.path });
     return res.status(401).json({ 
       success: false,
       error: 'Empty token. Please login again.',
@@ -49,11 +46,7 @@ async function authMiddleware(req, res, next) {
 
   const tokenParts = token.split('.');
   if (tokenParts.length !== 3) {
-    if (req.path.includes('/feed')) {
-      console.log('[AUTH] Feed request with malformed token (not JWT format)');
-    } else {
-      logger.warn('AUTH_FAILED: Malformed token format', { endpoint: req.path });
-    }
+    logger.warn('AUTH_FAILED: Malformed token format', { endpoint: req.path });
     return res.status(401).json({ 
       success: false,
       error: 'Invalid token format. Please login again.',
@@ -62,7 +55,7 @@ async function authMiddleware(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'migx-secret-key-2024');
+    const decoded = jwt.verify(token, getJwtSecret());
     
     // 🔐 SID-based session lookup
     if (decoded.sid) {
@@ -93,35 +86,16 @@ async function authMiddleware(req, res, next) {
         deviceId: session.deviceId,
         ip: session.ip
       };
-
-      if (!req.path.includes('/feed')) {
-        logger.info('AUTH_SUCCESS: SID session verified', { 
-          userId: session.userId,
-          username: session.username,
-          endpoint: req.path 
-        });
-      }
     } else {
-      // Legacy JWT support (for backward compatibility during transition)
       req.user = decoded;
-      if (!req.path.includes('/feed')) {
-        logger.info('AUTH_SUCCESS: Legacy token verified', { 
-          userId: decoded.id || decoded.userId,
-          endpoint: req.path 
-        });
-      }
     }
     
     next();
   } catch (err) {
-    if (req.path.includes('/feed')) {
-      console.log('[AUTH] Feed token verification failed:', err.message);
-    } else {
-      logger.warn('AUTH_FAILED: Token verification error', { 
-        error: err.message,
-        endpoint: req.path 
-      });
-    }
+    logger.warn('AUTH_FAILED: Token verification error', { 
+      error: err.message,
+      endpoint: req.path 
+    });
     return res.status(401).json({ 
       success: false,
       error: 'Invalid or expired token. Please login again.',
@@ -150,9 +124,8 @@ async function superAdminMiddleware(req, res, next) {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'migx-secret-key-2024');
+    const decoded = jwt.verify(token, getJwtSecret());
     
-    // 🔐 SID-based session lookup for super admin
     let userId, userRole;
     
     if (decoded.sid) {
@@ -187,17 +160,16 @@ async function superAdminMiddleware(req, res, next) {
     }
 
     if (userRole !== 'super_admin') {
-      console.log('❌ Access denied - user is not super_admin. Role:', userRole);
+      logger.warn('SUPER_ADMIN_ACCESS_DENIED', { userId, role: userRole });
       return res.status(403).json({ 
         success: false,
         error: 'Admin access denied. Super admin role required.' 
       });
     }
 
-    console.log('✅ Super admin verified for user:', userId);
     next();
   } catch (err) {
-    console.error('❌ Super admin middleware error:', err.message);
+    logger.error('SUPER_ADMIN_MIDDLEWARE_ERROR', err);
     return res.status(401).json({ 
       success: false,
       error: 'Authentication failed.' 

@@ -1,10 +1,12 @@
 const { Pool } = require('pg');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: isProduction 
+    ? { rejectUnauthorized: true }
+    : { rejectUnauthorized: false }
 });
 
 pool.on('connect', () => {
@@ -42,11 +44,15 @@ const initDatabase = async () => {
   const fs = require('fs');
   const path = require('path');
   
+  if (isProduction) {
+    console.log('Production mode: Skipping auto schema init. Use migrations instead.');
+    return;
+  }
+  
   try {
     const schemaPath = path.join(__dirname, 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
     
-    // Split schema into statements and execute them separately
     const statements = schema
       .split(';')
       .map(s => s.trim())
@@ -56,14 +62,14 @@ const initDatabase = async () => {
       try {
         await pool.query(statement);
       } catch (err) {
-        // Ignore errors for INSERT statements (they might already exist)
-        if (!statement.toUpperCase().includes('INSERT')) {
-          console.error('Error executing statement:', err.message);
+        if (!statement.toUpperCase().includes('INSERT') && 
+            !err.message.includes('already exists')) {
+          console.warn('Schema statement warning:', err.message.substring(0, 100));
         }
       }
     }
     
-    console.log('Database schema initialized');
+    console.log('Database schema initialized (development mode)');
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;

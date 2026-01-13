@@ -46,26 +46,41 @@ const mentorService = require('./services/mentorService');
 const app = express();
 const server = http.createServer(app);
 
+const getAllowedOrigins = () => {
+  const origins = process.env.ALLOWED_ORIGINS;
+  if (origins) {
+    return origins.split(',').map(o => o.trim());
+  }
+  if (process.env.NODE_ENV === 'production') {
+    return ['https://migx.app', 'https://www.migx.app'];
+  }
+  return '*';
+};
+
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: getAllowedOrigins(),
     methods: ['GET', 'POST'],
     credentials: true
   },
   transports: ['polling', 'websocket'],
-  pingTimeout: 28800000,  // 8 hours - allow very long background periods for mobile apps
-  pingInterval: 25000,    // 25 seconds ping interval
+  pingTimeout: 28800000,
+  pingInterval: 25000,
   allowUpgrades: true,
   upgradeTimeout: 30000
 });
 
-app.use(cors());
+app.use(cors({
+  origin: getAllowedOrigins(),
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Request logger middleware
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  }
   next();
 });
 
@@ -317,8 +332,13 @@ const verifyAdminAuth = async (req, res, next) => {
       return res.status(401).json({ success: false, error: 'No token provided' });
     }
 
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret || jwtSecret.length < 32) {
+      return res.status(500).json({ success: false, error: 'Server configuration error' });
+    }
+
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'migx_secret_key');
+    const decoded = jwt.verify(token, jwtSecret);
 
     const userService = require('./services/userService');
     const user = await userService.getUserById(decoded.id || decoded.userId);
@@ -327,14 +347,13 @@ const verifyAdminAuth = async (req, res, next) => {
       return res.status(401).json({ success: false, error: 'User not found' });
     }
 
-    if (user.role !== 'admin' && user.role !== 'superadmin' && user.role !== 'creator') {
+    if (user.role !== 'admin' && user.role !== 'super_admin' && user.role !== 'creator') {
       return res.status(403).json({ success: false, error: 'Admin access required' });
     }
 
     req.user = user;
     next();
   } catch (error) {
-    console.error('Admin auth error:', error);
     return res.status(401).json({ success: false, error: 'Invalid token' });
   }
 };
@@ -411,9 +430,7 @@ app.get('/api/admin/ban-status/:username', verifyAdminAuth, async (req, res) => 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 
-// 404 handler - must be after all routes
 app.use((req, res, next) => {
-  console.log(`404 - Route not found: ${req.method} ${req.url}`);
   res.status(404).json({
     success: false,
     error: 'Route not found',
@@ -421,16 +438,14 @@ app.use((req, res, next) => {
   });
 });
 
-// Global error handler
 app.use((err, req, res, next) => {
-  console.error('GLOBAL ERROR:', err);
-  console.error('Stack:', err.stack);
+  const logger = require('./utils/logger');
+  logger.error('GLOBAL_ERROR', err);
 
-  // Ensure we always send JSON
   if (!res.headersSent) {
     res.status(err.status || 500).json({
       success: false,
-      error: err.message || 'Internal server error',
+      error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
       ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     });
   }
