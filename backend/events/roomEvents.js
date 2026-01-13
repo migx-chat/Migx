@@ -396,10 +396,14 @@ module.exports = (io, socket) => {
                 id: Date.now().toString() + '-bot',
                 roomId,
                 username: 'LowCardBot',
-                message: '[PVT] Play now: !start to enter. Cost: 1000 COINS. For custom entry, !start [amount]',
+                message: 'LowCardBot: [PVT] Play now: !start to enter. Cost: 1000 COINS. For custom entry, !start [amount]',
                 timestamp: new Date().toISOString(),
                 type: 'bot',
-                messageType: 'bot'
+                messageType: 'lowcard',
+                botType: 'lowcard',
+                userType: 'bot',
+                usernameColor: '#719c35',
+                messageColor: '#347499'
               });
             }, 400);
           }
