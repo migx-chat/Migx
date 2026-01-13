@@ -556,6 +556,77 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /ip command - check user IP and linked accounts (admin only)
+        if (cmdKey === 'ip') {
+          const userService = require('../services/userService');
+          const db = require('../db/db');
+          
+          // Check permission - only admin, super_admin, customer_service
+          const allowedRoles = ['admin', 'super_admin', 'customer_service'];
+          const currentUser = await userService.getUserById(userId);
+          
+          if (!currentUser || !allowedRoles.includes(currentUser.role)) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Only admin and staff can use /ip command`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+          
+          const targetUsername = parts[1];
+          if (!targetUsername) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /ip <username>`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+          
+          const targetUser = await userService.getUserByUsername(targetUsername);
+          if (!targetUser) {
+            socket.emit('system:message', {
+              roomId,
+              message: `User "${targetUsername}" not found`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+          
+          const userIP = targetUser.last_ip || 'Unknown';
+          
+          // Find all accounts with same IP
+          let linkedAccounts = [];
+          if (userIP && userIP !== 'Unknown') {
+            const result = await db.query(
+              'SELECT username FROM users WHERE last_ip = $1 AND username != $2 ORDER BY username',
+              [userIP, targetUsername]
+            );
+            linkedAccounts = result.rows.map(r => r.username);
+          }
+          
+          const linkedList = linkedAccounts.length > 0 
+            ? linkedAccounts.join(', ') 
+            : 'None';
+          
+          // Send private response only to requester
+          socket.emit('chat:message', {
+            id: generateMessageId(),
+            roomId,
+            username: 'System',
+            message: `📍 [${targetUsername}] [${userIP}] [Linked: ${linkedList}]`,
+            messageType: 'cmd',
+            type: 'cmd',
+            timestamp: new Date().toISOString(),
+            isPrivate: true
+          });
+          return;
+        }
+
         // Handle /lock command - lock room (only mods can enter)
         if (cmdKey === 'lock') {
           const roomService = require('../services/roomService');
