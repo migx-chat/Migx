@@ -6,10 +6,10 @@
 
 const { getRedisClient } = require('../redis');
 
-const TTL_SECONDS = 21600; // 6 hours
+const TTL_SECONDS = 1800; // 30 minutes (reduced from 6 hours to prevent stale presence issues)
 
 /**
- * Store user presence in room with 6-hour TTL
+ * Store user presence in room with 30-minute TTL
  */
 const storeUserPresence = async (roomId, userId, socketId, username) => {
   try {
@@ -74,6 +74,26 @@ const removeUserPresence = async (roomId, userId) => {
   } catch (error) {
     console.error('Error removing user presence:', error);
     return false;
+  }
+};
+
+/**
+ * Remove user presence from ALL rooms (for logout/account switch)
+ */
+const removeAllUserPresence = async (userId) => {
+  try {
+    const client = getRedisClient();
+    const pattern = `room:*:user:${userId}`;
+    const keys = await client.keys(pattern);
+    
+    if (keys.length > 0) {
+      await client.del(keys);
+      console.log(`🧹 Cleared ${keys.length} presence keys for user ${userId}`);
+    }
+    return keys.length;
+  } catch (error) {
+    console.error('Error removing all user presence:', error);
+    return 0;
   }
 };
 
@@ -208,6 +228,7 @@ module.exports = {
   storeUserPresence,
   updatePresenceActivity,
   removeUserPresence,
+  removeAllUserPresence,
   getUserPresence,
   getRoomUsersFromTTL,
   getActiveUserCountInRoom,

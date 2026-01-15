@@ -2,6 +2,7 @@ const userService = require('../services/userService');
 const { getUserLevel, getLeaderboard } = require('../utils/xpLeveling');
 const { setUserStatus, getUserRooms, removeUserFromRoom } = require('../utils/presence');
 const roomService = require('../services/roomService');
+const { removeAllUserPresence } = require('../utils/roomPresenceTTL');
 
 // Import Redis-related functions (assuming they exist in utils/redisUtils)
 const {
@@ -248,6 +249,9 @@ module.exports = (io, socket) => {
         // Remove presence and session from Redis
         await removePresence(username);
         await removeSession(username);
+        
+        // Clear all TTL-based room presence for this user
+        await removeAllUserPresence(userId);
         
         // Clear user's chatlist from Redis
         await clearUserRooms(username);
