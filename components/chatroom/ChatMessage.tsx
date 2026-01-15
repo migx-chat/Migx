@@ -643,6 +643,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     marginBottom: -5,
+    marginHorizontal: 2,
   },
   bigEmojiText: {
     fontSize: 28,
