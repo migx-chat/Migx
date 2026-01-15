@@ -491,6 +491,35 @@ export const ChatMessage = React.memo(({
     );
   }
 
+  if (hasFlags || hasFlagTags(message)) {
+    const { parts } = parseFlagTags(message);
+    return (
+      <View style={styles.messageContainer}>
+        <View style={styles.flagMessageWrapper}>
+          <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }, textShadowStyle]}>
+            {username}{hasTopMerchantBadge && <BadgeTop1 />}:{' '}
+          </Text>
+          {parts.map((part, idx) => {
+            if (part.type === 'flag' && part.flagKey && flagImages[part.flagKey]) {
+              return (
+                <Image
+                  key={`flag-${idx}`}
+                  source={flagImages[part.flagKey]}
+                  style={bigEmoji ? styles.bigFlagImage : styles.flagImage}
+                />
+              );
+            }
+            return (
+              <Text key={`text-${idx}`} style={[styles.message, dynamicStyles.message, { color: getMessageColor() }, textShadowStyle]}>
+                {part.content}
+              </Text>
+            );
+          })}
+        </View>
+      </View>
+    );
+  }
+
   const renderMessageContent = (text: string, isBigEmoji: boolean = false, forceFlags: boolean = false) => {
     if (forceFlags || hasFlagTags(text)) {
       const { parts } = parseFlagTags(text);
@@ -623,10 +652,10 @@ const styles = StyleSheet.create({
     marginBottom: -3,
   },
   bigFlagImage: {
-    width: 72,
-    height: 54,
-    marginHorizontal: 6,
-    marginBottom: -8,
+    width: 40,
+    height: 30,
+    marginHorizontal: 3,
+    marginVertical: 2,
   },
   noticeContainer: {
     paddingVertical: 8,
@@ -683,6 +712,11 @@ const styles = StyleSheet.create({
     height: 30,
   },
   cardMessageWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  flagMessageWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
