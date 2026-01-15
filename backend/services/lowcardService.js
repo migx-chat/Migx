@@ -209,7 +209,7 @@ const addBotToRoom = async (roomId) => {
     createdAt: new Date().toISOString()
   }), 'EX', 86400 * 7);
   
-  return { success: true, message: '[PVT] LowCardBot is running. Amount: 1000' };
+  return { success: true, message: '[PVT] Bot is running. Amount: 1000' };
 };
 
 const removeBotFromRoom = async (roomId) => {
