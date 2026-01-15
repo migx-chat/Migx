@@ -484,8 +484,8 @@ module.exports = (io, socket) => {
               type: 'bot',
               botType: 'flagbot',
               userType: 'bot',
-              usernameColor: '#FF6B35',
-              messageColor: '#1E90FF',
+              usernameColor: '#e67e22',
+              messageColor: '#2ecc71',
               timestamp: new Date().toISOString()
             });
           }, 500);

@@ -16,8 +16,8 @@ const sendBotMessage = (io, roomId, message, options = {}) => {
     type: 'bot',
     botType: 'flagbot',
     userType: 'bot',
-    usernameColor: '#FF6B35',
-    messageColor: '#1E90FF',
+    usernameColor: '#e67e22',
+    messageColor: '#2ecc71',
     bigEmoji: bigEmoji,
     hasFlags: hasFlags,
     timestamp: new Date().toISOString()
