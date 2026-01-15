@@ -599,26 +599,24 @@ module.exports = (io, socket) => {
           
           const userIP = targetUser.last_ip || 'Unknown';
           
-          // Find all accounts with same IP
-          let linkedAccounts = [];
+          // Find all accounts with same IP (including target user)
+          let allUsersWithIP = [targetUsername];
           if (userIP && userIP !== 'Unknown') {
             const result = await db.query(
               'SELECT username FROM users WHERE last_ip = $1 AND username != $2 ORDER BY username',
               [userIP, targetUsername]
             );
-            linkedAccounts = result.rows.map(r => r.username);
+            allUsersWithIP = allUsersWithIP.concat(result.rows.map(r => r.username));
           }
           
-          const linkedList = linkedAccounts.length > 0 
-            ? linkedAccounts.join(', ') 
-            : 'None';
+          const usersList = allUsersWithIP.join(', ');
           
           // Send private response only to requester
           socket.emit('chat:message', {
             id: generateMessageId(),
             roomId,
             username: 'System',
-            message: `📍 [${targetUsername}] [${userIP}] [Linked: ${linkedList}]`,
+            message: `📍 IP ${userIP}: ${usersList}`,
             messageType: 'cmd',
             type: 'cmd',
             timestamp: new Date().toISOString(),
