@@ -123,7 +123,8 @@ const getGiftCount = async (userId) => {
       'SELECT COUNT(*) as count FROM user_gifts WHERE receiver_id = $1',
       [userId]
     );
-    return parseInt(result.rows[0].count) || 0;
+    const count = parseInt(result.rows[0].count) || 0;
+    return count;
   } catch (error) {
     console.error('Error getting gift count:', error);
     return 0;
