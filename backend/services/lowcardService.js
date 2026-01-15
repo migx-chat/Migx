@@ -533,6 +533,46 @@ const tallyRound = async (roomId, isTimedOut = false) => {
     return { error: true, message: 'No active players with cards.' };
   }
   
+  if (activePlayers.length === 3) {
+    const highestValue = Math.max(...activePlayers.map(p => p.currentCard.value));
+    const winners = activePlayers.filter(p => p.currentCard.value === highestValue);
+    
+    if (winners.length === 1) {
+      const winner = winners[0];
+      game.status = 'finished';
+      
+      const commission = Math.floor(game.pot * 0.05);
+      const winnings = game.pot - commission;
+      
+      const creditResult = await addCredits(winner.userId, winnings, winner.username, `LowCard Win - Pot ${game.pot} COINS`);
+      
+      await query(
+        `UPDATE lowcard_games SET status = 'finished', winner_id = $1, winner_username = $2, pot_amount = $3, finished_at = NOW()
+         WHERE room_id = $4 AND status = 'playing'`,
+        [winner.userId, winner.username, game.pot, roomId]
+      ).catch(err => logger.error('LOWCARD_DB_UPDATE_ERROR', err));
+      
+      await query(
+        `INSERT INTO lowcard_history (game_id, winner_id, winner_username, total_pot, commission, players_count)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [game.id, winner.userId, winner.username, game.pot, commission, game.players.length]
+      ).catch(err => logger.error('LOWCARD_HISTORY_INSERT_ERROR', err));
+      
+      await redis.del(gameKey);
+      await clearDeck(roomId);
+      
+      return {
+        gameOver: true,
+        winner: winner.username,
+        winnerId: winner.userId,
+        winnings,
+        newBalance: creditResult.balance,
+        message: `LowCard game over! ${winner.username} WINS ${winnings.toFixed(1)} COINS with highest card ${getCardEmoji(winner.currentCard)}! CONGRATS!`,
+        followUp: `Play now: !start to enter. Cost: ${game.entryAmount}.0 COINS. For custom entry, !start [amount]`
+      };
+    }
+  }
+  
   const lowestValue = Math.min(...activePlayers.map(p => p.currentCard.value));
   const losers = activePlayers.filter(p => p.currentCard.value === lowestValue);
   
