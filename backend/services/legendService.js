@@ -49,34 +49,44 @@ const isBotActive = async (roomId) => {
 const startGame = async (roomId, starterUsername) => {
   const redis = getRedisClient();
   const gameKey = getGameKey(roomId);
+  const lockKey = `flagbot:lock:${roomId}`;
   
-  const existing = await redis.get(gameKey);
-  if (existing) {
-    const game = JSON.parse(existing);
-    if (game.phase === 'betting' || game.phase === 'calculating') {
-      return { success: false, error: 'Game already in progress' };
-    }
+  const lockAcquired = await redis.set(lockKey, '1', 'EX', 5, 'NX');
+  if (!lockAcquired) {
+    return { success: false, error: 'Please wait, another action is in progress.' };
   }
   
-  const gameState = {
-    roomId,
-    phase: 'betting',
-    startedBy: starterUsername,
-    startedAt: Date.now(),
-    endsAt: Date.now() + (BETTING_TIME * 1000),
-    totalPool: 0,
-    bets: {}
-  };
-  
-  await redis.set(gameKey, JSON.stringify(gameState), { EX: 300 });
-  await redis.del(getBetsKey(roomId));
-  
-  return { 
-    success: true, 
-    game: gameState,
-    bettingTime: BETTING_TIME,
-    groups: GROUPS
-  };
+  try {
+    const existing = await redis.get(gameKey);
+    if (existing) {
+      const game = JSON.parse(existing);
+      if (game.phase === 'betting' || game.phase === 'calculating') {
+        return { success: false, error: 'Game already in progress' };
+      }
+    }
+    
+    const gameState = {
+      roomId,
+      phase: 'betting',
+      startedBy: starterUsername,
+      startedAt: Date.now(),
+      endsAt: Date.now() + (BETTING_TIME * 1000),
+      totalPool: 0,
+      bets: {}
+    };
+    
+    await redis.set(gameKey, JSON.stringify(gameState), { EX: 300 });
+    await redis.del(getBetsKey(roomId));
+    
+    return { 
+      success: true, 
+      game: gameState,
+      bettingTime: BETTING_TIME,
+      groups: GROUPS
+    };
+  } finally {
+    await redis.del(lockKey);
+  }
 };
 
 const placeBet = async (roomId, userId, username, groupCode, amount) => {

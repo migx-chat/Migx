@@ -5,7 +5,7 @@ const { query } = require('../db/db');
  */
 const mentorService = {
   /**
-   * Check all merchants and demote those who haven't received 1,000,000 IDR 
+   * Check all merchants and demote those who haven't received 1,600.000 COINS 
    * from their mentor in the last 30 days or whose expiry has passed.
    */
   async checkMerchantStatus() {

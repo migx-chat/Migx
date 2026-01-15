@@ -11,7 +11,7 @@ const sendBotMessage = (io, roomId, message, options = {}) => {
     id: generateMessageId(),
     roomId,
     username: 'FlagBot',
-    message: `FlagBot: ${message}`,
+    message: message,
     messageType: type,
     type: 'bot',
     botType: 'flagbot',
