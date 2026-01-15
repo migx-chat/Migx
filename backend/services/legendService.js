@@ -319,6 +319,22 @@ const getAllBets = async (roomId) => {
   return bets;
 };
 
+const getUserBets = async (roomId, userId) => {
+  const redis = getRedisClient();
+  const betsKey = getBetsKey(roomId);
+  
+  const allBets = await redis.hGetAll(betsKey);
+  const userBets = [];
+  
+  for (const [key, betStr] of Object.entries(allBets)) {
+    if (key.startsWith(`${userId}:`)) {
+      userBets.push(JSON.parse(betStr));
+    }
+  }
+  
+  return userBets;
+};
+
 module.exports = {
   GROUPS,
   MULTIPLIERS,
@@ -326,6 +342,7 @@ module.exports = {
   MIN_BET,
   startGame,
   placeBet,
+  getUserBets,
   generateResults,
   calculateWinners,
   getGameState,

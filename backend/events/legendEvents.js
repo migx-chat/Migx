@@ -370,7 +370,11 @@ const handleLegendCommand = async (io, socket, data) => {
     
     socket.emit('credits:updated', { balance: newBalance });
     
-    sendBotMessage(io, roomId, `${username} placed ${betAmount} on ${result.bet.groupEmoji} ${result.bet.groupName}.`);
+    const userBets = await legendService.getUserBets(roomId, userId);
+    const userTotalBid = userBets.reduce((sum, bet) => sum + bet.amount, 0);
+    const userBetsList = userBets.map(bet => `${bet.groupEmoji} ${bet.amount}`).join(', ');
+    
+    sendBotMessage(io, roomId, `${username} placed ${betAmount} on ${result.bet.groupEmoji} ${result.bet.groupName}.\nTotal bid: ${userBetsList}`);
     return true;
   }
   
