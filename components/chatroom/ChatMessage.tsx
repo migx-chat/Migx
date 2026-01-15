@@ -501,7 +501,6 @@ export const ChatMessage = React.memo(({
               key={`flag-${idx}`} 
               source={flagImages[part.flagKey]} 
               style={isBigEmoji ? styles.bigFlagImage : styles.flagImage} 
-              resizeMode="contain" 
             />
           );
         }
