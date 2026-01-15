@@ -1498,7 +1498,7 @@ module.exports = (io, socket) => {
             }
             
             // Remove from presence and participants
-            const { removeUserPresence } = require('../utils/roomPresenceTTL');
+            const { removeUserPresence, getRoomPresenceUsers } = require('../utils/roomPresenceTTL');
             const { removeRoomParticipant } = require('../utils/redisUtils');
             await removeUserPresence(roomId, targetUser.id);
             await removeRoomParticipant(roomId, targetUsername);
