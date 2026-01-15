@@ -9,7 +9,7 @@ const sendBotMessage = (io, roomId, message, type = 'dicebot') => {
     id: generateMessageId(),
     roomId,
     username: 'DiceBot',
-    message: `DiceBot: ${message}`,
+    message: message,
     messageType: type,
     type: 'bot',
     botType: 'dicebot',
