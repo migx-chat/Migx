@@ -462,6 +462,68 @@ module.exports = (io, socket) => {
         userCount: newUserCount
       });
 
+      // Check if any bot is active and notify user
+      try {
+        const legendService = require('../services/legendService');
+        const dicebotService = require('../services/dicebotService');
+        const lowcardService = require('../services/lowcardService');
+        const { generateMessageId } = require('../utils/idGenerator');
+        
+        const flagBotActive = await legendService.isBotActive(roomId);
+        const diceBotActive = await dicebotService.isBotActive(roomId);
+        const lowCardActive = await lowcardService.isBotActive(roomId);
+        
+        if (flagBotActive) {
+          setTimeout(() => {
+            socket.emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              username: 'FlagBot',
+              message: 'Flag is running in room. Type !fg to start a game.',
+              messageType: 'flagbot',
+              type: 'bot',
+              botType: 'flagbot',
+              userType: 'bot',
+              usernameColor: '#FF6B35',
+              messageColor: '#1E90FF',
+              timestamp: new Date().toISOString()
+            });
+          }, 500);
+        } else if (diceBotActive) {
+          setTimeout(() => {
+            socket.emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              username: 'DiceBot',
+              message: 'DiceBot is running in room. Type !start [amount] to start a game.',
+              messageType: 'dicebot',
+              type: 'bot',
+              botType: 'dicebot',
+              userType: 'bot',
+              usernameColor: '#FFD700',
+              timestamp: new Date().toISOString()
+            });
+          }, 500);
+        } else if (lowCardActive) {
+          setTimeout(() => {
+            socket.emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              username: 'LowCardBot',
+              message: 'LowCard is running in room. Type !start [amount] to start a game.',
+              messageType: 'lowcard',
+              type: 'bot',
+              botType: 'lowcard',
+              userType: 'bot',
+              usernameColor: '#4CAF50',
+              timestamp: new Date().toISOString()
+            });
+          }, 500);
+        }
+      } catch (err) {
+        console.error('Error checking bot status:', err);
+      }
+
       // Room is already added to user:rooms via addUserRoom() called earlier (line 165)
       // No need to add again - just set the last message
       const redisInstance = getRedisClient();
