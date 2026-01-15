@@ -167,6 +167,7 @@ export const ChatRoomInput = forwardRef<ChatRoomInputRef, ChatRoomInputProps>(({
     if (!message.trim()) return;
     const msgToSend = message.trim();
     setMessage('');
+    setInputHeight(42);
     // Fast clear for immediate feedback
     onSend(msgToSend);
     // Auto close keyboard and emoji picker after sending
