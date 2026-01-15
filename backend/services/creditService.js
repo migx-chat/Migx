@@ -282,7 +282,7 @@ const deductCredits = async (userId, amount, transactionType = 'game_spend', des
     await client.query(
       `INSERT INTO credit_logs (from_user_id, from_username, amount, transaction_type, description)
        VALUES ($1, $2, $3, $4, $5)`,
-      [userId, user.username, amount, transactionType, description]
+      [userId, user.username, -amount, transactionType, description]
     );
     
     await client.query('COMMIT');
