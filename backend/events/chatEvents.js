@@ -1519,7 +1519,7 @@ module.exports = (io, socket) => {
             }
             
             // Remove from presence and participants
-            const { removeUserPresence, getRoomPresenceUsers } = require('../utils/roomPresenceTTL');
+            const { removeUserPresence, getRoomUsersFromTTL } = require('../utils/roomPresenceTTL');
             const { removeRoomParticipant } = require('../utils/redisUtils');
             await removeUserPresence(roomId, targetUser.id);
             await removeRoomParticipant(roomId, targetUsername);
@@ -1534,18 +1534,18 @@ module.exports = (io, socket) => {
             io.to(`room:${roomId}`).emit('chat:message', {
               id: generateMessageId(),
               roomId,
-              message: `** ${targetUsername} was kicked from the room by ${username} **`,
+              message: `${targetUsername} has been kicked by administrator ${username}`,
               messageType: 'cmd',
               type: 'cmd',
               timestamp: new Date().toISOString()
             });
             
             // Update participants list
-            const updatedUsers = await getRoomPresenceUsers(roomId);
+            const updatedUsers = await getRoomUsersFromTTL(roomId);
             io.to(`room:${roomId}`).emit('room:user:left', {
               roomId,
               username: targetUsername,
-              users: updatedUsers
+              users: updatedUsers.map(u => u.username)
             });
             
             console.log(`👢 User ${targetUsername} kicked from room ${roomId} by ${username}`);
