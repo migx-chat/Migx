@@ -260,64 +260,74 @@ const getActiveGame = async (roomId) => {
 const startGame = async (roomId, userId, username, amount) => {
   const redis = getRedisClient();
   const gameKey = `dicebot:game:${roomId}`;
+  const lockKey = `dicebot:lock:${roomId}`;
   
-  const existingGame = await redis.get(gameKey);
-  if (existingGame) {
-    const game = JSON.parse(existingGame);
-    if (game.status === 'waiting' || game.status === 'playing') {
-      return { success: false, message: 'A game is already in progress. Use !j to join.' };
+  const lockAcquired = await redis.set(lockKey, '1', 'EX', 5, 'NX');
+  if (!lockAcquired) {
+    return { success: false, message: 'Please wait, another action is in progress.' };
+  }
+  
+  try {
+    const existingGame = await redis.get(gameKey);
+    if (existingGame) {
+      const game = JSON.parse(existingGame);
+      if (game.status === 'waiting' || game.status === 'playing') {
+        return { success: false, message: 'A game is already in progress. Use !j to join.' };
+      }
     }
+    
+    const requestedAmount = parseInt(amount) || MIN_ENTRY;
+    
+    if (requestedAmount < MIN_ENTRY) {
+      return { success: false, message: `Minimal ${formatCoins(MIN_ENTRY)} COINS to start game.` };
+    }
+    
+    const entryAmount = Math.min(MAX_ENTRY, requestedAmount);
+    
+    const deductResult = await deductCredits(userId, entryAmount, username, `DiceBot Bet - Start game`);
+    if (!deductResult.success) {
+      return { success: false, message: `Not enough credits. You need ${formatCoins(entryAmount)} COINS to start.` };
+    }
+    
+    const gameId = Date.now();
+    
+    const game = {
+      id: gameId,
+      roomId,
+      status: 'waiting',
+      entryAmount,
+      pot: entryAmount,
+      currentRound: 0,
+      botTarget: null,
+      players: [{
+        userId: userId,
+        username,
+        isEliminated: false,
+        hasRolled: false,
+        die1: null,
+        die2: null,
+        total: null,
+        isIn: null,
+        hasImmunity: false,
+        earnedImmunity: false
+      }],
+      startedBy: userId,
+      startedByUsername: username,
+      createdAt: new Date().toISOString(),
+      joinDeadline: Date.now() + JOIN_TIMEOUT
+    };
+    
+    await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
+    
+    return {
+      success: true,
+      gameId,
+      newBalance: deductResult.balance,
+      message: `Game started by ${username}. Enter !j to join the game. Cost: ${formatCoins(entryAmount)} COINS [30s]`
+    };
+  } finally {
+    await redis.del(lockKey);
   }
-  
-  const requestedAmount = parseInt(amount) || MIN_ENTRY;
-  
-  if (requestedAmount < MIN_ENTRY) {
-    return { success: false, message: `Minimal ${formatCoins(MIN_ENTRY)} COINS to start game.` };
-  }
-  
-  const entryAmount = Math.min(MAX_ENTRY, requestedAmount);
-  
-  const deductResult = await deductCredits(userId, entryAmount, username, `DiceBot Bet - Start game`);
-  if (!deductResult.success) {
-    return { success: false, message: `Not enough credits. You need ${formatCoins(entryAmount)} COINS to start.` };
-  }
-  
-  const gameId = Date.now();
-  
-  const game = {
-    id: gameId,
-    roomId,
-    status: 'waiting',
-    entryAmount,
-    pot: entryAmount,
-    currentRound: 0,
-    botTarget: null,
-    players: [{
-      userId: userId,
-      username,
-      isEliminated: false,
-      hasRolled: false,
-      die1: null,
-      die2: null,
-      total: null,
-      isIn: null,
-      hasImmunity: false,
-      earnedImmunity: false
-    }],
-    startedBy: userId,
-    startedByUsername: username,
-    createdAt: new Date().toISOString(),
-    joinDeadline: Date.now() + JOIN_TIMEOUT
-  };
-  
-  await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
-  
-  return {
-    success: true,
-    gameId,
-    newBalance: deductResult.balance,
-    message: `Game started by ${username}. Enter !j to join the game. Cost: ${formatCoins(entryAmount)} COINS [30s]`
-  };
 };
 
 const joinGame = async (roomId, userId, username) => {

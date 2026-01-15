@@ -265,69 +265,79 @@ const getBotStatus = async (roomId) => {
 const startGame = async (roomId, userId, username, amount) => {
   const redis = getRedisClient();
   const gameKey = `lowcard:game:${roomId}`;
+  const lockKey = `lowcard:lock:${roomId}`;
   
-  const existingGame = await redis.get(gameKey);
-  if (existingGame) {
-    const game = JSON.parse(existingGame);
-    if (game.status === 'waiting' || game.status === 'playing') {
-      return { success: false, message: 'A game is already in progress. Use !j to join.' };
+  const lockAcquired = await redis.set(lockKey, '1', 'EX', 5, 'NX');
+  if (!lockAcquired) {
+    return { success: false, message: 'Please wait, another action is in progress.' };
+  }
+  
+  try {
+    const existingGame = await redis.get(gameKey);
+    if (existingGame) {
+      const game = JSON.parse(existingGame);
+      if (game.status === 'waiting' || game.status === 'playing') {
+        return { success: false, message: 'A game is already in progress. Use !j to join.' };
+      }
     }
+    
+    const roomResult = await query('SELECT name FROM rooms WHERE id = $1', [roomId]);
+    const roomName = roomResult.rows[0]?.name || '';
+    const isBigGame = roomName.toLowerCase().includes('big game');
+    const minEntry = isBigGame ? MIN_ENTRY_BIG_GAME : MIN_ENTRY;
+    
+    const requestedAmount = parseInt(amount) || minEntry;
+    
+    if (requestedAmount < minEntry) {
+      return { success: false, message: `Minimal ${minEntry.toLocaleString()} COINS to start game.` };
+    }
+    
+    const entryAmount = Math.min(MAX_ENTRY, requestedAmount);
+    
+    const deductResult = await deductCredits(userId, entryAmount, username, `LowCard Bet - Start game`);
+    if (!deductResult.success) {
+      return { success: false, message: `Not enough credits. You need ${entryAmount} COINS to start.` };
+    }
+    
+    const gameId = Date.now();
+    
+    const game = {
+      id: gameId,
+      roomId,
+      status: 'waiting',
+      entryAmount,
+      pot: entryAmount,
+      currentRound: 0,
+      players: [{
+        userId: userId,
+        username,
+        isEliminated: false,
+        hasDrawn: false,
+        currentCard: null
+      }],
+      startedBy: userId,
+      startedByUsername: username,
+      createdAt: new Date().toISOString(),
+      joinDeadline: Date.now() + JOIN_TIMEOUT
+    };
+    
+    await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
+    
+    await query(
+      `INSERT INTO lowcard_games (room_id, status, entry_amount, pot_amount, started_by, started_by_username)
+       VALUES ($1, 'waiting', $2, $3, $4, $5)`,
+      [roomId, entryAmount, entryAmount, userId, username]
+    ).catch(err => logger.error('LOWCARD_DB_INSERT_ERROR', err));
+    
+    return {
+      success: true,
+      gameId,
+      newBalance: deductResult.balance,
+      message: `LowCard started by ${username}. Enter !j to join the game. Cost: ${entryAmount}.0 COINS [30s]`
+    };
+  } finally {
+    await redis.del(lockKey);
   }
-  
-  const roomResult = await query('SELECT name FROM rooms WHERE id = $1', [roomId]);
-  const roomName = roomResult.rows[0]?.name || '';
-  const isBigGame = roomName.toLowerCase().includes('big game');
-  const minEntry = isBigGame ? MIN_ENTRY_BIG_GAME : MIN_ENTRY;
-  
-  const requestedAmount = parseInt(amount) || minEntry;
-  
-  if (requestedAmount < minEntry) {
-    return { success: false, message: `Minimal ${minEntry.toLocaleString()} COINS to start game.` };
-  }
-  
-  const entryAmount = Math.min(MAX_ENTRY, requestedAmount);
-  
-  const deductResult = await deductCredits(userId, entryAmount, username, `LowCard Bet - Start game`);
-  if (!deductResult.success) {
-    return { success: false, message: `Not enough credits. You need ${entryAmount} COINS to start.` };
-  }
-  
-  const gameId = Date.now();
-  
-  const game = {
-    id: gameId,
-    roomId,
-    status: 'waiting',
-    entryAmount,
-    pot: entryAmount,
-    currentRound: 0,
-    players: [{
-      userId: userId,
-      username,
-      isEliminated: false,
-      hasDrawn: false,
-      currentCard: null
-    }],
-    startedBy: userId,
-    startedByUsername: username,
-    createdAt: new Date().toISOString(),
-    joinDeadline: Date.now() + JOIN_TIMEOUT
-  };
-  
-  await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
-  
-  await query(
-    `INSERT INTO lowcard_games (room_id, status, entry_amount, pot_amount, started_by, started_by_username)
-     VALUES ($1, 'waiting', $2, $3, $4, $5)`,
-    [roomId, entryAmount, entryAmount, userId, username]
-  ).catch(err => logger.error('LOWCARD_DB_INSERT_ERROR', err));
-  
-  return {
-    success: true,
-    gameId,
-    newBalance: deductResult.balance,
-    message: `LowCard started by ${username}. Enter !j to join the game. Cost: ${entryAmount}.0 COINS [30s]`
-  };
 };
 
 const joinGame = async (roomId, userId, username) => {
