@@ -215,14 +215,11 @@ const handleDicebotCommand = async (io, socket, data) => {
         balance: result.newBalance
       });
     } else {
-      socket.emit('chat:message', {
-        id: generateMessageId(),
+      socket.emit('system:message', {
         roomId,
-        message: `DiceBot: ${result.message}`,
-        messageType: 'error',
-        type: 'bot',
-        botType: 'dicebot',
-        timestamp: new Date().toISOString()
+        message: result.message,
+        timestamp: new Date().toISOString(),
+        type: 'warning'
       });
     }
     
@@ -240,14 +237,11 @@ const handleDicebotCommand = async (io, socket, data) => {
         balance: result.newBalance
       });
     } else {
-      socket.emit('chat:message', {
-        id: generateMessageId(),
+      socket.emit('system:message', {
         roomId,
-        message: `DiceBot: ${result.message}`,
-        messageType: 'error',
-        type: 'bot',
-        botType: 'dicebot',
-        timestamp: new Date().toISOString()
+        message: result.message,
+        timestamp: new Date().toISOString(),
+        type: 'warning'
       });
     }
     
@@ -272,14 +266,11 @@ const handleDicebotCommand = async (io, socket, data) => {
         }, 500);
       }
     } else {
-      socket.emit('chat:message', {
-        id: generateMessageId(),
+      socket.emit('system:message', {
         roomId,
-        message: `DiceBot: ${result.message}`,
-        messageType: 'error',
-        type: 'bot',
-        botType: 'dicebot',
-        timestamp: new Date().toISOString()
+        message: result.message,
+        timestamp: new Date().toISOString(),
+        type: 'warning'
       });
     }
     
