@@ -672,6 +672,18 @@ const clearUserRooms = async (username) => {
   }
 };
 
+const getUserActiveRooms = async (userId) => {
+  try {
+    const redis = getRedisClient();
+    const key = `user:${userId}:activeRooms`;
+    const rooms = await redis.sMembers(key);
+    return rooms || [];
+  } catch (error) {
+    console.error('Error getting user active rooms:', error);
+    return [];
+  }
+};
+
 module.exports = {
   setPresence,
   getPresence,
@@ -723,6 +735,7 @@ module.exports = {
   getUserCurrentRoom,
   getRoomParticipantCount,
   clearUserRooms,
+  getUserActiveRooms,
   DEFAULT_TTL,
   ONLINE_PRESENCE_TTL
 };

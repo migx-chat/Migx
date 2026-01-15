@@ -2,7 +2,7 @@ const userService = require('../services/userService');
 const { getUserLevel, getLeaderboard } = require('../utils/xpLeveling');
 const { setUserStatus, getUserRooms, removeUserFromRoom } = require('../utils/presence');
 const roomService = require('../services/roomService');
-const { removeAllUserPresence } = require('../utils/roomPresenceTTL');
+const { removeAllUserPresence, getRoomUsersFromTTL } = require('../utils/roomPresenceTTL');
 
 // Import Redis-related functions (assuming they exist in utils/redisUtils)
 const {
@@ -13,7 +13,9 @@ const {
   getSession,
   removeSession,
   getRoomMembers,
-  clearUserRooms
+  clearUserRooms,
+  removeRoomParticipant,
+  getUserActiveRooms
 } = require('../utils/redisUtils');
 
 module.exports = (io, socket) => {
@@ -246,6 +248,11 @@ module.exports = (io, socket) => {
       const username = socket.username;
 
       if (userId && username) {
+        console.log(`🔌 Processing logout/disconnect for ${username} (ID: ${userId})`);
+        
+        // Get user's active rooms BEFORE clearing presence
+        const activeRooms = await getUserActiveRooms(userId);
+        
         // Remove presence and session from Redis
         await removePresence(username);
         await removeSession(username);
@@ -256,13 +263,21 @@ module.exports = (io, socket) => {
         // Clear user's chatlist from Redis
         await clearUserRooms(username);
 
-        const rooms = await getUserRooms(userId); // Assuming getUserRooms can take userId
-        for (const roomId of rooms) {
+        // Process each room the user was in
+        for (const roomId of activeRooms) {
+          // Remove from room participants list (like leave room does)
+          await removeRoomParticipant(roomId, username);
           await removeUserFromRoom(roomId, userId, username);
-          io.to(`room:${roomId}`).emit('system:message', {
+          
+          // Get updated user list from TTL
+          const updatedUsers = await getRoomUsersFromTTL(roomId);
+          const userList = updatedUsers.map(u => u.username);
+          
+          // Emit room:user:left event (same as leave room flow)
+          io.to(`room:${roomId}`).emit('room:user:left', {
             roomId,
-            message: `${username} has disconnected`,
-            timestamp: new Date().toISOString()
+            username,
+            users: userList
           });
 
           // Broadcast presence change to offline
@@ -271,17 +286,11 @@ module.exports = (io, socket) => {
             status: 'offline',
             timestamp: new Date().toISOString()
           });
-
-          // Optionally update room user list if it's also managed by Redis
-          const users = await roomService.getRoomUsers(roomId); // This might need to be optimized with Redis
-          io.to(`room:${roomId}`).emit('room:users', {
-            roomId,
-            users,
-            count: users.length
-          });
+          
+          console.log(`👋 User ${username} removed from room ${roomId} on logout`);
         }
 
-        await userService.disconnectUser(userId); // Still update DB for historical purposes
+        await userService.disconnectUser(userId);
       }
 
       console.log(`Client disconnected: ${socket.id}`);
