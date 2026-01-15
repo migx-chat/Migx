@@ -656,8 +656,8 @@ const styles = StyleSheet.create({
     marginBottom: -3,
   },
   bigFlagImage: {
-    width: 36,
-    height: 28,
+    width: 42,
+    height: 32,
     marginHorizontal: 4,
     marginVertical: 2,
   },
