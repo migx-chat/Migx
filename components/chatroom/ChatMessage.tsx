@@ -212,6 +212,7 @@ export const ChatMessage = React.memo(({
     
     if (type === 'bot' && botType === 'dicebot') return '#64ab41';
     if (type === 'bot' && botType === 'lowcard') return '#719c35';
+    if (type === 'bot' && botType === 'flagbot') return '#64ab41';
     
     if (hasTopLikeReward && topLikeRewardExpiry) {
       const expiry = new Date(topLikeRewardExpiry);
@@ -237,6 +238,7 @@ export const ChatMessage = React.memo(({
   const getMessageColor = () => {
     if (type === 'bot' && botType === 'dicebot') return '#4889c7';
     if (type === 'bot' && botType === 'lowcard') return '#347499';
+    if (type === 'bot' && botType === 'flagbot') return '#4889c7';
     if (messageColor) return messageColor;
     if (type === 'bot' && botType) return messageColor || '#347499';
     if (isSystem) return theme.text;
