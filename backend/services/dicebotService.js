@@ -192,6 +192,16 @@ const addBotToRoom = async (roomId) => {
     return { success: false, message: 'DiceBot is already active in this room.' };
   }
   
+  const lowcardActive = await redis.exists(`lowcard:bot:${roomId}`);
+  if (lowcardActive) {
+    return { success: false, message: 'LowCardBot is active. Remove it first with /bot lowcard off' };
+  }
+  
+  const legendActive = await redis.exists(`legend:bot:${roomId}`);
+  if (legendActive) {
+    return { success: false, message: 'FlagBot is active. Remove it first.' };
+  }
+  
   await redis.set(botKey, JSON.stringify({
     active: true,
     defaultAmount: 1000,
