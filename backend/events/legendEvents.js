@@ -370,7 +370,7 @@ const handleLegendCommand = async (io, socket, data) => {
     
     socket.emit('credits:updated', { balance: newBalance });
     
-    sendBotMessage(io, roomId, `${username} placed ${betAmount} on ${result.bet.groupName}.\nTotal bid: ${result.totalBid}`);
+    sendBotMessage(io, roomId, `${username} placed ${betAmount} on ${result.bet.groupEmoji} ${result.bet.groupName}.`);
     return true;
   }
   

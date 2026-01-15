@@ -129,7 +129,7 @@ const placeBet = async (roomId, userId, username, groupCode, amount) => {
     timestamp: Date.now()
   };
   
-  await redis.hSet(betsKey, `${username}:${groupCode.toLowerCase()}`, JSON.stringify(betData));
+  await redis.hSet(betsKey, `${userId}:${groupCode.toLowerCase()}`, JSON.stringify(betData));
   await redis.expire(betsKey, 300);
   
   game.totalPool += betAmount;
