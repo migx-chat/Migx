@@ -11,7 +11,8 @@
     "jsEngine": "hermes",
     "ios": {
       "supportsTablet": true,
-      "jsEngine": "hermes"
+      "jsEngine": "hermes",
+      "bundleIdentifier": "com.migx.app"
     },
     "android": {
       "jsEngine": "hermes",
@@ -22,7 +23,6 @@
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.migx.app"
     },
-    
     "plugins": [
       "expo-router",
       [
