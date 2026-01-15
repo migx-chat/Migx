@@ -271,9 +271,6 @@ module.exports = (io, socket) => {
 
       await addUserRoom(username, roomId, room.name);
 
-      // Get current users before adding new user
-      const currentUsersList = await getRoomPresenceUsers(roomId);
-
       // Add user to Redis presence (skip for invisible admin)
       if (!socket.invisible) {
         await addUserToRoom(roomId, username);
@@ -293,6 +290,9 @@ module.exports = (io, socket) => {
           participants: updatedParticipants
         });
       }
+      
+      // Get current users AFTER adding new user (so list includes the joiner)
+      const currentUsersList = await getRoomPresenceUsers(roomId);
 
       // Get updated count after adding user
       const newUserCount = await getRoomUserCount(roomId);
