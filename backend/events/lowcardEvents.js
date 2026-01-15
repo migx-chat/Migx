@@ -91,6 +91,10 @@ const processRoundEnd = async (io, roomId, isTimedOut = true) => {
   
   await new Promise(resolve => setTimeout(resolve, 1000));
   
+  sendBotMessage(io, roomId, 'Times Up! Tallying cards.');
+  
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
   const result = await lowcardService.tallyRound(roomId, isTimedOut);
   
   if (!result) return;
