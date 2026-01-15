@@ -87,6 +87,27 @@ module.exports = (io, socket) => {
         return;
       }
       
+      // Check if user is kicked from this room
+      const kickKey = `kick:${roomId}:${userId}`;
+      const isKicked = await redis.exists(kickKey);
+      if (isKicked) {
+        const ttl = await redis.ttl(kickKey);
+        const minutes = Math.ceil(ttl / 60);
+        socket.emit('system:message', {
+          roomId,
+          message: `You have been kicked from this room. Please wait ${minutes} minute(s) before you can chat again.`,
+          timestamp: new Date().toISOString(),
+          type: 'error'
+        });
+        // Force leave the room
+        socket.leave(`room:${roomId}`);
+        socket.emit('room:kicked', {
+          roomId,
+          message: `You were kicked from this room. Wait ${minutes} minute(s) to rejoin.`
+        });
+        return;
+      }
+      
       // Legacy silence check
       const isSilenced = await redis.exists(`silence:${roomId}:${userId}`);
       if (isSilenced) {
