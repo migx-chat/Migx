@@ -533,7 +533,7 @@ const tallyRound = async (roomId, isTimedOut = false) => {
     return { error: true, message: 'No active players with cards.' };
   }
   
-  if (activePlayers.length === 3) {
+  if (activePlayers.length === 3 && !isTimedOut) {
     const highestValue = Math.max(...activePlayers.map(p => p.currentCard.value));
     const winners = activePlayers.filter(p => p.currentCard.value === highestValue);
     
