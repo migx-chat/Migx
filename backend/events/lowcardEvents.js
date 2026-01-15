@@ -84,14 +84,18 @@ const processRoundEnd = async (io, roomId, isTimedOut = true) => {
   if (isTimedOut) {
     sendBotMessage(io, roomId, 'Times Up! Playing cards.');
     
-    await lowcardService.autoDrawForTimeout(roomId);
+    const autoDrawn = await lowcardService.autoDrawForTimeout(roomId);
+    
+    for (const drawn of autoDrawn) {
+      sendBotMessage(io, roomId, `${drawn.username}: ${drawn.cardDisplay}`);
+    }
   } else {
     sendBotMessage(io, roomId, 'Looks like everyone has drawn. Tallying cards.');
   }
   
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  sendBotMessage(io, roomId, 'Times Up! Tallying cards.');
+  sendBotMessage(io, roomId, 'Tallying cards.');
   
   await new Promise(resolve => setTimeout(resolve, 500));
   
