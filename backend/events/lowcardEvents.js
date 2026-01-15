@@ -9,7 +9,7 @@ const sendBotMessage = (io, roomId, message, type = 'lowcard') => {
     id: generateMessageId(),
     roomId,
     username: 'LowCardBot',
-    message: `LowCardBot: ${message}`,
+    message: message,
     messageType: type,
     type: 'bot',
     botType: 'lowcard',
