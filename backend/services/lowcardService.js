@@ -518,7 +518,7 @@ const autoDrawForTimeout = async (roomId) => {
   return autoDrawn;
 };
 
-const tallyRound = async (roomId) => {
+const tallyRound = async (roomId, isTimedOut = false) => {
   const redis = getRedisClient();
   const gameKey = `lowcard:game:${roomId}`;
   
@@ -537,6 +537,81 @@ const tallyRound = async (roomId) => {
   const losers = activePlayers.filter(p => p.currentCard.value === lowestValue);
   
   if (losers.length > 1 && losers.length < activePlayers.length) {
+    if (isTimedOut && game.previousTiedLosers && game.previousTiedLosers.length > 0) {
+      const previousLoserIds = game.previousTiedLosers;
+      for (const loserId of previousLoserIds) {
+        const idx = game.players.findIndex(p => p.userId == loserId);
+        if (idx !== -1) {
+          game.players[idx].isEliminated = true;
+        }
+      }
+      
+      delete game.previousTiedLosers;
+      
+      const remainingPlayers = game.players.filter(p => !p.isEliminated);
+      
+      if (remainingPlayers.length === 1) {
+        const winner = remainingPlayers[0];
+        game.status = 'finished';
+        
+        const commission = Math.floor(game.pot * 0.05);
+        const winnings = game.pot - commission;
+        
+        const creditResult = await addCredits(winner.userId, winnings, winner.username, `LowCard Win - Pot ${game.pot} COINS`);
+        
+        await query(
+          `UPDATE lowcard_games SET status = 'finished', winner_id = $1, winner_username = $2, pot_amount = $3, finished_at = NOW()
+           WHERE room_id = $4 AND status = 'playing'`,
+          [winner.userId, winner.username, game.pot, roomId]
+        ).catch(err => logger.error('LOWCARD_DB_UPDATE_ERROR', err));
+        
+        await query(
+          `INSERT INTO lowcard_history (game_id, winner_id, winner_username, total_pot, commission, players_count)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [game.id, winner.userId, winner.username, game.pot, commission, game.players.length]
+        ).catch(err => logger.error('LOWCARD_HISTORY_INSERT_ERROR', err));
+        
+        await redis.del(gameKey);
+        await clearDeck(roomId);
+        
+        return {
+          gameOver: true,
+          winner: winner.username,
+          winnerId: winner.userId,
+          winnings,
+          newBalance: creditResult.balance,
+          message: `LowCard game over! ${winner.username} WINS ${winnings.toFixed(1)} COINS! CONGRATS!`,
+          followUp: `Play now: !start to enter. Cost: ${game.entryAmount}.0 COINS. For custom entry, !start [amount]`
+        };
+      }
+      
+      game.currentRound++;
+      for (let i = 0; i < game.players.length; i++) {
+        if (!game.players[i].isEliminated) {
+          game.players[i].hasDrawn = false;
+          game.players[i].currentCard = null;
+        }
+      }
+      game.roundDeadline = Date.now() + DRAW_TIMEOUT;
+      
+      await redis.set(gameKey, JSON.stringify(game), 'EX', 3600);
+      
+      const eliminatedNames = previousLoserIds.map(id => {
+        const p = game.players.find(pl => pl.userId == id);
+        return p ? p.username : 'Unknown';
+      });
+      
+      return {
+        eliminated: eliminatedNames.map(name => `${name}: OUT! (Tie-breaker timeout)`),
+        remainingCount: remainingPlayers.length,
+        nextRound: game.currentRound,
+        message: eliminatedNames.map(name => `${name}: OUT! (Tie-breaker timeout)`).join('\n'),
+        followUp: `Players [${remainingPlayers.length}], next round starts in 3 seconds.`
+      };
+    }
+    
+    game.previousTiedLosers = losers.map(p => p.userId);
+    
     for (let i = 0; i < game.players.length; i++) {
       if (!game.players[i].isEliminated) {
         const isTied = losers.find(l => l.userId === game.players[i].userId);
@@ -564,6 +639,8 @@ const tallyRound = async (roomId) => {
       game.players[idx].isEliminated = true;
     }
   }
+  
+  delete game.previousTiedLosers;
   
   const remainingPlayers = game.players.filter(p => !p.isEliminated);
   
@@ -602,7 +679,12 @@ const tallyRound = async (roomId) => {
     };
   }
   
-  const eliminatedMessages = losers.map(p => `${p.username}: OUT with the lowest card! ${getCardEmoji(p.currentCard)}`);
+  let eliminatedMessages;
+  if (isTimedOut) {
+    eliminatedMessages = losers.map(p => `${p.username}: OUT! (Lowest card)`);
+  } else {
+    eliminatedMessages = losers.map(p => `${p.username}: OUT with the lowest card! ${getCardEmoji(p.currentCard)}`);
+  }
   
   game.currentRound++;
   for (let i = 0; i < game.players.length; i++) {

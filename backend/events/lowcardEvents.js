@@ -80,17 +80,18 @@ const startDrawTimer = (io, roomId) => {
   activeTimers.set(drawKey, timer);
 };
 
-const processRoundEnd = async (io, roomId) => {
-  sendBotMessage(io, roomId, 'Times Up! Tallying cards.');
-  
-  const autoDrawn = await lowcardService.autoDrawForTimeout(roomId);
-  for (const draw of autoDrawn) {
-    sendBotMessage(io, roomId, draw.message);
+const processRoundEnd = async (io, roomId, isTimedOut = true) => {
+  if (isTimedOut) {
+    sendBotMessage(io, roomId, 'Times Up! Playing cards.');
+    
+    await lowcardService.autoDrawForTimeout(roomId);
+  } else {
+    sendBotMessage(io, roomId, 'Looks like everyone has drawn. Tallying cards.');
   }
   
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  const result = await lowcardService.tallyRound(roomId);
+  const result = await lowcardService.tallyRound(roomId, isTimedOut);
   
   if (!result) return;
   
@@ -120,7 +121,7 @@ const processRoundEnd = async (io, roomId) => {
     
     if (result.winnerId) {
       io.to(`room:${roomId}`).emit('credits:updated', { 
-        oderId: result.winnerId,
+        userId: result.winnerId,
         balance: result.newBalance 
       });
     }
@@ -347,11 +348,9 @@ const handleLowcardCommand = async (io, socket, data) => {
           activeTimers.delete(drawKey);
         }
         
-        sendBotMessage(io, roomId, 'Looks like everyone has drawn. Tallying cards.');
-        
         setTimeout(async () => {
-          await processRoundEnd(io, roomId);
-        }, 1000);
+          await processRoundEnd(io, roomId, false);
+        }, 500);
       }
     } else {
       socket.emit('system:message', {
