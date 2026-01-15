@@ -493,28 +493,31 @@ export const ChatMessage = React.memo(({
 
   if (hasFlags || hasFlagTags(message)) {
     const { parts } = parseFlagTags(message);
+    const textParts = parts.filter(p => p.type === 'text' && p.content?.trim());
+    const flagParts = parts.filter(p => p.type === 'flag' && p.flagKey && flagImages[p.flagKey]);
+    
     return (
       <View style={styles.messageContainer}>
-        <View style={styles.flagMessageWrapper}>
-          <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }, textShadowStyle]}>
-            {username}{hasTopMerchantBadge && <BadgeTop1 />}:{' '}
-          </Text>
-          {parts.map((part, idx) => {
-            if (part.type === 'flag' && part.flagKey && flagImages[part.flagKey]) {
-              return (
-                <Image
-                  key={`flag-${idx}`}
-                  source={flagImages[part.flagKey]}
-                  style={bigEmoji ? styles.bigFlagImage : styles.flagImage}
-                />
-              );
-            }
-            return (
+        <View style={styles.flagMessageColumn}>
+          <View style={styles.flagTextRow}>
+            <Text style={[styles.username, dynamicStyles.username, { color: getUsernameColor() }, textShadowStyle]}>
+              {username}{hasTopMerchantBadge && <BadgeTop1 />}:{' '}
+            </Text>
+            {textParts.map((part, idx) => (
               <Text key={`text-${idx}`} style={[styles.message, dynamicStyles.message, { color: getMessageColor() }, textShadowStyle]}>
                 {part.content}
               </Text>
-            );
-          })}
+            ))}
+          </View>
+          <View style={styles.flagImagesRow}>
+            {flagParts.map((part, idx) => (
+              <Image
+                key={`flag-${idx}`}
+                source={flagImages[part.flagKey!]}
+                style={bigEmoji ? styles.bigFlagImage : styles.flagImage}
+              />
+            ))}
+          </View>
         </View>
       </View>
     );
@@ -652,9 +655,9 @@ const styles = StyleSheet.create({
     marginBottom: -3,
   },
   bigFlagImage: {
-    width: 40,
-    height: 30,
-    marginHorizontal: 3,
+    width: 36,
+    height: 28,
+    marginHorizontal: 4,
     marginVertical: 2,
   },
   noticeContainer: {
@@ -720,6 +723,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
+  },
+  flagMessageColumn: {
+    flexDirection: 'column',
+  },
+  flagTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  flagImagesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 4,
+    marginLeft: 4,
   },
   cardImage: {
     width: 18,
