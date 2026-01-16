@@ -171,22 +171,15 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
         // Open as new tab with username as display name
         store.openRoom(privateChatId, selectedUser);
         
-        console.log('🔓 Opened private chat tab:', privateChatId, 'for user:', selectedUser);
+        // Switch to the PM tab immediately
+        store.setActiveRoomById(privateChatId);
         
-        // Close modals first
+        console.log('🔓 Opened and switched to private chat tab:', privateChatId, 'for user:', selectedUser);
+        
+        // Close modals
         setShowUserMenu(false);
         setSelectedUser(null);
         onClose();
-        
-        // Navigate to the private chat tab with proper PM routing
-        router.push({
-          pathname: '/chatroom/[id]',
-          params: { 
-            id: privateChatId, 
-            name: selectedUser,
-            type: 'pm',
-          },
-        });
       } catch (error) {
         console.error('Error opening private chat:', error);
         Alert.alert('Error', 'Failed to open private chat');

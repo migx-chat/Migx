@@ -159,8 +159,9 @@ export default function ChatRoomScreen() {
     };
   }, []);
 
-  // Always use the route's roomId as source of truth for navigation
-  const currentActiveRoomId = roomId;
+  // Use the store's activeRoomId for UI decisions (which tab is currently visible)
+  // This allows swipe navigation to work correctly
+  const currentActiveRoomId = activeRoomId || roomId;
   const isPrivateChat = currentActiveRoomId?.startsWith('pm_') || currentActiveRoomId?.startsWith('private:') || false;
   
   // Sync store's activeIndex to match route's roomId ONLY when roomId changes (navigation)
