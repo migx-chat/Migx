@@ -165,7 +165,7 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
         const { useRoomTabsStore, buildConversationId } = await import('@/stores/useRoomTabsStore');
         const store = useRoomTabsStore.getState();
         
-        // Use stable conversation ID to prevent duplicates
+        // Use stable conversation ID to prevent duplicates (format: private:minId:maxId)
         const privateChatId = buildConversationId(store.currentUserId, data.id.toString());
         
         // Open as new tab with username as display name
@@ -173,10 +173,20 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
         
         console.log('🔓 Opened private chat tab:', privateChatId, 'for user:', selectedUser);
         
-        // Close modals
+        // Close modals first
         setShowUserMenu(false);
         setSelectedUser(null);
         onClose();
+        
+        // Navigate to the private chat tab with proper PM routing
+        router.push({
+          pathname: '/chatroom/[id]',
+          params: { 
+            id: privateChatId, 
+            name: selectedUser,
+            type: 'pm',
+          },
+        });
       } catch (error) {
         console.error('Error opening private chat:', error);
         Alert.alert('Error', 'Failed to open private chat');
