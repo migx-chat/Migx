@@ -1622,12 +1622,32 @@ module.exports = (io, socket) => {
               timestamp: new Date().toISOString()
             });
             
-            // Update participants list
-            const updatedUsers = await getRoomUsersFromTTL(roomId);
-            io.to(`room:${roomId}`).emit('room:user:left', {
+            // Update participants list - get from Redis participant set (single source of truth)
+            const { getRoomParticipants } = require('../utils/redisUtils');
+            const updatedParticipants = await getRoomParticipants(roomId);
+            const participantListString = updatedParticipants.join(', ') || 'No users';
+            
+            // Broadcast participants update for menu
+            io.to(`room:${roomId}`).emit('room:participants:update', {
+              roomId: String(roomId),
+              participants: updatedParticipants
+            });
+            
+            // Broadcast "Currently users" update (frontend updates existing message in-place)
+            io.to(`room:${roomId}`).emit('room:currently:update', {
+              roomId: String(roomId),
+              roomName: room.name,
+              participants: participantListString
+            });
+            
+            // Broadcast "has left" message
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
               roomId,
-              username: targetUsername,
-              users: updatedUsers.map(u => u.username)
+              username: room.name,
+              message: `${targetUsername} [${targetUser.level || 1}] has left`,
+              isSystem: true,
+              timestamp: new Date().toISOString()
             });
             
             console.log(`👢 User ${targetUsername} kicked from room ${roomId} by ${username}`);
@@ -2029,10 +2049,43 @@ module.exports = (io, socket) => {
               isSystem: true
             });
             
-            // Remove from presence (non-blocking)
+            // Remove from presence AND participant set (non-blocking)
             try {
               await removeUserFromRoom(roomId, targetUsername);
               await removeUserRoom(targetUsername, roomId);
+              
+              // Remove from participant set (single source of truth)
+              const { removeRoomParticipant, getRoomParticipants } = require('../utils/redisUtils');
+              const { removeUserPresence } = require('../utils/roomPresenceTTL');
+              await removeUserPresence(roomId, targetUser.id);
+              await removeRoomParticipant(roomId, targetUsername);
+              
+              // Get updated participants for broadcast
+              const updatedParticipants = await getRoomParticipants(roomId);
+              const participantListString = updatedParticipants.join(', ') || 'No users';
+              
+              // Broadcast participants update for menu
+              io.to(`room:${roomId}`).emit('room:participants:update', {
+                roomId: String(roomId),
+                participants: updatedParticipants
+              });
+              
+              // Broadcast "Currently users" update (frontend updates existing message in-place)
+              io.to(`room:${roomId}`).emit('room:currently:update', {
+                roomId: String(roomId),
+                roomName: room.name,
+                participants: participantListString
+              });
+              
+              // Broadcast "has left" message
+              io.to(`room:${roomId}`).emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                username: room.name,
+                message: `${targetUsername} [${targetUser.level || 1}] has left`,
+                isSystem: true,
+                timestamp: new Date().toISOString()
+              });
             } catch (presenceError) {
               console.error('Error removing user from presence:', presenceError);
             }
