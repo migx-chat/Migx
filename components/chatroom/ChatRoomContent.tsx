@@ -91,7 +91,6 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 130, back
       inverted={true}
       onScroll={disableAutoScroll ? handleScroll : undefined}
       scrollEventThrottle={disableAutoScroll ? 16 : undefined}
-      maintainVisibleContentPosition={disableAutoScroll ? { minIndexForVisible: 0 } : undefined}
       renderItem={({ item }) => (
         <ChatMessage
           username={item.username}
