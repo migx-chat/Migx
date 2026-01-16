@@ -48,9 +48,12 @@ module.exports = (io, socket) => {
       const targetName = targetUser?.username || toUsername;
       const targetPresence = await getPresence(targetName);
       
+      console.log(`🔍 PM presence check: ${targetName} = ${targetPresence}`);
+      
       if (targetPresence === 'busy') {
+        console.log(`❌ PM blocked: ${targetName} is busy`);
         socket.emit('pm:error', {
-          toUserId,
+          toUserId: String(toUserId),
           toUsername: targetName,
           message: `Error: ${targetName} is busy`,
           type: 'busy'
@@ -59,8 +62,9 @@ module.exports = (io, socket) => {
       }
       
       if (targetPresence === 'away') {
+        console.log(`❌ PM blocked: ${targetName} is away`);
         socket.emit('pm:error', {
-          toUserId,
+          toUserId: String(toUserId),
           toUsername: targetName,
           message: `Error: ${targetName} is away`,
           type: 'away'
@@ -226,14 +230,7 @@ module.exports = (io, socket) => {
         return;
       }
 
-      const recipientPresence = await getPresence(recipientUsername);
-      if (recipientPresence === 'busy') {
-        socket.emit('pm:blocked', {
-          message: `ERROR: ${recipientUsername} is busy`,
-          toUsername: recipientUsername
-        });
-        return;
-      }
+      // Presence check is done earlier in the function (lines 49-76)
 
       // Save private message to database for queue/history
       const savedMessage = await messageService.savePrivateMessage(
