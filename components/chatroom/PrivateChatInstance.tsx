@@ -248,6 +248,7 @@ export const PrivateChatInstance = React.memo(function PrivateChatInstance({
         <ChatRoomContent 
           messages={messages} 
           bottomPadding={0}
+          disableAutoScroll={true}
         />
       </View>
 

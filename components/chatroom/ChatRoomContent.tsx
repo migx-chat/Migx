@@ -32,11 +32,14 @@ interface ChatRoomContentProps {
   messages: Message[];
   bottomPadding?: number;
   backgroundImage?: string;
+  disableAutoScroll?: boolean; // For private chat - don't auto-scroll to new messages
 }
 
-export const ChatRoomContent = React.memo(({ messages, bottomPadding = 130, backgroundImage }: ChatRoomContentProps) => {
+export const ChatRoomContent = React.memo(({ messages, bottomPadding = 130, backgroundImage, disableAutoScroll = false }: ChatRoomContentProps) => {
   const flatListRef = useRef<FlatList>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const scrollOffsetRef = useRef(0);
+  const prevMessagesLengthRef = useRef(messages.length);
   
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -62,12 +65,33 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 130, back
   const keyboardExtraPadding = keyboardHeight > 0 ? 20 : 0;
   const totalBottomPadding = bottomPadding + keyboardHeight + keyboardExtraPadding;
 
+  // Handle scroll position tracking for disableAutoScroll mode
+  const handleScroll = (event: any) => {
+    if (disableAutoScroll) {
+      scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+    }
+  };
+
+  // When new messages arrive and auto-scroll is disabled, maintain position
+  useEffect(() => {
+    if (disableAutoScroll && messages.length > prevMessagesLengthRef.current) {
+      // New message added - keep user's current scroll position
+      // For inverted list, we don't need to do anything special
+      // The list will add the new message at the "bottom" (visually top)
+      // and the user stays at their current position
+    }
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages.length, disableAutoScroll]);
+
   const renderFlatList = () => (
     <FlatList
       ref={flatListRef}
       data={reversedMessages}
       keyExtractor={(item) => item.id}
       inverted={true}
+      onScroll={disableAutoScroll ? handleScroll : undefined}
+      scrollEventThrottle={disableAutoScroll ? 16 : undefined}
+      maintainVisibleContentPosition={disableAutoScroll ? { minIndexForVisible: 0 } : undefined}
       renderItem={({ item }) => (
         <ChatMessage
           username={item.username}
