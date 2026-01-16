@@ -34,7 +34,7 @@ import { GiftModal } from '@/components/chatroom/GiftModal';
 import { CmdList } from '@/components/chatroom/CmdList';
 import { HeaderOptionsMenu } from '@/components/chatroom/HeaderOptionsMenu';
 import { BackgroundChangeModal } from '@/components/chatroom/BackgroundChangeModal';
-import { useRoomTabsStore, useActiveRoom, useActiveRoomId, useOpenRooms } from '@/stores/useRoomTabsStore';
+import { useRoomTabsStore, useActiveRoom, useActiveRoomId, useOpenRooms, buildConversationId } from '@/stores/useRoomTabsStore';
 
 const HEADER_COLOR = '#0a5229';
 
@@ -370,7 +370,7 @@ export default function ChatRoomScreen() {
         }
       });
 
-      // 🔑 GLOBAL PM LISTENER - Append to existing conversation only
+      // 🔑 GLOBAL PM LISTENER - Auto-open tab and show unread indicator
       newSocket.on('pm:receive', (data: any) => {
         console.log('📩 [PM-RECEIVE] Message from:', data.fromUsername, '| Type:', data.messageType, '| Role:', data.fromRole);
         
@@ -383,8 +383,19 @@ export default function ChatRoomScreen() {
           return;
         }
         
-        // 🔑 Only add to PM storage if conversation is already open - don't auto-open
-        const { addPrivateMessage } = useRoomTabsStore.getState();
+        const { openRoom, addPrivateMessage, openRoomIds, currentUserId, markUnread } = useRoomTabsStore.getState();
+        
+        // Build stable conversation ID for this PM
+        const conversationId = buildConversationId(currentUserId, senderId);
+        
+        // Check if PM tab is already open
+        const tabExists = openRoomIds.includes(conversationId);
+        
+        // Auto-open PM tab if not already open
+        if (!tabExists) {
+          console.log('📩 [PM] Auto-opening new PM tab for:', senderUsername, 'id:', conversationId);
+          openRoom(conversationId, senderUsername);
+        }
         
         // Map role to userType for color (moderator/owner stay blue, others get role color)
         const roleToUserType = (role: string) => {
@@ -405,8 +416,11 @@ export default function ChatRoomScreen() {
           timestamp: data.timestamp || new Date().toISOString(),
         };
 
-        // Add to PM storage - does NOT auto-open new tabs
+        // Add to PM storage
         addPrivateMessage(senderId, pmMessage);
+        
+        // Mark the PM tab as unread (show indicator)
+        markUnread(conversationId);
         
         // Play PM sound only if app is in foreground
         const playPrivateSound = (window as any).__PLAY_PRIVATE_SOUND__;
@@ -414,7 +428,7 @@ export default function ChatRoomScreen() {
           playPrivateSound();
         }
         
-        console.log('📩 [PM] Stored message from:', senderUsername, 'id:', senderId);
+        console.log('📩 [PM] Stored message from:', senderUsername, 'id:', senderId, 'tab:', conversationId);
       });
 
       // 🔑 PM SENT ECHO - For sender's other tabs
