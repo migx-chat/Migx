@@ -1387,22 +1387,35 @@ module.exports = (io, socket) => {
 
             const result = await profileService.followUser(userId, targetUser.id);
             
+            // Check if there was an error (already following, already pending, etc)
+            if (result.error) {
+              socket.emit('system:message', {
+                roomId,
+                message: result.error,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Follow creates a pending request, not immediate follow
             io.to(`room:${roomId}`).emit('chat:message', {
               id: generateMessageId(),
               roomId,
-              message: `** ${username} is now following ${targetUsername} **`,
+              message: `** ${username} sent a follow request to ${targetUsername} **`,
               messageType: 'cmd',
               type: 'cmd',
               timestamp: new Date().toISOString()
             });
 
-            // Send notification to target user
+            // Send notification to target user about follow REQUEST (not follow)
             const notificationService = require('../services/notificationService');
             const followNotification = {
               type: 'follow',
               fromUserId: userId,
               fromUsername: username,
-              message: `${username} is now following you`
+              message: `${username} wants to follow you`,
+              isPending: true
             };
             await notificationService.addNotification(targetUser.username, followNotification);
 
@@ -1410,7 +1423,8 @@ module.exports = (io, socket) => {
             io.to(`user:${targetUser.id}`).emit('notif:follow', {
               fromUserId: userId,
               fromUsername: username,
-              message: `${username} is now following you`,
+              message: `${username} wants to follow you`,
+              isPending: true,
               timestamp: new Date().toISOString()
             });
           } catch (error) {
