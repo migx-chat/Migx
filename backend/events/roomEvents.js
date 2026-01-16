@@ -356,10 +356,10 @@ module.exports = (io, socket) => {
         }
 
         setTimeout(async () => {
-          // Fetch fresh user list from Redis TTL keys at the last moment
-          const freshUsersList = await getRoomPresenceUsers(roomId);
-          const freshUserListString = freshUsersList.length > 0
-            ? freshUsersList.join(', ')
+          // Fetch from participants set (same source as participant menu)
+          const freshParticipants = await getRoomParticipants(roomId);
+          const freshUserListString = freshParticipants.length > 0
+            ? freshParticipants.join(', ')
             : username;
 
           socket.emit('chat:message', {
@@ -1587,13 +1587,7 @@ module.exports = (io, socket) => {
                 }
               }
 
-              // Clean up any legacy SET-type participants key
-              const legacyParticipantsKey = `room:${currentRoomId}:participants`;
-              const keyType = await redis.type(legacyParticipantsKey);
-              if (keyType === 'set') {
-                await redis.del(legacyParticipantsKey);
-                console.log(`🧹 Cleaned legacy SET key: ${legacyParticipantsKey}`);
-              }
+              // Note: User already removed from participants set above (line 1563)
               console.log(`✅ Removed ${username} from legacy Redis set: ${roomUsersKey}`);
 
               const room = await roomService.getRoomById(currentRoomId);
