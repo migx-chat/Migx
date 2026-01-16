@@ -43,6 +43,20 @@ module.exports = (io, socket) => {
         return;
       }
 
+      // 🎯 STEP 2.5: Level check for regular users only
+      const senderUser = await userService.getUserById(fromUserId);
+      if (senderUser && senderUser.role === 'user') {
+        const { query } = require('../db/db');
+        const levelResult = await query('SELECT level FROM user_levels WHERE user_id = $1', [fromUserId]);
+        const userLevel = levelResult.rows[0]?.level || 1;
+        
+        if (userLevel < 10) {
+          console.warn(`[TRANSFER] ❌ Level too low: User ${fromUserId} is level ${userLevel}, needs level 10`);
+          socket.emit('credit:transfer:error', { message: `You need to be at least Level 10 to transfer credits. Your current level is ${userLevel}.` });
+          return;
+        }
+      }
+
       // 🔒 STEP 4: Redis Distributed Lock (prevent double-send)
       const redis = getRedisClient();
       if (redis) {
