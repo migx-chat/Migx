@@ -12,8 +12,8 @@ const VOUCHER_CONFIG = {
   expirySeconds: 60,
   totalPool: 6000,
   maxClaimers: 40,
-  minClaimAmount: 5,
-  maxClaimAmount: 50,
+  minClaimAmount: 100,
+  maxClaimAmount: 200,
   userCooldownMinutes: 30,
   targetRoomNames: ['Migx', 'Voucher', 'Cafe Gaul Indo']  // Only broadcast to these rooms
 };
