@@ -159,8 +159,20 @@ export default function ChatRoomScreen() {
     };
   }, []);
 
-  const currentActiveRoomId = activeRoomId || roomId;
+  // Always use the route's roomId as source of truth for navigation
+  const currentActiveRoomId = roomId;
   const isPrivateChat = currentActiveRoomId?.startsWith('pm_') || currentActiveRoomId?.startsWith('private:') || false;
+  
+  // Sync store's activeIndex to match route's roomId whenever it changes
+  useEffect(() => {
+    if (roomId && openRooms.length > 0) {
+      const roomExists = openRooms.some(r => r.roomId === roomId);
+      if (roomExists && activeRoomId !== roomId) {
+        console.log(`🔄 [ChatRoom] Syncing activeRoom to route: ${roomId}`);
+        setActiveRoomById(roomId);
+      }
+    }
+  }, [roomId, openRooms, activeRoomId, setActiveRoomById]);
 
   useEffect(() => {
     if (socket?.connected && !isConnected) {
