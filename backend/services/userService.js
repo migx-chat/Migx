@@ -231,7 +231,7 @@ const getUserRole = async (userId) => {
 
 const isAdmin = async (userId) => {
   const role = await getUserRole(userId);
-  return role === 'admin' || role === 'super_admin';
+  return role === 'admin' || role === 'super_admin' || role === 'customer_service' || role === 'cs';
 };
 
 const isMentor = async (userId) => {

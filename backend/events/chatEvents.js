@@ -2067,12 +2067,12 @@ module.exports = (io, socket) => {
             const userService = require('../services/userService');
             
             const user = await userService.getUserById(userId);
-            const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
+            const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'customer_service' || user.role === 'cs');
             
             if (!isAdmin) {
               socket.emit('system:message', {
                 roomId,
-                message: `Only admin can set room level`,
+                message: `Only admin or customer service can set room level`,
                 timestamp: new Date().toISOString(),
                 type: 'warning'
               });
