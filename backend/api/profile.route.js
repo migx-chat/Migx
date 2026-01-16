@@ -478,12 +478,13 @@ router.post('/unblock', authMiddleware, async (req, res) => {
 
 // ==================== FOLLOWS ====================
 
-router.post('/follow', async (req, res) => {
+router.post('/follow', authMiddleware, async (req, res) => {
   try {
-    const { followerId, followingId } = req.body;
+    const { followingId } = req.body;
+    const followerId = req.user.id; // Use authenticated user as follower
     
-    if (!followerId || !followingId) {
-      return res.status(400).json({ error: 'Follower ID and following ID are required' });
+    if (!followingId) {
+      return res.status(400).json({ error: 'Following ID is required' });
     }
     
     const result = await profileService.followUser(followerId, followingId);
@@ -503,12 +504,13 @@ router.post('/follow', async (req, res) => {
   }
 });
 
-router.delete('/follow', async (req, res) => {
+router.delete('/follow', authMiddleware, async (req, res) => {
   try {
-    const { followerId, followingId } = req.body;
+    const { followingId } = req.body;
+    const followerId = req.user.id; // Use authenticated user as follower
     
-    if (!followerId || !followingId) {
-      return res.status(400).json({ error: 'Follower ID and following ID are required' });
+    if (!followingId) {
+      return res.status(400).json({ error: 'Following ID is required' });
     }
     
     const result = await profileService.unfollowUser(followerId, followingId);
@@ -591,10 +593,10 @@ router.get('/follow/status', async (req, res) => {
   }
 });
 
-// Get pending follow requests for a user
-router.get('/follow/pending/:userId', async (req, res) => {
+// Get pending follow requests for authenticated user
+router.get('/follow/pending', authMiddleware, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user.id; // Only get pending requests for authenticated user
     const { limit = 50, offset = 0 } = req.query;
     
     const requests = await profileService.getPendingFollowRequests(userId, parseInt(limit), parseInt(offset));
@@ -613,32 +615,23 @@ router.get('/follow/pending/:userId', async (req, res) => {
   }
 });
 
-router.post('/follow/accept', async (req, res) => {
+router.post('/follow/accept', authMiddleware, async (req, res) => {
   try {
-    const { followerId, followingUsername } = req.body;
+    const { followerId } = req.body;
+    const acceptingUserId = req.user.id; // Use authenticated user
+    const acceptingUsername = req.user.username;
     const notificationService = require('../services/notificationService');
-    const userService = require('../services/userService');
     
-    if (!followerId || !followingUsername) {
+    if (!followerId) {
       return res.status(400).json({ 
         success: false,
-        error: 'Follower ID and following username are required' 
-      });
-    }
-    
-    // Get the user who is accepting (followingUsername is who received the follow request)
-    const acceptingUser = await userService.getUserByUsername(followingUsername);
-    
-    if (!acceptingUser) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'User not found' 
+        error: 'Follower ID is required' 
       });
     }
     
     // Accept the pending follow request in database
-    // followerId = person who sent the request, acceptingUser.id = person accepting
-    const result = await profileService.acceptFollowRequest(acceptingUser.id, followerId);
+    // followerId = person who sent the request, acceptingUserId = person accepting (authenticated)
+    const result = await profileService.acceptFollowRequest(acceptingUserId, followerId);
     
     if (result.error) {
       return res.status(400).json({ 
@@ -648,9 +641,9 @@ router.post('/follow/accept', async (req, res) => {
     }
     
     // Remove the notification
-    await notificationService.removeNotification(followingUsername, followerId);
+    await notificationService.removeNotification(acceptingUsername, followerId);
     
-    console.log(`✅ ${followingUsername} accepted follow request from user ${followerId}`);
+    console.log(`✅ ${acceptingUsername} (ID:${acceptingUserId}) accepted follow request from user ${followerId}`);
     
     res.json({
       success: true,
@@ -666,31 +659,27 @@ router.post('/follow/accept', async (req, res) => {
   }
 });
 
-router.post('/follow/reject', async (req, res) => {
+router.post('/follow/reject', authMiddleware, async (req, res) => {
   try {
-    const { followerId, followingUsername } = req.body;
+    const { followerId } = req.body;
+    const rejectingUserId = req.user.id; // Use authenticated user
+    const rejectingUsername = req.user.username;
     const notificationService = require('../services/notificationService');
-    const userService = require('../services/userService');
     
-    if (!followerId || !followingUsername) {
+    if (!followerId) {
       return res.status(400).json({ 
         success: false,
-        error: 'Follower ID and following username are required' 
+        error: 'Follower ID is required' 
       });
     }
     
-    // Get the user who is rejecting
-    const rejectingUser = await userService.getUserByUsername(followingUsername);
-    
-    if (rejectingUser) {
-      // Reject the pending follow request in database
-      await profileService.rejectFollowRequest(rejectingUser.id, followerId);
-    }
+    // Reject the pending follow request in database
+    await profileService.rejectFollowRequest(rejectingUserId, followerId);
     
     // Remove the notification
-    await notificationService.removeNotification(followingUsername, followerId);
+    await notificationService.removeNotification(rejectingUsername, followerId);
     
-    console.log(`❌ ${followingUsername} rejected follow request from user ${followerId}`);
+    console.log(`❌ ${rejectingUsername} (ID:${rejectingUserId}) rejected follow request from user ${followerId}`);
     
     res.json({
       success: true,
