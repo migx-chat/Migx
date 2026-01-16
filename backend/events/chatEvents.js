@@ -766,8 +766,13 @@ module.exports = (io, socket) => {
             return;
           }
           
-          // Update user status to suspended
-          await db.query('UPDATE users SET status = $1 WHERE id = $2', ['suspended', targetUser.id]);
+          // Update user status to suspended with timestamp and admin info
+          await db.query(
+            'UPDATE users SET status = $1, suspended_at = NOW(), suspended_by = $2 WHERE id = $3', 
+            ['suspended', username, targetUser.id]
+          );
+          
+          console.log(`[SUSPEND] User ${targetUsername} suspended by ${username}`);
           
           // Broadcast to room
           io.to(`room:${roomId}`).emit('chat:message', {
@@ -779,6 +784,18 @@ module.exports = (io, socket) => {
             type: 'system',
             timestamp: new Date().toISOString(),
             isSystem: true
+          });
+          
+          // Also send confirmation to admin
+          socket.emit('chat:message', {
+            id: generateMessageId(),
+            roomId,
+            username: 'System',
+            message: `✅ Successfully suspended user: ${targetUsername}`,
+            messageType: 'cmd',
+            type: 'cmd',
+            timestamp: new Date().toISOString(),
+            isPrivate: true
           });
           
           // Kick user from all rooms by emitting disconnect event
@@ -841,8 +858,13 @@ module.exports = (io, socket) => {
             return;
           }
           
-          // Update user status to offline (unsuspended)
-          await db.query('UPDATE users SET status = $1 WHERE id = $2', ['offline', targetUser.id]);
+          // Update user status to offline and clear suspension fields
+          await db.query(
+            'UPDATE users SET status = $1, suspended_at = NULL, suspended_by = NULL WHERE id = $2', 
+            ['offline', targetUser.id]
+          );
+          
+          console.log(`[UNSUSPEND] User ${targetUsername} unsuspended by ${username}`);
           
           // Broadcast to room
           io.to(`room:${roomId}`).emit('chat:message', {
@@ -854,6 +876,18 @@ module.exports = (io, socket) => {
             type: 'system',
             timestamp: new Date().toISOString(),
             isSystem: true
+          });
+          
+          // Also send confirmation to admin
+          socket.emit('chat:message', {
+            id: generateMessageId(),
+            roomId,
+            username: 'System',
+            message: `✅ Successfully unsuspended user: ${targetUsername}`,
+            messageType: 'cmd',
+            type: 'cmd',
+            timestamp: new Date().toISOString(),
+            isPrivate: true
           });
           
           return;
