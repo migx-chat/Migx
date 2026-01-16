@@ -10,7 +10,7 @@ const VOUCHER_POOL_KEY = 'voucher:pool';
 const VOUCHER_CONFIG = {
   intervalMinutes: 30,  // Voucher appears every 30 minutes
   expirySeconds: 60,
-  totalPool: 500,
+  totalPool: 6000,
   maxClaimers: 40,
   minClaimAmount: 5,
   maxClaimAmount: 50,
