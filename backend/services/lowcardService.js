@@ -292,7 +292,11 @@ const startGame = async (roomId, userId, username, amount) => {
       return { success: false, message: `Minimal ${minEntry.toLocaleString()} COINS to start game.` };
     }
     
-    const entryAmount = Math.min(MAX_ENTRY, requestedAmount);
+    if (requestedAmount > MAX_ENTRY) {
+      return { success: false, message: `Maximal ${MAX_ENTRY.toLocaleString()} COINS to start game.` };
+    }
+    
+    const entryAmount = requestedAmount;
     
     const deductResult = await deductCredits(userId, entryAmount, username, `LowCard Bet - Start game`);
     if (!deductResult.success) {
