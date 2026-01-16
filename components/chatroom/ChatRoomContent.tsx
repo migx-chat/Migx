@@ -125,6 +125,7 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 130, back
       initialNumToRender={15}
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets={true}
+      maintainVisibleContentPosition={disableAutoScroll ? { minIndexForVisible: 0 } : undefined}
     />
   );
 
