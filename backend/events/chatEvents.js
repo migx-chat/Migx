@@ -2140,6 +2140,71 @@ module.exports = (io, socket) => {
           return;
         }
 
+        // Handle /roll command - Roll random number (admin/super_admin/customer_service/cs only)
+        if (cmdKey === 'roll') {
+          const maxNumStr = parts[1];
+          if (!maxNumStr) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Usage: /roll <max_number> (e.g. /roll 20)`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          const maxNum = parseInt(maxNumStr, 10);
+          if (isNaN(maxNum) || maxNum < 1 || maxNum > 1000000) {
+            socket.emit('system:message', {
+              roomId,
+              message: `Invalid number. Please enter a number between 1 and 1000000`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+            return;
+          }
+
+          try {
+            const userService = require('../services/userService');
+            
+            const user = await userService.getUserById(userId);
+            const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'customer_service' || user.role === 'cs');
+            
+            if (!isAdmin) {
+              socket.emit('system:message', {
+                roomId,
+                message: `Only admin or customer service can use /roll command`,
+                timestamp: new Date().toISOString(),
+                type: 'warning'
+              });
+              return;
+            }
+            
+            // Generate random number between 1 and maxNum
+            const rollResult = Math.floor(Math.random() * maxNum) + 1;
+            
+            // Broadcast roll result to room
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: `** ${username} rolled ${rollResult} (1-${maxNum}) **`,
+              messageType: 'cmd',
+              type: 'cmd',
+              timestamp: new Date().toISOString()
+            });
+            
+          } catch (error) {
+            console.error('Error processing /roll command:', error);
+            socket.emit('system:message', {
+              roomId,
+              message: `Failed to roll`,
+              timestamp: new Date().toISOString(),
+              type: 'warning'
+            });
+          }
+          return;
+        }
+
         // Handle other MIG33 commands
         const cmd = MIG33_CMD[cmdKey];
         if (cmd) {
