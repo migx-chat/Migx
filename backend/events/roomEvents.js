@@ -289,6 +289,14 @@ module.exports = (io, socket) => {
           roomId,
           participants: updatedParticipants
         });
+        
+        // Broadcast "Currently users in the room" message to ALL users (live update)
+        const participantListString = updatedParticipants.join(', ');
+        io.to(`room:${roomId}`).emit('room:currently:update', {
+          roomId,
+          roomName: room.name,
+          participants: participantListString
+        });
       }
       
       // Get current users AFTER adding new user (so list includes the joiner)
@@ -647,6 +655,15 @@ module.exports = (io, socket) => {
       io.to(`room:${roomId}`).emit('room:participants:update', {
         roomId,
         participants: updatedParticipants
+      });
+      
+      // Broadcast "Currently users in the room" update to ALL users
+      const room = await roomService.getRoomById(roomId);
+      const participantListString = updatedParticipants.join(', ') || 'No users';
+      io.to(`room:${roomId}`).emit('room:currently:update', {
+        roomId,
+        roomName: room?.name || 'Room',
+        participants: participantListString
       });
 
       // Get updated count after removing user
@@ -1568,6 +1585,16 @@ module.exports = (io, socket) => {
                 roomId: currentRoomId,
                 participants: timeoutParticipants
               });
+              
+              // Broadcast "Currently users in the room" update
+              const roomForUpdate = await roomService.getRoomById(currentRoomId);
+              const participantListStr = timeoutParticipants.join(', ') || 'No users';
+              io.to(`room:${currentRoomId}`).emit('room:currently:update', {
+                roomId: currentRoomId,
+                roomName: roomForUpdate?.name || 'Room',
+                participants: participantListStr
+              });
+              
               await removeUserFromRoom(currentRoomId, username);
               await removeUserRoom(username, currentRoomId);
 

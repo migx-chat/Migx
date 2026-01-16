@@ -373,6 +373,19 @@ export default function ChatRoomScreen() {
           setRoomUsers(data.participants);
         }
       });
+      
+      newSocket.on('room:currently:update', (data: { roomId: string; roomName: string; participants: string }) => {
+        console.log('🔄 Currently users update received:', data);
+        const { addMessage } = useRoomTabsStore.getState();
+        const systemMessage: Message = {
+          id: `currently-${Date.now()}-${Math.random()}`,
+          username: data.roomName,
+          message: `Currently users in the room: ${data.participants}`,
+          isSystem: true,
+          timestamp: new Date().toISOString(),
+        };
+        addMessage(parseInt(data.roomId), systemMessage);
+      });
 
       // 🔑 GLOBAL PM LISTENER - Auto-open tab and show unread indicator
       newSocket.on('pm:receive', (data: any) => {
