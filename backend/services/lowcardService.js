@@ -11,7 +11,7 @@ const DRAW_TIMEOUT = 20000;
 const COUNTDOWN_DELAY = 3000;
 const MIN_ENTRY = 1000;
 const MIN_ENTRY_BIG_GAME = 5000;
-const MAX_ENTRY = 100000;
+const MAX_ENTRY = 5000;
 
 const getCardCode = (value) => {
   if (value === 11) return 'j';
