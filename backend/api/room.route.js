@@ -416,8 +416,8 @@ router.post('/create', async (req, res) => {
     
     // Check user level - minimum level 10 required
     if (ownerId) {
-      const pool = require('../db');
-      const levelResult = await pool.query(
+      const { query: dbQuery } = require('../db/db');
+      const levelResult = await dbQuery(
         'SELECT level FROM user_levels WHERE user_id = $1',
         [ownerId]
       );
