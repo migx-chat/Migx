@@ -62,8 +62,10 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 130, back
   
   const reversedMessages = [...messages].reverse();
   // Add extra padding when keyboard is visible (20px more space)
-  const keyboardExtraPadding = keyboardHeight > 0 ? 20 : 0;
-  const totalBottomPadding = bottomPadding + keyboardHeight + keyboardExtraPadding;
+  // For private chat (disableAutoScroll), don't adjust for keyboard - messages stay in place
+  const keyboardExtraPadding = (!disableAutoScroll && keyboardHeight > 0) ? 20 : 0;
+  const keyboardPadding = disableAutoScroll ? 0 : keyboardHeight;
+  const totalBottomPadding = bottomPadding + keyboardPadding + keyboardExtraPadding;
 
   // Handle scroll position tracking for disableAutoScroll mode
   const handleScroll = (event: any) => {
@@ -124,7 +126,7 @@ export const ChatRoomContent = React.memo(({ messages, bottomPadding = 130, back
       windowSize={10}
       initialNumToRender={15}
       keyboardShouldPersistTaps="handled"
-      automaticallyAdjustKeyboardInsets={true}
+      automaticallyAdjustKeyboardInsets={!disableAutoScroll}
       maintainVisibleContentPosition={disableAutoScroll ? { minIndexForVisible: 0 } : undefined}
     />
   );
