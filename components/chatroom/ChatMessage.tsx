@@ -644,7 +644,7 @@ const styles = StyleSheet.create({
   emojiImage: {
     width: 18,
     height: 18,
-    marginBottom: -3,
+    marginBottom: -5,
     marginRight: 2,
   },
   bigEmojiText: {
@@ -655,7 +655,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 18,
     marginHorizontal: 2,
-    marginBottom: -3,
+    marginBottom: -5,
   },
   bigFlagImage: {
     width: 80,
