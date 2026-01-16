@@ -656,10 +656,10 @@ const styles = StyleSheet.create({
     marginBottom: -3,
   },
   bigFlagImage: {
-    width: 42,
-    height: 32,
-    marginHorizontal: 4,
-    marginVertical: 2,
+    width: 64,
+    height: 48,
+    marginHorizontal: 6,
+    marginVertical: 4,
   },
   noticeContainer: {
     paddingVertical: 8,
