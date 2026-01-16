@@ -43,6 +43,31 @@ module.exports = (io, socket) => {
         return;
       }
 
+      // Check recipient's presence status - block messages to busy/away users
+      const targetUser = await userService.getUserById(toUserId);
+      const targetName = targetUser?.username || toUsername;
+      const targetPresence = await getPresence(targetName);
+      
+      if (targetPresence === 'busy') {
+        socket.emit('pm:error', {
+          toUserId,
+          toUsername: targetName,
+          message: `Error: ${targetName} is busy`,
+          type: 'busy'
+        });
+        return;
+      }
+      
+      if (targetPresence === 'away') {
+        socket.emit('pm:error', {
+          toUserId,
+          toUsername: targetName,
+          message: `Error: ${targetName} is away`,
+          type: 'away'
+        });
+        return;
+      }
+
       // Handle commands in PM
       if (message.startsWith('/')) {
         const parts = message.slice(1).split(' ');

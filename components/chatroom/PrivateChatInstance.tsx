@@ -88,6 +88,25 @@ export const PrivateChatInstance = React.memo(function PrivateChatInstance({
     };
   }, []);
 
+  // Listen for PM errors (busy/away status)
+  useEffect(() => {
+    const socket = useRoomTabsStore.getState().socket;
+    if (!socket) return;
+
+    const handlePmError = (data: { toUserId: string; toUsername: string; message: string; type: string }) => {
+      // Only show error if it's for this chat
+      if (data.toUserId === userId || data.toUsername === targetUsername) {
+        Alert.alert('Message Not Sent', data.message);
+      }
+    };
+
+    socket.on('pm:error', handlePmError);
+
+    return () => {
+      socket.off('pm:error', handlePmError);
+    };
+  }, [userId, targetUsername]);
+
   const handleSendMessage = useCallback(async (message: string) => {
     if (!message.trim()) return;
     
