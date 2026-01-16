@@ -1398,11 +1398,11 @@ module.exports = (io, socket) => {
               return;
             }
             
-            // Follow creates a pending request, not immediate follow
-            io.to(`room:${roomId}`).emit('chat:message', {
+            // Follow creates a pending request, not immediate follow (PRIVATE - only sender sees)
+            socket.emit('chat:message', {
               id: generateMessageId(),
               roomId,
-              message: `** ${username} sent a follow request to ${targetUsername} **`,
+              message: `** You sent a follow request to ${targetUsername} **`,
               messageType: 'cmd',
               type: 'cmd',
               timestamp: new Date().toISOString()
@@ -1469,10 +1469,11 @@ module.exports = (io, socket) => {
 
             const result = await profileService.unfollowUser(userId, targetUser.id);
             
-            io.to(`room:${roomId}`).emit('chat:message', {
+            // PRIVATE - only sender sees the unfollow confirmation
+            socket.emit('chat:message', {
               id: generateMessageId(),
               roomId,
-              message: `** ${username} unfollowed ${targetUsername} **`,
+              message: `** You unfollowed ${targetUsername} **`,
               messageType: 'cmd',
               type: 'cmd',
               timestamp: new Date().toISOString()
