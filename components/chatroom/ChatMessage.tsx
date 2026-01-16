@@ -543,8 +543,8 @@ export const ChatMessage = React.memo(({
           if (item.type === 'emoji') {
             return (
               <Text key={`emoji-${idx}-${item.key}`}>
-                {' '}
                 <Image source={item.src} style={[styles.emojiImage, { width: fontSize, height: fontSize }]} resizeMode="contain" />
+                {' '}
               </Text>
             );
           }
@@ -565,8 +565,8 @@ export const ChatMessage = React.memo(({
       if (item.type === 'emoji') {
         return (
           <Text key={item.key}>
-            {' '}
             <Image source={item.src} style={[styles.emojiImage, { width: fontSize, height: fontSize }]} resizeMode="contain" />
+            {' '}
           </Text>
         );
       }
@@ -644,8 +644,8 @@ const styles = StyleSheet.create({
   emojiImage: {
     width: 18,
     height: 18,
-    marginBottom: -5,
-    marginHorizontal: 2,
+    marginBottom: -3,
+    marginRight: 2,
   },
   bigEmojiText: {
     fontSize: 28,
