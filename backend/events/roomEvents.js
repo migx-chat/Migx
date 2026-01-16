@@ -1572,6 +1572,15 @@ module.exports = (io, socket) => {
               console.log(`🚪 Disconnect timer expired - removing ${username} from room ${currentRoomId}`);
 
               disconnectTimers.delete(timerKey);
+              
+              // Check if user is still in participants (might have been kicked already)
+              const currentParticipants = await getRoomParticipants(currentRoomId);
+              const wasInRoom = currentParticipants.includes(username);
+              
+              if (!wasInRoom) {
+                console.log(`👢 User ${username} already removed from room ${currentRoomId} (likely kicked) - skipping leave broadcast`);
+                return; // User was already kicked/removed, don't broadcast again
+              }
 
               // Step 4️⃣: Remove presence on timeout
               if (userId && userId !== 'unknown') {
