@@ -86,6 +86,14 @@ module.exports = (io, socket) => {
         });
       }
 
+      // Broadcast globally so contact lists can update in real-time
+      io.emit('presence:changed', {
+        username,
+        status,
+        timestamp: new Date().toISOString()
+      });
+
+      console.log(`📡 Presence broadcast: ${username} → ${status}`);
       socket.emit('presence:updated', { username, status });
     } catch (error) {
       console.error('Error updating presence:', error);
@@ -122,9 +130,10 @@ module.exports = (io, socket) => {
         }
       }
 
-      // Set new session and presence
+      // Set new session
       await setSession(username, socket.id);
-      await setPresence(username, 'online'); // Default to online on new login
+      // Don't force 'online' - let client control presence via presence:update event
+      // This preserves user's manual status selection (busy, away, etc.)
 
       socket.emit('session:established', { username });
     } catch (error) {

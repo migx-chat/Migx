@@ -1,10 +1,10 @@
-import React, { forwardRef, useImperativeHandle } from 'react';
+import React, { forwardRef, useImperativeHandle, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useThemeCustom } from '@/theme/provider';
 import { ContactItem } from './ContactItem';
-import API_BASE_URL, { API_ENDPOINTS } from '@/utils/api';
+import API_BASE_URL, { API_ENDPOINTS, createSocket } from '@/utils/api';
 import { useRoomTabsStore, buildConversationId } from '@/stores/useRoomTabsStore';
 
 type PresenceStatus = 'online' | 'away' | 'busy' | 'offline';
@@ -24,9 +24,36 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
   const [allContacts, setAllContacts] = React.useState<Contact[]>([]);
   const [onlineCollapsed, setOnlineCollapsed] = React.useState(false);
   const [offlineCollapsed, setOfflineCollapsed] = React.useState(false);
+  const socketRef = useRef<any>(null);
 
   React.useEffect(() => {
     loadContacts();
+  }, []);
+
+  // Subscribe to real-time presence updates
+  useEffect(() => {
+    const socket = createSocket();
+    socketRef.current = socket;
+
+    const handlePresenceChanged = (data: { username: string; status: string }) => {
+      console.log('📡 ContactList received presence update:', data);
+      setAllContacts(prev => prev.map(contact => {
+        if (contact.name === data.username) {
+          return {
+            ...contact,
+            presence: (data.status as PresenceStatus) || 'offline',
+            lastSeen: data.status === 'offline' ? `Last seen ${new Date().toLocaleString()}` : '',
+          };
+        }
+        return contact;
+      }));
+    };
+
+    socket.on('presence:changed', handlePresenceChanged);
+
+    return () => {
+      socket.off('presence:changed', handlePresenceChanged);
+    };
   }, []);
 
   // Expose refresh function via ref
