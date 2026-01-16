@@ -41,40 +41,53 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
 
       const userData = JSON.parse(userDataStr);
       
-      // Load following users (friends list)
-      const response = await fetch(`${API_ENDPOINTS.PROFILE.FOLLOWING(userData.id)}`);
-      const data = await response.json();
-
-      if (data.following) {
-        // Use a Map to deduplicate by user ID
-        const contactMap = new Map<string, Contact>();
-        
-        data.following.forEach((user: any) => {
-          let avatarUrl = '👤';
-          if (user.avatar) {
-            if (user.avatar.startsWith('http')) {
-              avatarUrl = user.avatar;
-            } else if (user.avatar.startsWith('/')) {
-              avatarUrl = `${API_BASE_URL}${user.avatar}`;
-            }
+      // Use a Map to deduplicate by user ID
+      const contactMap = new Map<string, Contact>();
+      
+      const addUserToMap = (user: any) => {
+        let avatarUrl = '👤';
+        if (user.avatar) {
+          if (user.avatar.startsWith('http')) {
+            avatarUrl = user.avatar;
+          } else if (user.avatar.startsWith('/')) {
+            avatarUrl = `${API_BASE_URL}${user.avatar}`;
           }
-          const presence = user.presence_status || 'offline';
-          
-          contactMap.set(String(user.id), {
-            id: String(user.id),
-            name: user.username,
-            status: user.status_message || '',
-            presence: presence as PresenceStatus,
-            lastSeen: presence === 'offline' && user.last_login_date
-              ? `Last seen ${new Date(user.last_login_date).toLocaleString()}`
-              : '',
-            avatar: avatarUrl,
-          });
-        });
+        }
+        const presence = user.presence_status || 'offline';
         
-        // Convert map to array
-        setAllContacts(Array.from(contactMap.values()));
+        contactMap.set(String(user.id), {
+          id: String(user.id),
+          name: user.username,
+          status: user.status_message || '',
+          presence: presence as PresenceStatus,
+          lastSeen: presence === 'offline' && user.last_login_date
+            ? `Last seen ${new Date(user.last_login_date).toLocaleString()}`
+            : '',
+          avatar: avatarUrl,
+        });
+      };
+      
+      // Load BOTH following and followers
+      const [followingRes, followersRes] = await Promise.all([
+        fetch(`${API_ENDPOINTS.PROFILE.FOLLOWING(userData.id)}`),
+        fetch(`${API_ENDPOINTS.PROFILE.FOLLOWERS(userData.id)}`)
+      ]);
+      
+      const followingData = await followingRes.json();
+      const followersData = await followersRes.json();
+
+      // Add following users
+      if (followingData.following) {
+        followingData.following.forEach(addUserToMap);
       }
+      
+      // Add followers (will be deduplicated by Map)
+      if (followersData.followers) {
+        followersData.followers.forEach(addUserToMap);
+      }
+      
+      // Convert map to array
+      setAllContacts(Array.from(contactMap.values()));
     } catch (error) {
       console.error('Error loading contacts:', error);
     }
