@@ -60,7 +60,7 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
       messageColor: data.messageColor,
       message: data.message,
       isOwnMessage: isOwnMessage,
-      isSystem: (data.messageType === 'system' || data.type === 'system') && !isPresenceMessage,
+      isSystem: (data.isSystem || data.messageType === 'system' || data.type === 'system') && !isPresenceMessage,
       isNotice: data.messageType === 'notice',
       isCmd: isCommandMessage,
       isPresence: isPresenceMessage,
