@@ -431,11 +431,18 @@ router.post('/create', async (req, res) => {
       }
     }
     
-    // Validate description - minimum 100 characters
-    if (!description || description.trim().length < 100) {
+    // Validate description - minimum 1 character, maximum 100 characters
+    if (!description || description.trim().length < 1) {
       return res.status(400).json({
         success: false,
-        error: `Description must be at least 100 characters. Current: ${description ? description.trim().length : 0} characters.`
+        error: `Description is required.`
+      });
+    }
+    
+    if (description.trim().length > 100) {
+      return res.status(400).json({
+        success: false,
+        error: `Description must be 100 characters or less. Current: ${description.trim().length} characters.`
       });
     }
     
