@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeCustom } from '@/theme/provider';
 import Svg, { Path } from 'react-native-svg';
 import API_BASE_URL from '@/utils/api';
@@ -127,10 +128,21 @@ export function NotificationModal({ visible, onClose, username, socket, onNotifi
       }
       if (!followerId) return Alert.alert('Error', 'User not found');
 
+      const token = await AsyncStorage.getItem('auth_token');
+      const deviceId = await AsyncStorage.getItem('device_id');
+      
+      if (!token) {
+        return Alert.alert('Error', 'Please login again');
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/profile/follow/${action}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ followerId, followingUsername: username }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-Device-ID': deviceId || ''
+        },
+        body: JSON.stringify({ followerId }),
       });
 
       const data = await response.json();
