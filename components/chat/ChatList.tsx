@@ -383,41 +383,60 @@ export function ChatList() {
 
   // Handle private message updates
   const handlePrivateMessageUpdate = useCallback((data: any) => {
-    console.log('📩 PM update:', data.fromUsername);
+    console.log('📩 PM update received:', data);
+    
+    // Convert userId to string for consistent comparison
+    const senderId = String(data.fromUserId);
+    const senderName = data.fromUsername;
     
     // Increment unread count for this PM sender
     const { incrementUnreadPm, currentUserId } = useRoomTabsStore.getState();
-    if (data.fromUserId && data.fromUserId !== currentUserId) {
-      incrementUnreadPm(data.fromUserId);
+    if (senderId && senderId !== String(currentUserId)) {
+      incrementUnreadPm(senderId);
     }
     
     setChatData((prevData) => {
-      const pmExists = prevData.some((chat) => chat.userId === data.fromUserId);
+      // Check if PM already exists (compare as strings)
+      const pmExists = prevData.some((chat) => 
+        chat.type === 'pm' && (
+          String(chat.userId) === senderId || 
+          chat.username?.toLowerCase() === senderName?.toLowerCase()
+        )
+      );
+      
       if (pmExists) {
-        return prevData.map((chat) =>
-          chat.userId === data.fromUserId
-            ? { 
-                ...chat, 
-                message: data.message, 
-                time: formatTime(Date.now()), 
-                hasUnread: true,
-                avatar: data.fromAvatar || chat.avatar
-              }
-            : chat
+        // Update existing PM and move to top
+        const updated = prevData.filter((chat) => 
+          !(chat.type === 'pm' && (
+            String(chat.userId) === senderId || 
+            chat.username?.toLowerCase() === senderName?.toLowerCase()
+          ))
         );
-      } else {
-        // Add new PM entry with unread indicator and avatar
-        return [...prevData, {
+        return [{
           type: 'pm' as const,
-          name: data.fromUsername,
-          username: data.fromUsername,
-          userId: data.fromUserId,
+          name: senderName,
+          username: senderName,
+          userId: senderId,
           avatar: data.fromAvatar,
           message: data.message,
           time: formatTime(Date.now()),
           isOnline: true,
           hasUnread: true,
-        }];
+        }, ...updated];
+      } else {
+        // Add new PM entry at top with unread indicator
+        console.log('📩 Adding new PM entry for:', senderName);
+        return [{
+          type: 'pm' as const,
+          name: senderName,
+          username: senderName,
+          userId: senderId,
+          avatar: data.fromAvatar,
+          message: data.message,
+          time: formatTime(Date.now()),
+          isOnline: true,
+          hasUnread: true,
+        }, ...prevData];
       }
     });
   }, []);
