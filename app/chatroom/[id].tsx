@@ -163,16 +163,19 @@ export default function ChatRoomScreen() {
   const currentActiveRoomId = roomId;
   const isPrivateChat = currentActiveRoomId?.startsWith('pm_') || currentActiveRoomId?.startsWith('private:') || false;
   
-  // Sync store's activeIndex to match route's roomId whenever it changes
+  // Sync store's activeIndex to match route's roomId ONLY when roomId changes (navigation)
+  // Don't sync on every activeRoomId change - that would override user's swipe navigation
+  const lastSyncedRouteId = useRef<string | null>(null);
   useEffect(() => {
-    if (roomId && openRooms.length > 0) {
+    if (roomId && openRooms.length > 0 && roomId !== lastSyncedRouteId.current) {
       const roomExists = openRooms.some(r => r.roomId === roomId);
-      if (roomExists && activeRoomId !== roomId) {
+      if (roomExists) {
         console.log(`🔄 [ChatRoom] Syncing activeRoom to route: ${roomId}`);
         setActiveRoomById(roomId);
+        lastSyncedRouteId.current = roomId;
       }
     }
-  }, [roomId, openRooms, activeRoomId, setActiveRoomById]);
+  }, [roomId, openRooms, setActiveRoomById]);
 
   useEffect(() => {
     if (socket?.connected && !isConnected) {
