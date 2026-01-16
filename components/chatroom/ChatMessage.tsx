@@ -176,7 +176,7 @@ export const ChatMessage = React.memo(({
   expiresIn
 }: ChatMessageProps) => {
   
-  const { theme, scaleSize } = useThemeCustom();
+  const { theme, scaleSize, fontSize } = useThemeCustom();
   
   const textShadowStyle = hasBackground ? {
     textShadowColor: 'rgba(0, 0, 0, 0.9)',
@@ -544,7 +544,7 @@ export const ChatMessage = React.memo(({
             return (
               <Text key={`emoji-${idx}-${item.key}`}>
                 {' '}
-                <Image source={item.src} style={styles.emojiImage} resizeMode="contain" />
+                <Image source={item.src} style={[styles.emojiImage, { width: fontSize, height: fontSize }]} resizeMode="contain" />
               </Text>
             );
           }
@@ -566,7 +566,7 @@ export const ChatMessage = React.memo(({
         return (
           <Text key={item.key}>
             {' '}
-            <Image source={item.src} style={styles.emojiImage} resizeMode="contain" />
+            <Image source={item.src} style={[styles.emojiImage, { width: fontSize, height: fontSize }]} resizeMode="contain" />
           </Text>
         );
       }
