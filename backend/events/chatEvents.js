@@ -119,6 +119,29 @@ module.exports = (io, socket) => {
         });
         return;
       }
+      
+      // Check if user is banned from this room
+      try {
+        const roomService = require('../services/roomService');
+        const isBanned = await roomService.isUserBanned(roomId, userId, username);
+        if (isBanned) {
+          socket.emit('system:message', {
+            roomId,
+            message: `You are banned from this room and cannot send messages.`,
+            timestamp: new Date().toISOString(),
+            type: 'error'
+          });
+          // Force leave the room
+          socket.leave(`room:${roomId}`);
+          socket.emit('room:banned', {
+            roomId,
+            message: `You are banned from this room.`
+          });
+          return;
+        }
+      } catch (banError) {
+        console.error('Error checking ban status:', banError.message);
+      }
 
       // Check for bot commands (!start, !j, !d, !r, /bot)
       if (message.startsWith('!') || message.startsWith('/bot ')) {
