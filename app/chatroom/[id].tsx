@@ -498,6 +498,11 @@ export default function ChatRoomScreen() {
     }
   }, [currentUsername, currentUserId, socket, setSocket, router, currentActiveRoomId]);
 
+  // Reset roomInitialized when roomId changes (navigating to a different room/PM)
+  useEffect(() => {
+    roomInitialized.current = false;
+  }, [roomId]);
+
   useEffect(() => {
     if (!socket || !isConnected || !currentUsername || !currentUserId) {
       return;
@@ -510,6 +515,7 @@ export default function ChatRoomScreen() {
     const existingRoom = openRooms.find(r => r.roomId === roomId);
     if (!existingRoom) {
       roomInitialized.current = true;
+      console.log(`📩 [ChatRoom] Opening new tab for: ${roomId} (${roomName})`);
       openRoom(roomId, roomName);
     } else if (activeRoomId !== roomId) {
       roomInitialized.current = true;
