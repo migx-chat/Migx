@@ -1612,13 +1612,13 @@ module.exports = (io, socket) => {
             const kickKey = `kick:${roomId}:${targetUser.id}`;
             await redis.setEx(kickKey, 300, 'kicked'); // 5 minutes
             
-            // Broadcast kicked message to remaining users
+            // Broadcast kicked message to remaining users (same format as other system messages)
             io.to(`room:${roomId}`).emit('chat:message', {
               id: generateMessageId(),
               roomId,
+              username: room.name,
               message: `${targetUsername} has been kicked by administrator ${username}`,
-              messageType: 'cmd',
-              type: 'cmd',
+              isSystem: true,
               timestamp: new Date().toISOString()
             });
             
@@ -2037,16 +2037,14 @@ module.exports = (io, socket) => {
               }
             }
             
-            // Public message
+            // Public message (same format as other system messages)
             io.to(`room:${roomId}`).emit('chat:message', {
               id: generateMessageId(),
               roomId,
               username: room.name,
-              message: `${targetUsername} Has Been banned by ${bannerRole} ${username}`,
-              messageType: 'ban',
-              type: 'system',
-              timestamp: new Date().toISOString(),
-              isSystem: true
+              message: `${targetUsername} has been banned by ${bannerRole} ${username}`,
+              isSystem: true,
+              timestamp: new Date().toISOString()
             });
             
             // Remove from presence AND participant set (non-blocking)
