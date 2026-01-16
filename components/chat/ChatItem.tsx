@@ -91,11 +91,15 @@ export function ChatItem({ type, name, message, time, isOnline, avatar, tags, ro
       });
       return;
     }
-    // Use actual roomId from backend for rooms
+    // Use actual roomId from backend for rooms - require roomId, no fallback
+    if (!roomId) {
+      console.warn(`[ChatItem] Missing roomId for room "${name}", cannot navigate`);
+      return;
+    }
     router.push({
       pathname: '/chatroom/[id]',
       params: { 
-        id: roomId || name.toLowerCase().replace(/\s+/g, '-'), 
+        id: roomId, 
         name,
         type,
       },

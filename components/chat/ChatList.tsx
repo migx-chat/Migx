@@ -490,14 +490,18 @@ export function ChatList() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {chatData.map((chat, index) => {
+        {chatData.map((chat) => {
           // Check unread status from store for PM items
           const hasUnread = chat.type === 'pm' && chat.userId 
             ? (unreadPmCounts[chat.userId] || 0) > 0 || chat.hasUnread
             : false;
+          // Use stable unique key based on type - roomId for rooms, userId for PMs
+          const stableKey = chat.type === 'room' 
+            ? `room-${chat.roomId}` 
+            : `pm-${chat.userId}`;
           return (
             <ChatItem 
-              key={`${chat.type}-${chat.name}-${index}`} 
+              key={stableKey} 
               {...chat} 
               hasUnread={hasUnread}
             />
