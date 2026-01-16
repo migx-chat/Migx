@@ -576,15 +576,40 @@ router.get('/follow/status', async (req, res) => {
       return res.status(400).json({ error: 'Follower ID and following ID are required' });
     }
     
-    const isFollowing = await profileService.isFollowing(followerId, followingId);
+    // Get detailed status (null, 'pending', 'accepted', 'rejected')
+    const status = await profileService.getFollowStatus(followerId, followingId);
+    const isFollowing = status === 'accepted';
     
     res.json({
-      isFollowing
+      isFollowing,
+      status // null = not following, 'pending' = request sent, 'accepted' = following
     });
     
   } catch (error) {
     console.error('Check follow status error:', error);
     res.status(500).json({ error: 'Failed to check follow status' });
+  }
+});
+
+// Get pending follow requests for a user
+router.get('/follow/pending/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+    
+    const requests = await profileService.getPendingFollowRequests(userId, parseInt(limit), parseInt(offset));
+    const count = await profileService.getPendingFollowRequestsCount(userId);
+    
+    res.json({
+      success: true,
+      requests,
+      count,
+      hasMore: (parseInt(offset) + requests.length) < count
+    });
+    
+  } catch (error) {
+    console.error('Get pending follow requests error:', error);
+    res.status(500).json({ error: 'Failed to get pending follow requests' });
   }
 });
 
@@ -601,20 +626,26 @@ router.post('/follow/accept', async (req, res) => {
       });
     }
     
-    // Get the user ID of the requester by username
-    const requesterUser = await userService.getUserByUsername(followingUsername);
+    // Get the user who is accepting (followingUsername is who received the follow request)
+    const acceptingUser = await userService.getUserByUsername(followingUsername);
     
-    if (!requesterUser) {
+    if (!acceptingUser) {
       return res.status(404).json({ 
         success: false,
-        error: 'Requester user not found' 
+        error: 'User not found' 
       });
     }
     
-    // NOW save the follow relationship to database (after acceptance)
-    // requesterUser is the one who sent the follow request
-    // followerId is the one accepting - so requesterUser should follow followerId
-    await profileService.followUser(requesterUser.id, followerId);
+    // Accept the pending follow request in database
+    // followerId = person who sent the request, acceptingUser.id = person accepting
+    const result = await profileService.acceptFollowRequest(acceptingUser.id, followerId);
+    
+    if (result.error) {
+      return res.status(400).json({ 
+        success: false,
+        error: result.error 
+      });
+    }
     
     // Remove the notification
     await notificationService.removeNotification(followingUsername, followerId);
@@ -639,6 +670,7 @@ router.post('/follow/reject', async (req, res) => {
   try {
     const { followerId, followingUsername } = req.body;
     const notificationService = require('../services/notificationService');
+    const userService = require('../services/userService');
     
     if (!followerId || !followingUsername) {
       return res.status(400).json({ 
@@ -647,8 +679,18 @@ router.post('/follow/reject', async (req, res) => {
       });
     }
     
+    // Get the user who is rejecting
+    const rejectingUser = await userService.getUserByUsername(followingUsername);
+    
+    if (rejectingUser) {
+      // Reject the pending follow request in database
+      await profileService.rejectFollowRequest(rejectingUser.id, followerId);
+    }
+    
     // Remove the notification
     await notificationService.removeNotification(followingUsername, followerId);
+    
+    console.log(`❌ ${followingUsername} rejected follow request from user ${followerId}`);
     
     res.json({
       success: true,

@@ -151,7 +151,7 @@ const getFootprintCount = async (userId) => {
   }
 };
 
-// ==================== FOLLOWS ====================
+// ==================== FOLLOWS (with pending/accepted status) ====================
 
 const followUser = async (followerId, followingId) => {
   try {
@@ -159,22 +159,112 @@ const followUser = async (followerId, followingId) => {
       return { error: 'Cannot follow yourself' };
     }
 
+    // Check if there's already a follow record
+    const existing = await query(
+      'SELECT * FROM user_follows WHERE follower_id = $1 AND following_id = $2',
+      [followerId, followingId]
+    );
+    
+    if (existing.rows.length > 0) {
+      const status = existing.rows[0].status;
+      if (status === 'accepted') {
+        return { error: 'Already following this user' };
+      } else if (status === 'pending') {
+        return { error: 'Follow request already pending' };
+      } else if (status === 'rejected') {
+        // Re-send request if previously rejected
+        const result = await query(
+          `UPDATE user_follows SET status = 'pending', updated_at = CURRENT_TIMESTAMP 
+           WHERE follower_id = $1 AND following_id = $2 RETURNING *`,
+          [followerId, followingId]
+        );
+        return { ...result.rows[0], status: 'pending' };
+      }
+    }
+
+    // Create new pending follow request
     const result = await query(
-      `INSERT INTO user_follows (follower_id, following_id)
-       VALUES ($1, $2)
-       ON CONFLICT (follower_id, following_id) DO NOTHING
+      `INSERT INTO user_follows (follower_id, following_id, status)
+       VALUES ($1, $2, 'pending')
        RETURNING *`,
       [followerId, followingId]
     );
     
+    return { ...result.rows[0], status: 'pending' };
+  } catch (error) {
+    console.error('Error following user:', error);
+    return { error: 'Failed to follow user' };
+  }
+};
+
+const acceptFollowRequest = async (userId, followerId) => {
+  try {
+    const result = await query(
+      `UPDATE user_follows SET status = 'accepted', updated_at = CURRENT_TIMESTAMP 
+       WHERE follower_id = $1 AND following_id = $2 AND status = 'pending'
+       RETURNING *`,
+      [followerId, userId]
+    );
+    
     if (result.rows.length === 0) {
-      return { error: 'Already following this user' };
+      return { error: 'No pending follow request found' };
     }
     
     return result.rows[0];
   } catch (error) {
-    console.error('Error following user:', error);
-    return { error: 'Failed to follow user' };
+    console.error('Error accepting follow request:', error);
+    return { error: 'Failed to accept follow request' };
+  }
+};
+
+const rejectFollowRequest = async (userId, followerId) => {
+  try {
+    const result = await query(
+      `UPDATE user_follows SET status = 'rejected', updated_at = CURRENT_TIMESTAMP 
+       WHERE follower_id = $1 AND following_id = $2 AND status = 'pending'
+       RETURNING *`,
+      [followerId, userId]
+    );
+    
+    if (result.rows.length === 0) {
+      return { error: 'No pending follow request found' };
+    }
+    
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error rejecting follow request:', error);
+    return { error: 'Failed to reject follow request' };
+  }
+};
+
+const getPendingFollowRequests = async (userId, limit = 50, offset = 0) => {
+  try {
+    const result = await query(
+      `SELECT u.id, u.username, u.avatar, u.status as user_status, uf.created_at as requested_at
+       FROM user_follows uf
+       JOIN users u ON uf.follower_id = u.id
+       WHERE uf.following_id = $1 AND uf.status = 'pending'
+       ORDER BY uf.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [userId, limit, offset]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error('Error getting pending follow requests:', error);
+    return [];
+  }
+};
+
+const getPendingFollowRequestsCount = async (userId) => {
+  try {
+    const result = await query(
+      `SELECT COUNT(*) as count FROM user_follows WHERE following_id = $1 AND status = 'pending'`,
+      [userId]
+    );
+    return parseInt(result.rows[0].count) || 0;
+  } catch (error) {
+    console.error('Error getting pending follow requests count:', error);
+    return 0;
   }
 };
 
@@ -193,11 +283,12 @@ const unfollowUser = async (followerId, followingId) => {
 
 const getFollowers = async (userId, limit = 50, offset = 0) => {
   try {
+    // Only return ACCEPTED followers
     const result = await query(
       `SELECT u.id, u.username, u.avatar, u.status, uf.created_at as followed_at
        FROM user_follows uf
        JOIN users u ON uf.follower_id = u.id
-       WHERE uf.following_id = $1
+       WHERE uf.following_id = $1 AND uf.status = 'accepted'
        ORDER BY uf.created_at DESC
        LIMIT $2 OFFSET $3`,
       [userId, limit, offset]
@@ -211,11 +302,12 @@ const getFollowers = async (userId, limit = 50, offset = 0) => {
 
 const getFollowing = async (userId, limit = 50, offset = 0) => {
   try {
+    // Only return ACCEPTED following
     const result = await query(
       `SELECT u.id, u.username, u.avatar, u.status, u.status_message, u.last_login_date, uf.created_at as followed_at
        FROM user_follows uf
        JOIN users u ON uf.following_id = u.id
-       WHERE uf.follower_id = $1
+       WHERE uf.follower_id = $1 AND uf.status = 'accepted'
        ORDER BY uf.created_at DESC
        LIMIT $2 OFFSET $3`,
       [userId, limit, offset]
@@ -229,8 +321,9 @@ const getFollowing = async (userId, limit = 50, offset = 0) => {
 
 const getFollowersCount = async (userId) => {
   try {
+    // Only count ACCEPTED followers
     const result = await query(
-      'SELECT COUNT(*) as count FROM user_follows WHERE following_id = $1',
+      `SELECT COUNT(*) as count FROM user_follows WHERE following_id = $1 AND status = 'accepted'`,
       [userId]
     );
     return parseInt(result.rows[0].count) || 0;
@@ -242,8 +335,9 @@ const getFollowersCount = async (userId) => {
 
 const getFollowingCount = async (userId) => {
   try {
+    // Only count ACCEPTED following
     const result = await query(
-      'SELECT COUNT(*) as count FROM user_follows WHERE follower_id = $1',
+      `SELECT COUNT(*) as count FROM user_follows WHERE follower_id = $1 AND status = 'accepted'`,
       [userId]
     );
     return parseInt(result.rows[0].count) || 0;
@@ -255,14 +349,31 @@ const getFollowingCount = async (userId) => {
 
 const isFollowing = async (followerId, followingId) => {
   try {
+    // Check if ACCEPTED follow exists
     const result = await query(
-      'SELECT * FROM user_follows WHERE follower_id = $1 AND following_id = $2',
+      `SELECT * FROM user_follows WHERE follower_id = $1 AND following_id = $2 AND status = 'accepted'`,
       [followerId, followingId]
     );
     return result.rows.length > 0;
   } catch (error) {
     console.error('Error checking follow status:', error);
     return false;
+  }
+};
+
+const getFollowStatus = async (followerId, followingId) => {
+  try {
+    const result = await query(
+      `SELECT status FROM user_follows WHERE follower_id = $1 AND following_id = $2`,
+      [followerId, followingId]
+    );
+    if (result.rows.length === 0) {
+      return null; // Not following
+    }
+    return result.rows[0].status; // 'pending', 'accepted', or 'rejected'
+  } catch (error) {
+    console.error('Error getting follow status:', error);
+    return null;
   }
 };
 
@@ -506,7 +617,7 @@ module.exports = {
   // Footprints
   getFootprintCount,
   
-  // Follows
+  // Follows (with pending/accepted system)
   followUser,
   unfollowUser,
   getFollowers,
@@ -514,6 +625,11 @@ module.exports = {
   getFollowersCount,
   getFollowingCount,
   isFollowing,
+  getFollowStatus,
+  acceptFollowRequest,
+  rejectFollowRequest,
+  getPendingFollowRequests,
+  getPendingFollowRequestsCount,
   
   // Blocks
   blockUser,

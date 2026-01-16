@@ -84,15 +84,28 @@ CREATE TABLE IF NOT EXISTS user_gifts (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- User follows table
+-- User follows table (with status for follow request system)
 CREATE TABLE IF NOT EXISTS user_follows (
   id BIGSERIAL PRIMARY KEY,
   follower_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
   following_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(follower_id, following_id),
   CHECK (follower_id != following_id)
 );
+
+-- Add status column if not exists (for migration)
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_follows' AND column_name = 'status') THEN
+    ALTER TABLE user_follows ADD COLUMN status VARCHAR(20) DEFAULT 'accepted';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_follows' AND column_name = 'updated_at') THEN
+    ALTER TABLE user_follows ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+  END IF;
+END $$;
 
 -- User blocks table
 CREATE TABLE IF NOT EXISTS user_blocks (
