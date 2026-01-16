@@ -7,6 +7,23 @@ const fs = require('fs').promises;
 const profileService = require('../services/profileService');
 const authMiddleware = require('../middleware/auth');
 const cloudinary = require('cloudinary').v2;
+const { getRedisClient } = require('../redis');
+
+// Helper to get actual presence status from Redis
+const getActualPresence = async (username) => {
+  try {
+    const redis = getRedisClient();
+    const presence = await redis.get(`presence:${username}`);
+    if (presence) {
+      // Return invisible as offline to other users
+      return presence === 'invisible' ? 'offline' : presence;
+    }
+    return 'offline';
+  } catch (error) {
+    console.error('Error getting presence:', error);
+    return 'offline';
+  }
+};
 
 // Configure Cloudinary
 cloudinary.config({
@@ -538,8 +555,19 @@ router.get('/followers/:userId', async (req, res) => {
     const followers = await profileService.getFollowers(userId, parseInt(limit), parseInt(offset));
     const count = await profileService.getFollowersCount(userId);
     
+    // Enrich with real-time presence from Redis
+    const followersWithPresence = await Promise.all(
+      followers.map(async (user) => {
+        const presenceStatus = await getActualPresence(user.username);
+        return {
+          ...user,
+          presence_status: presenceStatus
+        };
+      })
+    );
+    
     res.json({
-      followers,
+      followers: followersWithPresence,
       count,
       hasMore: (parseInt(offset) + followers.length) < count
     });
@@ -558,8 +586,19 @@ router.get('/following/:userId', async (req, res) => {
     const following = await profileService.getFollowing(userId, parseInt(limit), parseInt(offset));
     const count = await profileService.getFollowingCount(userId);
     
+    // Enrich with real-time presence from Redis
+    const followingWithPresence = await Promise.all(
+      following.map(async (user) => {
+        const presenceStatus = await getActualPresence(user.username);
+        return {
+          ...user,
+          presence_status: presenceStatus
+        };
+      })
+    );
+    
     res.json({
-      following,
+      following: followingWithPresence,
       count,
       hasMore: (parseInt(offset) + following.length) < count
     });
