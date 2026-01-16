@@ -248,9 +248,12 @@ module.exports = (io, socket) => {
       // Echo back to sender's all tabs
       io.to(`user:${fromUserId}`).emit('pm:sent', messageData);
 
-      io.to(`user:${recipientUsername}`).emit('chatlist:update', {
+      // 🔑 Emit chatlist update using USER ID (not username) to match socket room
+      io.to(`user:${toUserId}`).emit('chatlist:update', {
         type: 'dm',
         username: fromUsername,
+        userId: fromUserId,
+        avatar: fromAvatar,
         lastMessage: {
           message: messageData.message,
           fromUsername: messageData.fromUsername,
@@ -259,9 +262,10 @@ module.exports = (io, socket) => {
         }
       });
 
-      io.to(`user:${fromUsername}`).emit('chatlist:update', {
+      io.to(`user:${fromUserId}`).emit('chatlist:update', {
         type: 'dm',
         username: recipientUsername,
+        userId: toUserId,
         lastMessage: {
           message: messageData.message,
           fromUsername: messageData.fromUsername,

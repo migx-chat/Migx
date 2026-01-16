@@ -299,8 +299,41 @@ export function ChatList() {
 
   const handleChatListUpdate = useCallback((data: any) => {
     console.log('💬 Chat list update received:', data);
-    // Use debounced reload to prevent spam
-    debouncedLoadRooms();
+    
+    // Immediately add/update PM in chat list for instant feedback
+    if (data.type === 'dm' && data.username) {
+      setChatData((prevData) => {
+        // Check if PM already exists
+        const existingIndex = prevData.findIndex(
+          (chat) => chat.type === 'pm' && chat.username?.toLowerCase() === data.username.toLowerCase()
+        );
+        
+        const newPmEntry: ChatData = {
+          type: 'pm',
+          name: data.username,
+          username: data.username,
+          userId: data.userId,
+          avatar: data.avatar,
+          message: data.lastMessage?.message,
+          time: data.lastMessage?.timestamp ? formatTime(data.lastMessage.timestamp) : formatTime(Date.now()),
+          isOnline: true,
+          hasUnread: true,
+        };
+        
+        if (existingIndex >= 0) {
+          // Update existing PM entry and move to top
+          const updated = [...prevData];
+          updated.splice(existingIndex, 1);
+          return [newPmEntry, ...updated];
+        } else {
+          // Add new PM entry at top
+          return [newPmEntry, ...prevData];
+        }
+      });
+    } else {
+      // For other updates, use debounced reload
+      debouncedLoadRooms();
+    }
   }, [debouncedLoadRooms]);
 
   const handleRoomJoined = useCallback((data: any) => {
