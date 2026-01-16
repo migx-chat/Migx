@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { ScrollView, StyleSheet, View, Text, ActivityIndicator } from 'react-native';
 import { useThemeCustom } from '@/theme/provider';
 import { ChatItem } from './ChatItem';
-import API_BASE_URL from '@/utils/api';
+import API_BASE_URL, { createSocket } from '@/utils/api';
 import { useRoomTabsStore } from '@/stores/useRoomTabsStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -36,6 +36,17 @@ export function ChatList() {
   useEffect(() => {
     loadUsername();
   }, []);
+
+  // Initialize socket connection when ChatList mounts
+  // This ensures PM updates work even without entering a room first
+  useEffect(() => {
+    if (username && !socket) {
+      console.log('📡 ChatList: Initializing socket for user:', username);
+      const newSocket = createSocket();
+      const setSocket = useRoomTabsStore.getState().setSocket;
+      setSocket(newSocket);
+    }
+  }, [username, socket]);
 
   // Debounced loadRooms to prevent spam
   const debouncedLoadRooms = useCallback(() => {

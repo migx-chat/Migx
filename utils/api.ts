@@ -151,9 +151,16 @@ export const createSocket = () => {
   socket.on('connect', async () => {
     console.log('✅ Socket.IO connected to backend! ID:', socket?.id);
     
+    // Auto-authenticate on connect - join user channel for PM and presence
+    const userData = await AsyncStorage.getItem('user_data');
+    if (userData) {
+      const { id, username } = JSON.parse(userData);
+      console.log(`🔑 Auto-authenticating socket for user: ${username} (${id})`);
+      socket.emit('auth:login', { userId: id, username });
+    }
+    
     if (isReconnecting && currentRoomId) {
       console.log('🔄 Reconnecting - silent rejoin to room:', currentRoomId);
-      const userData = await AsyncStorage.getItem('user_data');
       if (userData) {
         const { id, username } = JSON.parse(userData);
         socket.emit('room:silent_rejoin', {
