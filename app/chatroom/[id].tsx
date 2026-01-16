@@ -376,18 +376,29 @@ export default function ChatRoomScreen() {
       
       newSocket.on('room:currently:update', (data: { roomId: string; roomName: string; participants: string }) => {
         console.log('🔄 Currently users update received:', data);
-        const { addMessage, openRoomIds } = useRoomTabsStore.getState();
+        const { openRoomIds, messagesByRoom } = useRoomTabsStore.getState();
         
-        // Only add message if this room is open
+        // Only update if this room is open
         if (openRoomIds.includes(data.roomId)) {
-          const systemMessage: Message = {
-            id: `currently-${Date.now()}-${Math.random()}`,
-            username: data.roomName,
-            message: `Currently users in the room: ${data.participants}`,
-            isSystem: true,
-            timestamp: new Date().toISOString(),
-          };
-          addMessage(data.roomId, systemMessage);
+          // Find and update existing "Currently users" message instead of adding new one
+          const messages = messagesByRoom[data.roomId] || [];
+          const updatedMessages = messages.map(msg => {
+            if (msg.message.startsWith('Currently users in the room:')) {
+              return {
+                ...msg,
+                message: `Currently users in the room: ${data.participants}`,
+              };
+            }
+            return msg;
+          });
+          
+          // Update the messages in store
+          useRoomTabsStore.setState(state => ({
+            messagesByRoom: {
+              ...state.messagesByRoom,
+              [data.roomId]: updatedMessages,
+            },
+          }));
         }
       });
 

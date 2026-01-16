@@ -283,15 +283,16 @@ module.exports = (io, socket) => {
       if (!socket.invisible) {
         await addRoomParticipant(roomId, username);
         
-        // Broadcast updated participants to all users in room
+        // Broadcast updated participants to all users in room (for participant menu + live update)
         const updatedParticipants = await getRoomParticipants(roomId);
+        const participantListString = updatedParticipants.join(', ');
+        
         io.to(`room:${roomId}`).emit('room:participants:update', {
           roomId,
           participants: updatedParticipants
         });
         
-        // Broadcast "Currently users in the room" message to ALL users (live update)
-        const participantListString = updatedParticipants.join(', ');
+        // Broadcast live "Currently users" update (frontend will update existing message in-place)
         io.to(`room:${roomId}`).emit('room:currently:update', {
           roomId,
           roomName: room.name,
