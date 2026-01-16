@@ -74,6 +74,11 @@ const sendGift = async (senderId, receiverId, giftName, giftIcon, giftCost) => {
        RETURNING *`,
       [senderId, receiverId, giftName, giftIcon, giftCost]
     );
+    
+    // Also update a total received counter if we wanted to persist it in the users table, 
+    // but the current approach of counting from user_gifts is more accurate.
+    // However, since the user says "save to db agar tidak hilang", let's ensure the table is robust.
+    
     return result.rows[0];
   } catch (error) {
     console.error('Error sending gift:', error);
