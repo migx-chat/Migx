@@ -275,7 +275,12 @@ module.exports = (io, socket) => {
           
           const currentTarget = await redis.get(`roll:target:${roomId}`);
           if (currentTarget && parseInt(currentTarget) === rollResult) {
-            await redis.set(`user:silence:${roomId}:${userId}`, '1', 'EX', 6);
+            // Silence the entire room for 6 seconds when someone wins
+            await redis.set(`room:silence:${roomId}`, '1', 'EX', 6);
+            
+            // Clear the roll target after someone wins
+            await redis.del(`roll:target:${roomId}`);
+            
             io.to(`room:${roomId}`).emit('chat:message', {
               id: generateMessageId(),
               roomId,
@@ -284,6 +289,32 @@ module.exports = (io, socket) => {
               type: 'rollWin',
               timestamp: new Date().toISOString()
             });
+            
+            // Notify room that it's silenced for 6 seconds
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
+              roomId,
+              message: `Room silenced for 6 seconds - Winner celebration!`,
+              messageType: 'system',
+              type: 'system',
+              timestamp: new Date().toISOString(),
+              isSystem: true
+            });
+            
+            // Schedule unsilence notification after 6 seconds
+            setTimeout(() => {
+              io.to(`room:${roomId}`).emit('room:unsilenced', { roomId });
+              io.to(`room:${roomId}`).emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                message: `Room is now open for chat again!`,
+                messageType: 'system',
+                type: 'system',
+                timestamp: new Date().toISOString(),
+                isSystem: true
+              });
+            }, 6000);
+            
             return;
           }
           
