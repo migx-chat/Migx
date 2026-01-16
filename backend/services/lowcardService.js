@@ -337,7 +337,7 @@ const startGame = async (roomId, userId, username, amount) => {
       success: true,
       gameId,
       newBalance: deductResult.balance,
-      message: `LowCard started by ${username}. Enter !j to join the game. Cost: ${entryAmount}.0 COINS [30s]`
+      message: `LowCard started by ${username}. Enter !j to join the game. Cost: ${entryAmount} COINS [30s]`
     };
   } finally {
     await redis.del(lockKey);
@@ -592,7 +592,7 @@ const tallyRound = async (roomId, isTimedOut = false) => {
         winnings,
         newBalance: creditResult.balance,
         message: `LowCard game over! ${winner.username} WINS ${winnings.toFixed(1)} COINS with highest card ${getCardEmoji(winner.currentCard)}! CONGRATS!`,
-        followUp: `Play now: !start to enter. Cost: ${game.entryAmount}.0 COINS. For custom entry, !start [amount]`
+        followUp: `Play now: !start to enter. Cost: ${game.entryAmount} COINS. For custom entry, !start [amount]`
       };
     }
   }
@@ -645,7 +645,7 @@ const tallyRound = async (roomId, isTimedOut = false) => {
           winnings,
           newBalance: creditResult.balance,
           message: `LowCard game over! ${winner.username} WINS ${winnings.toFixed(1)} COINS! CONGRATS!`,
-          followUp: `Play now: !start to enter. Cost: ${game.entryAmount}.0 COINS. For custom entry, !start [amount]`
+          followUp: `Play now: !start to enter. Cost: ${game.entryAmount} COINS. For custom entry, !start [amount]`
         };
       }
       
@@ -739,7 +739,7 @@ const tallyRound = async (roomId, isTimedOut = false) => {
       winnings,
       newBalance: creditResult.balance,
       message: `LowCard game over! ${winner.username} WINS ${winnings.toFixed(1)} COINS! CONGRATS!`,
-      followUp: `Play now: !start to enter. Cost: ${game.entryAmount}.0 COINS. For custom entry, !start [amount]`
+      followUp: `Play now: !start to enter. Cost: ${game.entryAmount} COINS. For custom entry, !start [amount]`
     };
   }
   
