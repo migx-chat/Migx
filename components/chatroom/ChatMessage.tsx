@@ -515,6 +515,7 @@ export const ChatMessage = React.memo(({
                 key={`flag-${idx}`}
                 source={flagImages[part.flagKey!]}
                 style={bigEmoji ? styles.bigFlagImage : styles.flagImage}
+                resizeMode="contain"
               />
             ))}
           </View>
@@ -532,7 +533,8 @@ export const ChatMessage = React.memo(({
             <Image 
               key={`flag-${idx}`} 
               source={flagImages[part.flagKey]} 
-              style={isBigEmoji ? styles.bigFlagImage : styles.flagImage} 
+              style={isBigEmoji ? styles.bigFlagImage : styles.flagImage}
+              resizeMode="contain"
             />
           );
         }
@@ -656,10 +658,10 @@ const styles = StyleSheet.create({
     marginBottom: -3,
   },
   bigFlagImage: {
-    width: 64,
-    height: 48,
-    marginHorizontal: 6,
-    marginVertical: 4,
+    width: 80,
+    height: 60,
+    marginHorizontal: 8,
+    marginVertical: 6,
   },
   noticeContainer: {
     paddingVertical: 8,
