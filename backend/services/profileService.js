@@ -285,7 +285,7 @@ const getFollowers = async (userId, limit = 50, offset = 0) => {
   try {
     // Only return ACCEPTED followers
     const result = await query(
-      `SELECT u.id, u.username, u.avatar, u.status, uf.created_at as followed_at
+      `SELECT u.id, u.username, u.avatar, u.status, u.status_message, u.last_login_date, uf.created_at as followed_at
        FROM user_follows uf
        JOIN users u ON uf.follower_id = u.id
        WHERE uf.following_id = $1 AND uf.status = 'accepted'
