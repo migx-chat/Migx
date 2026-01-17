@@ -165,6 +165,13 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
       return;
     }
 
+    // Skip room socket logic for PM tabs - they don't need room:join
+    const isPmTab = roomId.startsWith('private:') || roomId.startsWith('pm_');
+    if (isPmTab) {
+      console.log(`📩 [PM ${roomId}] Skipping room socket setup for PM tab`);
+      return;
+    }
+
     console.log(`🔌 [Room ${roomId}] Registering socket listeners`);
 
     const boundHandleSystemMessage = handleSystemMessage;
