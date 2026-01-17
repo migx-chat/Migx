@@ -262,6 +262,14 @@ module.exports = (io, socket) => {
         // Get user's active rooms BEFORE clearing presence
         const activeRooms = await getUserActiveRooms(userId);
         
+        // Broadcast offline status GLOBALLY to all connected users (for contact lists)
+        io.emit('presence:changed', {
+          username,
+          status: 'offline',
+          timestamp: new Date().toISOString()
+        });
+        console.log(`📡 Broadcast: ${username} → offline (logout/disconnect)`);
+        
         // Remove presence and session from Redis
         await removePresence(username);
         await removeSession(username);

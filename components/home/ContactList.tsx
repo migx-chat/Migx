@@ -30,13 +30,20 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
     loadContacts();
   }, []);
 
-  // Subscribe to real-time presence updates
+  // Subscribe to socket from store
+  const socket = useRoomTabsStore(state => state.socket);
+
+  // Subscribe to real-time presence updates using GLOBAL socket
   useEffect(() => {
-    const socket = createSocket();
+    if (!socket) {
+      console.log('📡 ContactList: No global socket yet, waiting...');
+      return;
+    }
+    
     socketRef.current = socket;
 
     const handlePresenceChanged = (data: { username: string; status: string }) => {
-      console.log('📡 ContactList received presence update:', data);
+      console.log('📡 ContactList received presence update:', data.username, '→', data.status);
       setAllContacts(prev => prev.map(contact => {
         if (contact.name === data.username) {
           return {
@@ -50,11 +57,12 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
     };
 
     socket.on('presence:changed', handlePresenceChanged);
+    console.log('📡 ContactList: Subscribed to presence:changed events');
 
     return () => {
       socket.off('presence:changed', handlePresenceChanged);
     };
-  }, []);
+  }, [socket]);
 
   // Expose refresh function via ref
   useImperativeHandle(ref, () => ({
