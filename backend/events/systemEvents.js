@@ -281,8 +281,11 @@ module.exports = (io, socket) => {
         // Clear user's chatlist from Redis
         await clearUserRooms(username);
 
-        // Process each room the user was in
+        // Process each room the user was in - FORCE LEAVE ALL ROOMS
         for (const roomId of activeRooms) {
+          // Leave socket room channel first
+          socket.leave(`room:${roomId}`);
+          
           // Remove from room participants list (like leave room does)
           await removeRoomParticipant(roomId, username);
           await removeUserFromRoom(roomId, userId, username);
@@ -291,11 +294,21 @@ module.exports = (io, socket) => {
           const updatedUsers = await getRoomUsersFromTTL(roomId);
           const userList = updatedUsers.map(u => u.username);
           
-          // Emit room:user:left event (same as leave room flow)
+          // Emit room:user:left event to remaining room members
           io.to(`room:${roomId}`).emit('room:user:left', {
             roomId,
             username,
             users: userList
+          });
+          
+          // Send system message that user has left (force logout)
+          io.to(`room:${roomId}`).emit('chat:message', {
+            roomId,
+            id: `logout_${Date.now()}_${userId}`,
+            username: 'System',
+            message: `${username} has left the room`,
+            type: 'system',
+            timestamp: new Date().toISOString()
           });
 
           // Broadcast presence change to offline
@@ -305,7 +318,7 @@ module.exports = (io, socket) => {
             timestamp: new Date().toISOString()
           });
           
-          logger.info(`👋 User ${username} removed from room ${roomId} on logout`);
+          logger.info(`👋 User ${username} force-left room ${roomId} on logout`);
         }
 
         await userService.disconnectUser(userId);
