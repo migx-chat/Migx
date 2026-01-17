@@ -214,8 +214,8 @@ module.exports = (io, socket) => {
           const blockedIds = blockedUsers.map(u => u.id);
           isBlocked = blockedIds.includes(fromUserId);
           
-          // Cache for 5 minutes
-          await redis.setex(`user:blocks:${toUserId}`, 300, JSON.stringify(blockedIds));
+          // Cache for 5 minutes (node-redis v4 uses setEx)
+          await redis.set(`user:blocks:${toUserId}`, JSON.stringify(blockedIds), { EX: 300 });
         }
       } catch (err) {
         console.warn('Redis cache error, defaulting to allow PM:', err.message);

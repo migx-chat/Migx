@@ -3,6 +3,7 @@ const router = express.Router();
 const userService = require('../services/userService');
 const { getUserLevel, getLeaderboard } = require('../utils/xpLeveling');
 const logger = require('../utils/logger');
+const { query, getPool } = require('../db/db');
 
 // Search users (must come BEFORE /:id route)
 router.get('/search', async (req, res) => {
@@ -179,6 +180,7 @@ router.put('/:userId/status-message', async (req, res) => {
     const { userId } = req.params;
     const { statusMessage } = req.body;
 
+    const pool = getPool();
     const result = await pool.query(
       'UPDATE users SET status_message = $1 WHERE id = $2 RETURNING *',
       [statusMessage, userId]
@@ -201,6 +203,7 @@ router.put('/:userId/status', async (req, res) => {
     const { userId } = req.params;
     const { status_message } = req.body;
 
+    const pool = getPool();
     const result = await pool.query(
       'UPDATE users SET status_message = $1 WHERE id = $2 RETURNING *',
       [status_message, userId]

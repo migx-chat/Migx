@@ -442,8 +442,8 @@ const validatePIN = async (userId, providedPin) => {
       
       // Check if max attempts reached
       if (attempts >= MAX_ATTEMPTS) {
-        // Set cooldown
-        await redis.setex(cooldownKey, COOLDOWN_SECONDS, '1');
+        // Set cooldown (node-redis v4 uses set with EX option)
+        await redis.set(cooldownKey, '1', { EX: COOLDOWN_SECONDS });
         // Clear attempts counter
         await redis.del(attemptKey);
         return { valid: false, error: `Too many failed PIN attempts. Try again in ${COOLDOWN_MINUTES} minutes.`, cooldown: true };
