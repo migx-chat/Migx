@@ -546,7 +546,11 @@ module.exports = (io, socket) => {
       }));
       await redisInstance.expire(`room:lastmsg:${roomId}`, 86400); // 24 hours
 
+<<<<<<< HEAD
+      logger.info('📤 Emitting chatlist events to user:', username);
+=======
       logger.info('📤 Emitting chatlist events to user:', { username });
+>>>>>>> 4c9bfb1 (init backend)
 
       // Emit to socket directly
       socket.emit('chatlist:roomJoined', {

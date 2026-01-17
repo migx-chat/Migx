@@ -8,8 +8,8 @@ let chatSocket: any = null;
 
 // Backend URL - Replit handles port forwarding automatically
 const API_BASE_URL = Platform.OS === 'web'
-  ? 'https://fee71969-36cc-45da-8a84-dda137654441-00-6wjptrtp60s7.sisko.replit.dev'
-  : 'https://fee71969-36cc-45da-8a84-dda137654441-00-6wjptrtp60s7.sisko.replit.dev';
+  ? 'https://api.migxchat.net'
+  : 'https://api.migxchat.net';
 
 devLog('🌐 API_BASE_URL configured as:', API_BASE_URL);
 devLog('🔍 Backend Health Check:', `${API_BASE_URL}/health`);

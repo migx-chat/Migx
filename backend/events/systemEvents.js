@@ -16,8 +16,12 @@ const {
   getRoomMembers,
   clearUserRooms,
   removeRoomParticipant,
+<<<<<<< HEAD
+  getUserActiveRooms
+=======
   getUserActiveRooms,
   getRoomParticipantsWithNames
+>>>>>>> 4c9bfb1 (init backend)
 } = require('../utils/redisUtils');
 
 module.exports = (io, socket) => {
@@ -302,6 +306,8 @@ module.exports = (io, socket) => {
             users: userList
           });
           
+<<<<<<< HEAD
+=======
           // Emit chatlist:update to notify chatlist/currently tab
           io.to(`user:${username}`).emit('chatlist:update', {
             roomId,
@@ -314,6 +320,7 @@ module.exports = (io, socket) => {
             action: 'left'
           });
           
+>>>>>>> 4c9bfb1 (init backend)
           // Send system message that user has left (force logout)
           io.to(`room:${roomId}`).emit('chat:message', {
             roomId,
@@ -331,6 +338,8 @@ module.exports = (io, socket) => {
             timestamp: new Date().toISOString()
           });
           
+<<<<<<< HEAD
+=======
           // Broadcast updated participants list to room (for Participant modal)
           const updatedParticipants = await getRoomParticipantsWithNames(roomId);
           io.to(`room:${roomId}`).emit('room:participants:update', {
@@ -338,6 +347,7 @@ module.exports = (io, socket) => {
             participants: updatedParticipants
           });
           
+>>>>>>> 4c9bfb1 (init backend)
           logger.info(`👋 User ${username} force-left room ${roomId} on logout`);
         }
 
