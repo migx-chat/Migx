@@ -16,7 +16,8 @@ const {
   getRoomMembers,
   clearUserRooms,
   removeRoomParticipant,
-  getUserActiveRooms
+  getUserActiveRooms,
+  getRoomParticipantsWithNames
 } = require('../utils/redisUtils');
 
 module.exports = (io, socket) => {
@@ -328,6 +329,13 @@ module.exports = (io, socket) => {
             username,
             status: 'offline',
             timestamp: new Date().toISOString()
+          });
+          
+          // Broadcast updated participants list to room (for Participant modal)
+          const updatedParticipants = await getRoomParticipantsWithNames(roomId);
+          io.to(`room:${roomId}`).emit('room:participants:update', {
+            roomId,
+            participants: updatedParticipants
           });
           
           logger.info(`👋 User ${username} force-left room ${roomId} on logout`);
