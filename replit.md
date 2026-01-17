@@ -65,6 +65,7 @@ Production security features:
 - SSL certificate validation: Enabled for database connections
 - Schema auto-init: Disabled in production (use migrations)
 - Error sanitization: Detailed errors hidden from users in production
+- Production logging: Backend uses `logger.info()` (only logs in development), frontend uses `devLog()` (only logs when `__DEV__` is true) - no sensitive data exposed in production
 
 # External Dependencies
 

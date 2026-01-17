@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { useColorScheme, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -70,7 +71,7 @@ export function ThemeProviderCustom({ children }: ThemeProviderProps) {
         }
       }
     } catch (error) {
-      console.log('Error loading settings:', error);
+      devLog('Error loading settings:', error);
     } finally {
       setIsLoaded(true);
     }
@@ -80,7 +81,7 @@ export function ThemeProviderCustom({ children }: ThemeProviderProps) {
     try {
       await storage.setItem(THEME_STORAGE_KEY, newMode);
     } catch (error) {
-      console.log('Error saving theme mode:', error);
+      devLog('Error saving theme mode:', error);
     }
   };
 
@@ -88,7 +89,7 @@ export function ThemeProviderCustom({ children }: ThemeProviderProps) {
     try {
       await storage.setItem(FONT_SIZE_STORAGE_KEY, size.toString());
     } catch (error) {
-      console.log('Error saving font size:', error);
+      devLog('Error saving font size:', error);
     }
   };
 

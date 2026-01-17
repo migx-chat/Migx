@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const express = require('express');
 const router = express.Router();
 const { superAdminMiddleware } = require('../middleware/auth');
@@ -651,7 +652,7 @@ router.get('/transactions/all', superAdminMiddleware, async (req, res) => {
       }
     } catch (giftErr) {
       // Gifts table may not exist, skip
-      console.log('Gift transactions skipped:', giftErr.message);
+      logger.info('Gift transactions skipped:', giftErr.message);
     }
 
     // Sort all transactions by date (newest first)

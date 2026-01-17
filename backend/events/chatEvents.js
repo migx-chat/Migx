@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const messageService = require('../services/messageService');
 const { checkFlood, checkGlobalRateLimit } = require('../utils/floodControl');
 const { generateMessageId } = require('../utils/idGenerator');
@@ -789,7 +790,7 @@ module.exports = (io, socket) => {
               ['suspended', username, targetUser.id]
             );
             
-            console.log(`[SUSPEND] User ${targetUsername} suspended by ${username}`);
+            logger.info(`[SUSPEND] User ${targetUsername} suspended by ${username}`);
             
             // Broadcast to room
             io.to(`room:${roomId}`).emit('chat:message', {
@@ -911,7 +912,7 @@ module.exports = (io, socket) => {
               ['offline', targetUser.id]
             );
             
-            console.log(`[UNSUSPEND] User ${targetUsername} unsuspended by ${username}`);
+            logger.info(`[UNSUSPEND] User ${targetUsername} unsuspended by ${username}`);
             
             // Broadcast to room
             io.to(`room:${roomId}`).emit('chat:message', {
@@ -1745,7 +1746,7 @@ module.exports = (io, socket) => {
               timestamp: new Date().toISOString()
             });
             
-            console.log(`👢 User ${targetUsername} kicked from room ${roomId} by ${username}`);
+            logger.info(`👢 User ${targetUsername} kicked from room ${roomId} by ${username}`);
           } catch (error) {
             console.error('Error processing /kick:', error);
             socket.emit('system:message', {
@@ -2418,7 +2419,7 @@ module.exports = (io, socket) => {
         }
       }
 
-      console.log('📤 Sending message with color:', username, usernameColor);
+      logger.info('📤 Sending message with color:', username, usernameColor);
       io.to(`room:${roomId}`).emit('chat:message', messageData);
       
       // Send ACK to sender for message confirmation
@@ -2503,7 +2504,7 @@ module.exports = (io, socket) => {
           messages: backlog,
           isBacklog: true
         });
-        console.log(`📨 Synced ${backlog.length} messages for room ${roomId}`);
+        logger.info(`📨 Synced ${backlog.length} messages for room ${roomId}`);
       }
     } catch (error) {
       console.error('Error syncing backlog:', error);

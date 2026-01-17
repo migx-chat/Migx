@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const creditService = require('../services/creditService');
 const messageService = require('../services/messageService');
 const userService = require('../services/userService');
@@ -74,7 +75,7 @@ module.exports = (io, socket) => {
           return;
         }
         lockAcquired = true;
-        console.log(`[TRANSFER] 🔐 Lock acquired for user ${fromUserId}`);
+        logger.info(`[TRANSFER] 🔐 Lock acquired for user ${fromUserId}`);
       }
 
       let recipientUsername = toUsername;
@@ -88,11 +89,11 @@ module.exports = (io, socket) => {
         recipientUsername = recipient.username;
       }
 
-      console.log(`[TRANSFER] 🔄 Processing: ${fromUserId} → ${toUserId} (${numAmount} credits)`);
+      logger.info(`[TRANSFER] 🔄 Processing: ${fromUserId} → ${toUserId} (${numAmount} credits)`);
 
       // 🆔 STEP 5: Generate request_id for idempotency
       const requestId = crypto.randomBytes(16).toString('hex');
-      console.log(`[TRANSFER] 🆔 Generated request_id: ${requestId}`);
+      logger.info(`[TRANSFER] 🆔 Generated request_id: ${requestId}`);
 
       // 💳 STEP 3: Execute database transaction with request_id for idempotency
       const result = await creditService.transferCredits(
@@ -110,7 +111,7 @@ module.exports = (io, socket) => {
         return;
       }
 
-      console.log(`[TRANSFER] ✅ Success: ${fromUserId} → ${toUserId} (${numAmount} credits)`);
+      logger.info(`[TRANSFER] ✅ Success: ${fromUserId} → ${toUserId} (${numAmount} credits)`);
 
       await addXp(fromUserId, XP_REWARDS.TRANSFER_CREDIT, 'transfer_credit', io);
 
@@ -123,9 +124,9 @@ module.exports = (io, socket) => {
         const trackResult = await merchantService.recordMentorTransfer(fromUserId, toUserId, numAmount);
         if (trackResult.success) {
           if (trackResult.renewed) {
-            console.log(`[MERCHANT] ✅ Subscription renewed for ${toUserData.username} until ${trackResult.newExpiredAt}`);
+            logger.info(`[MERCHANT] ✅ Subscription renewed for ${toUserData.username} until ${trackResult.newExpiredAt}`);
           } else {
-            console.log(`[MERCHANT] 📊 Transfer tracked for ${toUserData.username}: ${trackResult.monthlyTotal}/${merchantService.MONTHLY_MINIMUM_TRANSFER} (${trackResult.remaining} remaining)`);
+            logger.info(`[MERCHANT] 📊 Transfer tracked for ${toUserData.username}: ${trackResult.monthlyTotal}/${merchantService.MONTHLY_MINIMUM_TRANSFER} (${trackResult.remaining} remaining)`);
           }
         }
       }
@@ -195,7 +196,7 @@ module.exports = (io, socket) => {
         const redis = getRedisClient();
         if (redis) {
           await redis.del(lockKey);
-          console.log(`[TRANSFER] 🔓 Lock released for user ${data.fromUserId}`);
+          logger.info(`[TRANSFER] 🔓 Lock released for user ${data.fromUserId}`);
         }
       }
     }

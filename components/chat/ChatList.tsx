@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { ScrollView, StyleSheet, View, Text, ActivityIndicator } from 'react-native';
@@ -41,7 +42,7 @@ export function ChatList() {
   // This ensures PM updates work even without entering a room first
   useEffect(() => {
     if (username && !socket) {
-      console.log('📡 ChatList: Initializing socket for user:', username);
+      devLog('📡 ChatList: Initializing socket for user:', username);
       const newSocket = createSocket();
       const setSocket = useRoomTabsStore.getState().setSocket;
       setSocket(newSocket);
@@ -153,7 +154,7 @@ export function ChatList() {
       if (userDataStr) {
         const userData = JSON.parse(userDataStr);
         if (userData.username) {
-          console.log(`📝 Loaded username from user_data: ${userData.username}`);
+          devLog(`📝 Loaded username from user_data: ${userData.username}`);
           setUsername(userData.username);
           return;
         }
@@ -162,7 +163,7 @@ export function ChatList() {
       // Fallback: try direct username key
       const storedUsername = await AsyncStorage.getItem('username');
       if (storedUsername) {
-        console.log(`📝 Loaded username from storage: ${storedUsername}`);
+        devLog(`📝 Loaded username from storage: ${storedUsername}`);
         setUsername(storedUsername);
       }
     } catch (error) {
@@ -173,7 +174,7 @@ export function ChatList() {
   const loadRooms = async () => {
     try {
       setLoading(true);
-      console.log(`🔄 Loading rooms for user: ${username} from ${API_BASE_URL}/api/chat/list/${username}`);
+      devLog(`🔄 Loading rooms for user: ${username} from ${API_BASE_URL}/api/chat/list/${username}`);
       
       const response = await fetch(`${API_BASE_URL}/api/chat/list/${username}`);
       
@@ -183,7 +184,7 @@ export function ChatList() {
       }
       
       const data = await response.json();
-      console.log('📨 Chat list response:', data);
+      devLog('📨 Chat list response:', data);
       
       if (data.success) {
         const formattedData: ChatData[] = [];
@@ -294,7 +295,7 @@ export function ChatList() {
           }
         });
         
-        console.log(`✅ Loaded ${formattedData.length} chats`);
+        devLog(`✅ Loaded ${formattedData.length} chats`);
         setChatData(formattedData);
       } else {
         console.error('❌ Response success is false:', data);
@@ -309,7 +310,7 @@ export function ChatList() {
   };
 
   const handleChatListUpdate = useCallback((data: any) => {
-    console.log('💬 Chat list update received:', data);
+    devLog('💬 Chat list update received:', data);
     
     // Immediately add/update PM in chat list for instant feedback
     if (data.type === 'dm' && data.username) {
@@ -348,13 +349,13 @@ export function ChatList() {
   }, [debouncedLoadRooms]);
 
   const handleRoomJoined = useCallback((data: any) => {
-    console.log('➕ Room joined event:', data);
+    devLog('➕ Room joined event:', data);
     // Use debounced reload to prevent spam
     debouncedLoadRooms();
   }, [debouncedLoadRooms]);
 
   const handleRoomLeft = useCallback((data: any) => {
-    console.log('➖ Room left event:', data);
+    devLog('➖ Room left event:', data);
     // Immediately remove the room from chat list (don't wait for reload)
     setChatData((prevData) => 
       prevData.filter((chat) => chat.roomId !== `${data.roomId}`)
@@ -364,7 +365,7 @@ export function ChatList() {
 
   // Handle user enter/leave room
   const handleUserActivity = useCallback((data: any) => {
-    console.log('👤 User activity:', data.eventType, data.username, 'in', data.roomId);
+    devLog('👤 User activity:', data.eventType, data.username, 'in', data.roomId);
     const activityMessage = data.eventType === 'joined' 
       ? `${data.username} entered` 
       : `${data.username} left`;
@@ -380,7 +381,7 @@ export function ChatList() {
 
   // Handle new message in room
   const handleNewMessage = useCallback((data: any) => {
-    console.log('💬 New message in room:', data.roomId, 'from', data.username);
+    devLog('💬 New message in room:', data.roomId, 'from', data.username);
     if (data.roomId && data.username && data.message) {
       setChatData((prevData) =>
         prevData.map((chat) =>
@@ -394,7 +395,7 @@ export function ChatList() {
 
   // Handle private message updates
   const handlePrivateMessageUpdate = useCallback((data: any) => {
-    console.log('📩 PM update received:', data);
+    devLog('📩 PM update received:', data);
     
     // Convert userId to string for consistent comparison
     const senderId = String(data.fromUserId);
@@ -436,7 +437,7 @@ export function ChatList() {
         }, ...updated];
       } else {
         // Add new PM entry at top with unread indicator
-        console.log('📩 Adding new PM entry for:', senderName);
+        devLog('📩 Adding new PM entry for:', senderName);
         return [{
           type: 'pm' as const,
           name: senderName,

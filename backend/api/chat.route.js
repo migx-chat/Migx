@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const express = require('express');
 const router = express.Router();
 const { getRedisClient } = require('../redis');
@@ -110,7 +111,7 @@ router.get('/list/:username', async (req, res) => {
     try {
       // Get all DM conversations from user:dm:${username} set
       const dmDataSet = await redis.sMembers(`user:dm:${username}`);
-      console.log(`📩 DM set for ${username}:`, dmDataSet);
+      logger.info(`📩 DM set for ${username}:`, dmDataSet);
       
       for (const dmData of dmDataSet) {
         try {
@@ -173,7 +174,7 @@ router.get('/list/:username', async (req, res) => {
     }
     const dms = Array.from(dmsMap.values());
 
-    console.log(`✅ Returning ${validRooms.length} rooms and ${dms.length} DMs for ${username} from REDIS`);
+    logger.info(`✅ Returning ${validRooms.length} rooms and ${dms.length} DMs for ${username} from REDIS`);
 
     res.json({
       success: true,

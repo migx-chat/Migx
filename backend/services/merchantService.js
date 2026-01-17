@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const { query, getClient } = require('../db/db');
 const { client, getRedisClient } = require('../redis');
 const { calculateCommission, calculateTaggedUserWinCommission, addMerchantIncome, getMerchantIncome, getMerchantStats, getMerchantTag } = require('../utils/merchantTags');
@@ -230,7 +231,7 @@ const recordTaggedUserWin = async (merchantId, userId, username, gameType, winAm
     
     await dbClient.query('COMMIT');
     
-    console.log(`💰 Merchant ${merchantId} earned ${commissionAmount} (10% of ${winAmount}) from tagged user ${username} win`);
+    logger.info(`💰 Merchant ${merchantId} earned ${commissionAmount} (10% of ${winAmount}) from tagged user ${username} win`);
     
     return {
       success: true,
@@ -592,7 +593,7 @@ const checkAndExpireMerchants = async () => {
           required: MONTHLY_MINIMUM_TRANSFER
         });
         
-        console.log(`[MERCHANT EXPIRED] ${merchant.username} (ID: ${merchant.user_id}) - Monthly transfers: ${monthlyTotal}/${MONTHLY_MINIMUM_TRANSFER}`);
+        logger.info(`[MERCHANT EXPIRED] ${merchant.username} (ID: ${merchant.user_id}) - Monthly transfers: ${monthlyTotal}/${MONTHLY_MINIMUM_TRANSFER}`);
       }
     }
     

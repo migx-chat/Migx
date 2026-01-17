@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import { create } from 'zustand';
 import { Socket } from 'socket.io-client';
 
@@ -140,9 +141,9 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
   closeRoom: (roomId: string) => {
     const state = get();
 
-    console.log('🚪 [closeRoom] START - Closing room:', roomId);
-    console.log('🚪 [closeRoom] Before - openRoomIds:', state.openRoomIds);
-    console.log('🚪 [closeRoom] Before - activeIndex:', state.activeIndex);
+    devLog('🚪 [closeRoom] START - Closing room:', roomId);
+    devLog('🚪 [closeRoom] Before - openRoomIds:', state.openRoomIds);
+    devLog('🚪 [closeRoom] Before - activeIndex:', state.activeIndex);
 
     if (!state.openRoomIds.includes(roomId)) {
       console.warn('🚪 [closeRoom] Room not found in openRoomIds, skipping:', roomId);
@@ -191,10 +192,10 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
     const newSystemMessageInjected = new Set(state.systemMessageInjected);
     newSystemMessageInjected.delete(roomId);
 
-    console.log('🚪 [closeRoom] Closing tab at index:', closingIndex);
-    console.log('🚪 [closeRoom] After - newOpenRoomIds:', newOpenRoomIds);
-    console.log('🚪 [closeRoom] After - newActiveIndex:', newActiveIndex);
-    console.log('🚪 [closeRoom] Remaining tabs:', newOpenRoomIds.length);
+    devLog('🚪 [closeRoom] Closing tab at index:', closingIndex);
+    devLog('🚪 [closeRoom] After - newOpenRoomIds:', newOpenRoomIds);
+    devLog('🚪 [closeRoom] After - newActiveIndex:', newActiveIndex);
+    devLog('🚪 [closeRoom] Remaining tabs:', newOpenRoomIds.length);
 
     set({
       openRoomsById: newOpenRoomsById,
@@ -207,7 +208,7 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
       systemMessageInjected: newSystemMessageInjected,
     });
 
-    console.log('🚪 [closeRoom] DONE - State updated');
+    devLog('🚪 [closeRoom] DONE - State updated');
   },
 
   setActiveIndex: (index: number) => {
@@ -218,7 +219,7 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
     const roomId = state.openRoomIds[index];
     const room = state.openRoomsById[roomId];
 
-    console.log("ACTIVE ROOM CHANGED", roomId);
+    devLog("ACTIVE ROOM CHANGED", roomId);
 
     if (room && room.unread > 0) {
       set({
@@ -292,7 +293,7 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
     // To allow it to be recreated, we would need to distinguish between "cleared" and "closed"
     // For now, let's stick to the requirement: Closed private chats are not recreated automatically
     if (state.privateMessages[userId] === undefined) {
-      console.log('🔇 [addPrivateMessage] Chat is closed for user:', userId, '- skipping message');
+      devLog('🔇 [addPrivateMessage] Chat is closed for user:', userId, '- skipping message');
       return;
     }
 
@@ -342,7 +343,7 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
         ...state.openRoomsById,
         [conversationId]: newRoom,
       };
-      console.log('🔓 Created PM tab:', conversationId, 'for:', displayName, '(no focus switch)');
+      devLog('🔓 Created PM tab:', conversationId, 'for:', displayName, '(no focus switch)');
     } else if (!isActiveRoom && !processedMessage.isOwnMessage) {
       // Tab exists but not active - increment unread count
       const room = state.openRoomsById[conversationId];
@@ -371,7 +372,7 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
 
     if (newHistoryMessages.length === 0) return;
 
-    console.log(`📜 Prepending ${newHistoryMessages.length} history messages to room ${roomId}`);
+    devLog(`📜 Prepending ${newHistoryMessages.length} history messages to room ${roomId}`);
 
     // Prepend history messages (they come from DB in chronological order)
     set({
@@ -490,7 +491,7 @@ export const useRoomTabsStore = create<RoomTabsStore>((set, get) => ({
     const state = get();
     if (state.systemMessageInjected.has(roomId)) return;
 
-    console.log("SYSTEM MESSAGE INJECTED", roomId);
+    devLog("SYSTEM MESSAGE INJECTED", roomId);
 
     const timestamp = new Date().toISOString();
     const userList = users.length > 0 ? users.join(', ') : 'No users online';

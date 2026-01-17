@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -208,7 +209,7 @@ export default function FeedScreen() {
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
       setSelectedVideo(null);
-      console.log('✅ Image selected (no crop):', result.assets[0].uri);
+      devLog('✅ Image selected (no crop):', result.assets[0].uri);
     }
   };
 

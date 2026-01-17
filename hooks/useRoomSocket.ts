@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { useRoomTabsStore, Message } from '@/stores/useRoomTabsStore';
@@ -26,7 +27,7 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
   const handleSystemMessage = useCallback((data: { roomId: string; message: string; type: string }) => {
     if (data.roomId !== roomIdRef.current) return;
     
-    console.log("MESSAGE RECEIVE", data.roomId, data.message);
+    devLog("MESSAGE RECEIVE", data.roomId, data.message);
     
     const isError = data.type === 'warning' || data.type === 'error';
     
@@ -47,7 +48,7 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
     // This ensures message appears even if optimistic update failed (e.g., after long background)
     const isOwnMessage = data.username === currentUsername;
     
-    console.log("MESSAGE RECEIVE", targetRoomId, data.message, "own:", isOwnMessage);
+    devLog("MESSAGE RECEIVE", targetRoomId, data.message, "own:", isOwnMessage);
     
     const cmdTypes = ['cmd', 'cmdMe', 'cmdRoll', 'cmdGift', 'cmdGoal', 'cmdGo'];
     const isCommandMessage = cmdTypes.includes(data.messageType) || cmdTypes.includes(data.type);
@@ -111,7 +112,7 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
   const handleChatMessages = useCallback((data: { roomId: string; messages: any[]; hasMore: boolean }) => {
     if (data.roomId !== roomIdRef.current) return;
     
-    console.log(`📜 [Room ${data.roomId}] Received ${data.messages.length} history messages`);
+    devLog(`📜 [Room ${data.roomId}] Received ${data.messages.length} history messages`);
     
     // Convert database messages to Message format
     // Use client_msg_id for deduplication (matches real-time message IDs)
@@ -168,11 +169,11 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
     // Skip room socket logic for PM tabs - they don't need room:join
     const isPmTab = roomId.startsWith('private:') || roomId.startsWith('pm_');
     if (isPmTab) {
-      console.log(`📩 [PM ${roomId}] Skipping room socket setup for PM tab`);
+      devLog(`📩 [PM ${roomId}] Skipping room socket setup for PM tab`);
       return;
     }
 
-    console.log(`🔌 [Room ${roomId}] Registering socket listeners`);
+    devLog(`🔌 [Room ${roomId}] Registering socket listeners`);
 
     const boundHandleSystemMessage = handleSystemMessage;
     const boundHandleChatMessage = handleChatMessage;
@@ -199,7 +200,7 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
     socket.on('room:force-leave', handleForceLeave);
 
     if (!isRoomJoined(roomId)) {
-      console.log(`📤 [Room ${roomId}] Joining room`);
+      devLog(`📤 [Room ${roomId}] Joining room`);
       // Get user role and invisible mode from AsyncStorage
       (async () => {
         try {
@@ -244,7 +245,7 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
           userId: currentUserId,
           timestamp: Date.now()
         });
-        console.log(`💓 [Room ${roomId}] Heartbeat sent`);
+        devLog(`💓 [Room ${roomId}] Heartbeat sent`);
       }
     }, 28000); // 28 seconds
 
@@ -253,18 +254,18 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
     const appStateSubscription = AppState.addEventListener('change', async (nextAppState: AppStateStatus) => {
       if (nextAppState === 'background' || nextAppState === 'inactive') {
         lastBackgroundTime = Date.now();
-        console.log(`📱 [Room ${roomId}] App went to background`);
+        devLog(`📱 [Room ${roomId}] App went to background`);
       } else if (nextAppState === 'active') {
         const backgroundDuration = Date.now() - lastBackgroundTime;
-        console.log(`📱 [Room ${roomId}] App resumed after ${Math.round(backgroundDuration / 1000)}s`);
+        devLog(`📱 [Room ${roomId}] App resumed after ${Math.round(backgroundDuration / 1000)}s`);
         
         // If app was in background for more than 30 seconds, do silent reconnect
         if (backgroundDuration > 30000 && socket) {
-          console.log(`🔄 [Room ${roomId}] Performing silent reconnect...`);
+          devLog(`🔄 [Room ${roomId}] Performing silent reconnect...`);
           
           // Check if socket is still connected
           if (!socket.connected) {
-            console.log(`🔌 [Room ${roomId}] Socket disconnected, reconnecting...`);
+            devLog(`🔌 [Room ${roomId}] Socket disconnected, reconnecting...`);
             socket.connect();
           }
           
@@ -284,7 +285,7 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
               role: userRole,
               silent: true  // Silent mode - no "has entered" broadcast
             });
-            console.log(`✅ [Room ${roomId}] Silent reconnect emitted`);
+            devLog(`✅ [Room ${roomId}] Silent reconnect emitted`);
           } catch (err) {
             socket.emit('join_room', { 
               roomId, 
@@ -303,7 +304,7 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
     });
 
     return () => {
-      console.log(`🔌 [Room ${roomId}] Cleaning up socket listeners`);
+      devLog(`🔌 [Room ${roomId}] Cleaning up socket listeners`);
       
       clearInterval(heartbeatInterval);
       appStateSubscription.remove();
@@ -334,12 +335,12 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
     addMessage(roomId, optimisticMessage);
     
     if (!socket.connected) {
-      console.log('⚠️ Socket disconnected, reconnecting and queueing message...');
+      devLog('⚠️ Socket disconnected, reconnecting and queueing message...');
       socket.connect();
       
       setTimeout(() => {
         if (socket.connected) {
-          console.log('✅ Reconnected, sending queued message');
+          devLog('✅ Reconnected, sending queued message');
           socket.emit('chat:message', {
             roomId,
             userId: currentUserId,
@@ -354,7 +355,7 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
       return;
     }
     
-    console.log("MESSAGE SEND", roomId, trimmedMessage, "id:", clientMsgId);
+    devLog("MESSAGE SEND", roomId, trimmedMessage, "id:", clientMsgId);
     
     socket.emit('chat:message', {
       roomId,
@@ -368,7 +369,7 @@ export function useRoomSocket({ roomId, onRoomJoined, onUsersUpdated }: UseRoomS
   const leaveRoom = useCallback(() => {
     if (!socket) return;
     
-    console.log(`🚪 [Room ${roomId}] Leaving room`);
+    devLog(`🚪 [Room ${roomId}] Leaving room`);
     socket.emit('leave_room', { 
       roomId, 
       username: currentUsername, 

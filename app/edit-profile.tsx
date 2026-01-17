@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Modal, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
@@ -31,7 +32,7 @@ export default function EditProfileScreen() {
       if (bgImage) {
         setBackgroundImage(bgImage);
       }
-      console.log('✅ User data loaded:', {
+      devLog('✅ User data loaded:', {
         id: userData.id,
         username: userData.username,
         avatar: userData.avatar,
@@ -86,7 +87,7 @@ export default function EditProfileScreen() {
       const deviceId = await AsyncStorage.getItem('device_id');
       
       if (!token) {
-        console.log('❌ No token found');
+        devLog('❌ No token found');
         Alert.alert('Error', 'Authentication token missing. Please login again.');
         return;
       }
@@ -99,7 +100,7 @@ export default function EditProfileScreen() {
       }
       const userData = JSON.parse(userDataStr);
 
-      console.log('🔑 Token retrieved:', `${token.substring(0, 20)}...`);
+      devLog('🔑 Token retrieved:', `${token.substring(0, 20)}...`);
 
       // Create form data
       const formData = new FormData();
@@ -111,9 +112,9 @@ export default function EditProfileScreen() {
         type: 'image/jpeg',
       } as any);
 
-      console.log('📤 Uploading background...');
-      console.log('📦 Endpoint:', API_ENDPOINTS.PROFILE.BACKGROUND_UPLOAD);
-      console.log('📦 User ID:', userData.id);
+      devLog('📤 Uploading background...');
+      devLog('📦 Endpoint:', API_ENDPOINTS.PROFILE.BACKGROUND_UPLOAD);
+      devLog('📦 User ID:', userData.id);
 
       // Upload with Authorization header
       const response = await fetch(API_ENDPOINTS.PROFILE.BACKGROUND_UPLOAD, {
@@ -125,18 +126,18 @@ export default function EditProfileScreen() {
         body: formData,
       });
 
-      console.log('📡 Response status:', response.status);
+      devLog('📡 Response status:', response.status);
       
       const data = await response.json();
-      console.log('📥 Upload response:', JSON.stringify(data, null, 2));
+      devLog('📥 Upload response:', JSON.stringify(data, null, 2));
 
       if (response.ok && data.success) {
-        console.log('✅ Background uploaded successfully!');
+        devLog('✅ Background uploaded successfully!');
         Alert.alert('Success', 'Background updated successfully');
         
         // Get the new background URL
         const newBackgroundUrl = data.backgroundUrl || data.user?.background_image || data.background;
-        console.log('🖼️ New background URL:', newBackgroundUrl);
+        devLog('🖼️ New background URL:', newBackgroundUrl);
         
         // Update user data with new background - keep token intact
         const updatedUser = {
@@ -151,9 +152,9 @@ export default function EditProfileScreen() {
         // Update stored user data in AsyncStorage - preserve token
         await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser));
         
-        console.log('✅ User data updated in storage with background');
+        devLog('✅ User data updated in storage with background');
       } else {
-        console.log('❌ Upload failed:', data.error || data.message);
+        devLog('❌ Upload failed:', data.error || data.message);
         Alert.alert('Error', data.error || data.message || 'Failed to upload background');
       }
     } catch (error) {
@@ -200,7 +201,7 @@ export default function EditProfileScreen() {
       const deviceId = await AsyncStorage.getItem('device_id');
       
       if (!token) {
-        console.log('❌ No token found');
+        devLog('❌ No token found');
         Alert.alert('Error', 'Authentication token missing. Please login again.');
         return;
       }
@@ -213,7 +214,7 @@ export default function EditProfileScreen() {
       }
       const userData = JSON.parse(userDataStr);
 
-      console.log('🔑 Token retrieved:', `${token.substring(0, 20)}...`);
+      devLog('🔑 Token retrieved:', `${token.substring(0, 20)}...`);
 
       // Create form data
       const formData = new FormData();
@@ -229,10 +230,10 @@ export default function EditProfileScreen() {
         type: 'image/jpeg',
       } as any);
 
-      console.log('📤 Uploading avatar...');
-      console.log('📦 Endpoint:', API_ENDPOINTS.PROFILE.AVATAR_UPLOAD);
-      console.log('📦 User ID:', userData.id);
-      console.log('📦 Token:', `Bearer ${token.substring(0, 20)}...`);
+      devLog('📤 Uploading avatar...');
+      devLog('📦 Endpoint:', API_ENDPOINTS.PROFILE.AVATAR_UPLOAD);
+      devLog('📦 User ID:', userData.id);
+      devLog('📦 Token:', `Bearer ${token.substring(0, 20)}...`);
 
       // Upload with Authorization header - don't set Content-Type manually
       const response = await fetch(API_ENDPOINTS.PROFILE.AVATAR_UPLOAD, {
@@ -244,18 +245,18 @@ export default function EditProfileScreen() {
         body: formData,
       });
 
-      console.log('📡 Response status:', response.status);
+      devLog('📡 Response status:', response.status);
       
       const data = await response.json();
-      console.log('📥 Upload response:', JSON.stringify(data, null, 2));
+      devLog('📥 Upload response:', JSON.stringify(data, null, 2));
 
       if (response.ok && data.success) {
-        console.log('✅ Avatar uploaded successfully!');
+        devLog('✅ Avatar uploaded successfully!');
         Alert.alert('Success', 'Avatar uploaded successfully');
         
         // Get the new avatar URL
         const newAvatarUrl = data.avatarUrl || data.user?.avatar || data.avatar;
-        console.log('🖼️ New avatar URL:', newAvatarUrl);
+        devLog('🖼️ New avatar URL:', newAvatarUrl);
         
         // Update user data with new avatar - keep token intact
         const updatedUser = {
@@ -270,12 +271,12 @@ export default function EditProfileScreen() {
         await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser));
         await storeUser(updatedUser);
         
-        console.log('✅ User data updated in storage with token preserved');
+        devLog('✅ User data updated in storage with token preserved');
         
         // Force reload user data
         await loadUserData();
       } else {
-        console.log('❌ Upload failed:', data.error || data.message);
+        devLog('❌ Upload failed:', data.error || data.message);
         Alert.alert('Error', data.error || data.message || 'Failed to upload avatar');
       }
     } catch (error) {
@@ -287,31 +288,31 @@ export default function EditProfileScreen() {
   };
 
   const handlePostPress = () => {
-    console.log('View posts');
+    devLog('View posts');
   };
 
   const handleGiftPress = () => {
-    console.log('View gifts');
+    devLog('View gifts');
   };
 
   const handleFollowersPress = () => {
-    console.log('View followers');
+    devLog('View followers');
   };
 
   const handleFollowingPress = () => {
-    console.log('View following');
+    devLog('View following');
   };
 
   const handleFollowPress = () => {
-    console.log('Follow user');
+    devLog('Follow user');
   };
 
   const handleChatPress = () => {
-    console.log('Open chat');
+    devLog('Open chat');
   };
 
   const handleFootprintPress = () => {
-    console.log('View footprint');
+    devLog('View footprint');
   };
 
   return (

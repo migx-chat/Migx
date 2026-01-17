@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const { getRedisClient } = require('../redis');
 const { query } = require('../db/db');
 
@@ -285,7 +286,7 @@ const saveGameHistory = async (roomId, game, winners, losers) => {
       );
     }
     
-    console.log(`📊 Legend game history saved: Round #${roundId}`);
+    logger.info(`📊 Legend game history saved: Round #${roundId}`);
     return roundId;
   } catch (error) {
     console.error('Error saving legend game history:', error);

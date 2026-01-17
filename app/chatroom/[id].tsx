@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
@@ -143,7 +144,7 @@ export default function ChatRoomScreen() {
           }
         };
         
-        console.log('✅ Private chat sound loaded successfully');
+        devLog('✅ Private chat sound loaded successfully');
       } catch (e) {
         console.error('Error loading private chat sound:', e);
         // Create a no-op function to prevent errors when sound fails to load
@@ -171,7 +172,7 @@ export default function ChatRoomScreen() {
     if (roomId && openRooms.length > 0 && roomId !== lastSyncedRouteId.current) {
       const roomExists = openRooms.some(r => r.roomId === roomId);
       if (roomExists) {
-        console.log(`🔄 [ChatRoom] Syncing activeRoom to route: ${roomId}`);
+        devLog(`🔄 [ChatRoom] Syncing activeRoom to route: ${roomId}`);
         setActiveRoomById(roomId);
         lastSyncedRouteId.current = roomId;
       }
@@ -189,7 +190,7 @@ export default function ChatRoomScreen() {
       // First check if store already has valid user info - don't overwrite
       const storeState = useRoomTabsStore.getState();
       if (storeState.currentUsername && storeState.currentUsername !== 'guest' && storeState.currentUserId && storeState.currentUserId !== 'guest-id') {
-        console.log('📱 [Chatroom] Using existing userInfo from store:', storeState.currentUsername);
+        devLog('📱 [Chatroom] Using existing userInfo from store:', storeState.currentUsername);
         return; // Already have valid user info, don't overwrite
       }
       
@@ -198,7 +199,7 @@ export default function ChatRoomScreen() {
         if (userDataStr) {
           const userData = JSON.parse(userDataStr);
           if (userData.username && userData.id) {
-            console.log('📱 [Chatroom] Loaded user_data for userInfo:', userData.username);
+            devLog('📱 [Chatroom] Loaded user_data for userInfo:', userData.username);
             setUserInfo(userData.username, userData.id?.toString());
             if (userData.role) {
               setUserRole(userData.role);
@@ -230,7 +231,7 @@ export default function ChatRoomScreen() {
     
     // If socket exists with matching username and is connected, reuse it
     if (currentSocket?.connected && lastSocketUsername === currentUsername) {
-      console.log('🔌 [Chatroom] Reusing existing socket for:', currentUsername);
+      devLog('🔌 [Chatroom] Reusing existing socket for:', currentUsername);
       socketInitialized.current = true;
       setIsConnected(true);
       (window as any).__GLOBAL_SOCKET__ = currentSocket;
@@ -239,13 +240,13 @@ export default function ChatRoomScreen() {
     
     // If another instance is already initializing socket, skip
     if (globalSocketInitializing && lastSocketUsername === currentUsername) {
-      console.log('🔌 [Chatroom] Socket already initializing for:', currentUsername);
+      devLog('🔌 [Chatroom] Socket already initializing for:', currentUsername);
       return;
     }
     
     // If socket exists but username doesn't match, disconnect and recreate
     if (currentSocket && lastSocketUsername !== currentUsername) {
-      console.log('🔌 [Chatroom] Socket username mismatch, disconnecting old socket');
+      devLog('🔌 [Chatroom] Socket username mismatch, disconnecting old socket');
       currentSocket.disconnect();
       setSocket(null);
       socketInitialized.current = false;
@@ -254,7 +255,7 @@ export default function ChatRoomScreen() {
     }
 
     if (!socketInitialized.current && !globalSocketInitializing) {
-      console.log('🔌 [Chatroom] Initializing fresh socket for:', currentUsername);
+      devLog('🔌 [Chatroom] Initializing fresh socket for:', currentUsername);
       socketInitialized.current = true;
       globalSocketInitializing = true;
       lastSocketUsername = currentUsername;
@@ -277,21 +278,21 @@ export default function ChatRoomScreen() {
       newSocket.on('connect', () => {
         globalSocketInitializing = false;
         setIsConnected(true);
-        console.log('✅ Socket connected! ID:', newSocket.id);
+        devLog('✅ Socket connected! ID:', newSocket.id);
       });
 
       newSocket.on('disconnect', (reason) => {
         setIsConnected(false);
-        console.log('🔌 Socket disconnected:', reason);
+        devLog('🔌 Socket disconnected:', reason);
         
         if (reason === 'io server disconnect' || reason === 'transport close') {
-          console.log('🔄 Server disconnected, will attempt reconnect...');
+          devLog('🔄 Server disconnected, will attempt reconnect...');
         }
       });
 
       newSocket.on('reconnect', (attemptNumber) => {
         setIsConnected(true);
-        console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
+        devLog('🔄 Socket reconnected after', attemptNumber, 'attempts');
         
         const openRoomIds = useRoomTabsStore.getState().openRoomIds;
         // Get invisible mode for reconnect
@@ -303,7 +304,7 @@ export default function ChatRoomScreen() {
             
             openRoomIds.forEach((rid) => {
               if (!rid.startsWith('private:') && !rid.startsWith('pm_')) {
-                console.log('🔄 Rejoining room after reconnect:', rid);
+                devLog('🔄 Rejoining room after reconnect:', rid);
                 newSocket.emit('join_room', {
                   roomId: rid,
                   userId: currentUserId,
@@ -319,15 +320,15 @@ export default function ChatRoomScreen() {
       });
 
       newSocket.on('reconnect_attempt', (attemptNumber) => {
-        console.log('🔄 Reconnect attempt #', attemptNumber);
+        devLog('🔄 Reconnect attempt #', attemptNumber);
       });
 
       newSocket.on('reconnect_error', (error) => {
-        console.log('❌ Reconnect error:', error.message);
+        devLog('❌ Reconnect error:', error.message);
       });
 
       newSocket.on('pong', () => {
-        console.log('💓 Heartbeat pong received');
+        devLog('💓 Heartbeat pong received');
       });
 
       newSocket.on('vote-started', (data: { target: string; remainingVotes: number; remainingSeconds: number }) => {
@@ -354,7 +355,7 @@ export default function ChatRoomScreen() {
       
       // Handle user:kicked event - force user to leave room
       newSocket.on('user:kicked', (data: { roomId: string; kickedUserId: number; kickedUsername: string; kickedBy: string; message: string }) => {
-        console.log('👢 User kicked event received:', data);
+        devLog('👢 User kicked event received:', data);
         if (data.kickedUsername === currentUsername) {
           Alert.alert('Kicked', data.message || 'You have been kicked from the room', [
             { text: 'OK', onPress: () => {
@@ -368,14 +369,14 @@ export default function ChatRoomScreen() {
       });
 
       newSocket.on('room:participants:update', (data: { roomId: string; participants: string[] }) => {
-        console.log('🔄 Participants update received:', data);
+        devLog('🔄 Participants update received:', data);
         if (data.roomId === currentActiveRoomId) {
           setRoomUsers(data.participants);
         }
       });
       
       newSocket.on('room:currently:update', (data: { roomId: string; roomName: string; participants: string }) => {
-        console.log('🔄 Currently users update received:', data);
+        devLog('🔄 Currently users update received:', data);
         const { openRoomIds, messagesByRoom } = useRoomTabsStore.getState();
         
         // Only update if this room is open
@@ -404,7 +405,7 @@ export default function ChatRoomScreen() {
 
       // 🔑 GLOBAL PM LISTENER - Auto-open tab and show unread indicator
       newSocket.on('pm:receive', (data: any) => {
-        console.log('📩 [PM-RECEIVE] Message from:', data.fromUsername, '| Type:', data.messageType, '| Role:', data.fromRole);
+        devLog('📩 [PM-RECEIVE] Message from:', data.fromUsername, '| Type:', data.messageType, '| Role:', data.fromRole);
         
         const senderUsername = data.fromUsername;
         const senderId = data.fromUserId;
@@ -425,7 +426,7 @@ export default function ChatRoomScreen() {
         
         // Auto-open PM tab if not already open
         if (!tabExists) {
-          console.log('📩 [PM] Auto-opening new PM tab for:', senderUsername, 'id:', conversationId);
+          devLog('📩 [PM] Auto-opening new PM tab for:', senderUsername, 'id:', conversationId);
           openRoom(conversationId, senderUsername);
         }
         
@@ -460,12 +461,12 @@ export default function ChatRoomScreen() {
           playPrivateSound();
         }
         
-        console.log('📩 [PM] Stored message from:', senderUsername, 'id:', senderId, 'tab:', conversationId);
+        devLog('📩 [PM] Stored message from:', senderUsername, 'id:', senderId, 'tab:', conversationId);
       });
 
       // 🔑 PM SENT ECHO - For sender's other tabs
       newSocket.on('pm:sent', (data: any) => {
-        console.log('📩 [PM-SENT] Echo for sent message to:', data.toUsername);
+        devLog('📩 [PM-SENT] Echo for sent message to:', data.toUsername);
         
         const { addPrivateMessage, currentUsername } = useRoomTabsStore.getState();
         
@@ -490,12 +491,12 @@ export default function ChatRoomScreen() {
         // Add to PM storage - does NOT auto-open new tabs
         addPrivateMessage(data.toUserId, pmMessage);
         
-        console.log('📩 [PM] Synced sent PM to:', data.toUsername, 'id:', data.toUserId);
+        devLog('📩 [PM] Synced sent PM to:', data.toUsername, 'id:', data.toUserId);
       });
 
       // 🔑 PM ERROR HANDLER - Show error when recipient is busy/away
       newSocket.on('pm:error', (data: any) => {
-        console.log('📩 [PM-ERROR] Error sending PM:', data.message, 'to:', data.toUsername);
+        devLog('📩 [PM-ERROR] Error sending PM:', data.message, 'to:', data.toUsername);
         
         const { addPrivateMessage } = useRoomTabsStore.getState();
         const targetUserId = data.toUserId;
@@ -523,7 +524,7 @@ export default function ChatRoomScreen() {
         if (serverRestartHandled) return;
         serverRestartHandled = true;
         
-        console.log('🔴 [SERVER RESTART] Received notification:', data.message);
+        devLog('🔴 [SERVER RESTART] Received notification:', data.message);
         
         // Disable auto-reconnect to prevent reconnecting after server restart
         newSocket.io.opts.reconnection = false;
@@ -584,7 +585,7 @@ export default function ChatRoomScreen() {
     const existingRoom = openRooms.find(r => r.roomId === roomId);
     if (!existingRoom) {
       roomInitialized.current = true;
-      console.log(`📩 [ChatRoom] Opening new tab for: ${roomId} (${roomName})`);
+      devLog(`📩 [ChatRoom] Opening new tab for: ${roomId} (${roomName})`);
       openRoom(roomId, roomName);
     } else if (activeRoomId !== roomId) {
       roomInitialized.current = true;
@@ -620,7 +621,7 @@ export default function ChatRoomScreen() {
     
     const heartbeatInterval = setInterval(() => {
       if (!socket?.connected) {
-        console.log('💔 Heartbeat: Socket disconnected, attempting reconnect...');
+        devLog('💔 Heartbeat: Socket disconnected, attempting reconnect...');
         socket?.connect();
         return;
       }
@@ -628,10 +629,10 @@ export default function ChatRoomScreen() {
       const timeSinceLastPong = Date.now() - lastPongTime;
       if (timeSinceLastPong > HEARTBEAT_INTERVAL * 1.5 && lastPongTime > 0) {
         missedPongs++;
-        console.log(`💔 Heartbeat: Missed pong #${missedPongs} (${Math.round(timeSinceLastPong / 1000)}s)`);
+        devLog(`💔 Heartbeat: Missed pong #${missedPongs} (${Math.round(timeSinceLastPong / 1000)}s)`);
         
         if (missedPongs >= MAX_MISSED_PONGS) {
-          console.log('💔 Heartbeat: Too many missed pongs, forcing reconnect...');
+          devLog('💔 Heartbeat: Too many missed pongs, forcing reconnect...');
           missedPongs = 0;
           socket.disconnect();
           setTimeout(() => {
@@ -660,15 +661,15 @@ export default function ChatRoomScreen() {
       const prevState = appStateRef.current;
       appStateRef.current = nextAppState;
       
-      console.log(`📱 AppState: ${prevState} → ${nextAppState}`);
+      devLog(`📱 AppState: ${prevState} → ${nextAppState}`);
       
       // App coming back to foreground
       if (nextAppState === 'active' && (prevState === 'background' || prevState === 'inactive')) {
-        console.log('📱 App returned to foreground');
+        devLog('📱 App returned to foreground');
         
         // Reconnect socket if disconnected
         if (socket && !socket.connected) {
-          console.log('🔌 Reconnecting socket...');
+          devLog('🔌 Reconnecting socket...');
           socket.connect();
         }
         
@@ -678,10 +679,10 @@ export default function ChatRoomScreen() {
           openRoomIds.forEach((rid) => {
             // Skip PM tabs - they don't need room:join (PM uses user:userId channel)
             if (rid.startsWith('private:') || rid.startsWith('pm_')) {
-              console.log('📩 Skipping PM tab (no rejoin needed):', rid);
+              devLog('📩 Skipping PM tab (no rejoin needed):', rid);
               return;
             }
-            console.log('🔄 Rejoining room after background:', rid);
+            devLog('🔄 Rejoining room after background:', rid);
             socket.emit('room:join', {
               roomId: rid,
               userId: currentUserId,
@@ -701,7 +702,7 @@ export default function ChatRoomScreen() {
   const handleSendMessage = useCallback((message: string) => {
     if (!socket || !message.trim() || !currentUserId) return;
     
-    console.log("MESSAGE SEND", currentActiveRoomId, message.trim());
+    devLog("MESSAGE SEND", currentActiveRoomId, message.trim());
     
     // Check if this is a PM conversation (starts with "private:")
     if (currentActiveRoomId.startsWith('private:')) {
@@ -717,7 +718,7 @@ export default function ChatRoomScreen() {
         const roomData = useRoomTabsStore.getState().openRoomsById[currentActiveRoomId];
         const toUsername = roomData?.name || `User ${toUserId}`;
         
-        console.log("📩 PM SEND to:", toUsername, "userId:", toUserId);
+        devLog("📩 PM SEND to:", toUsername, "userId:", toUserId);
         socket.emit('pm:send', {
           fromUserId: currentUserId,
           fromUsername: currentUsername,
@@ -816,12 +817,12 @@ export default function ChatRoomScreen() {
     // Check if this is a PM tab (no socket leave needed for PMs)
     const isPmTab = roomToLeave.startsWith('private:') || roomToLeave.startsWith('pm_');
     
-    console.log('🚪 [Leave Room] Starting leave process for:', roomToLeave, isPmTab ? '(PM)' : '(Room)');
-    console.log('🚪 [Leave Room] Current tabs:', currentOpenRoomIds.length, 'Remaining after leave:', remainingCount);
+    devLog('🚪 [Leave Room] Starting leave process for:', roomToLeave, isPmTab ? '(PM)' : '(Room)');
+    devLog('🚪 [Leave Room] Current tabs:', currentOpenRoomIds.length, 'Remaining after leave:', remainingCount);
     
     // Only emit leave_room for actual rooms, not PMs
     if (socket && !isPmTab) {
-      console.log('🚪 [Leave Room] Emitting leave_room socket event');
+      devLog('🚪 [Leave Room] Emitting leave_room socket event');
       socket.emit('leave_room', { 
         roomId: roomToLeave, 
         username: currentUsername, 
@@ -832,10 +833,10 @@ export default function ChatRoomScreen() {
     markRoomLeft(roomToLeave);
     closeRoom(roomToLeave);
     
-    console.log('🚪 [Leave Room] Tab closed, remaining tabs:', remainingCount);
+    devLog('🚪 [Leave Room] Tab closed, remaining tabs:', remainingCount);
     
     if (remainingCount === 0) {
-      console.log('🚪 [Leave Room] Last tab closed - navigating to room menu');
+      devLog('🚪 [Leave Room] Last tab closed - navigating to room menu');
       clearAllRooms();
       router.replace('/(tabs)/room');
     }
@@ -908,7 +909,7 @@ export default function ChatRoomScreen() {
   const handleOpenParticipants = () => setParticipantsModalVisible(!participantsModalVisible);
 
   const handleUserMenuPress = (username: string, action: string) => {
-    console.log('User menu pressed:', username, 'action:', action);
+    devLog('User menu pressed:', username, 'action:', action);
     
     if (action === 'kick' && socket && currentActiveRoomId) {
       // Send kick command via socket

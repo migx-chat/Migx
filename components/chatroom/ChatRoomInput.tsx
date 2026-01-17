@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   View,
@@ -184,7 +185,7 @@ export const ChatRoomInput = forwardRef<ChatRoomInputRef, ChatRoomInputProps>(({
   };
 
   const handleMenuItemPress = (action: string) => {
-    console.log('Menu action:', action);
+    devLog('Menu action:', action);
     if (action === 'cmd') {
       setCmdListVisible(true);
     } else if (action === 'send-gift') {
@@ -197,7 +198,7 @@ export const ChatRoomInput = forwardRef<ChatRoomInputRef, ChatRoomInputProps>(({
   };
 
   const handleSendGift = (gift: { name: string; price: number; image: any }) => {
-    console.log('Sending gift:', gift);
+    devLog('Sending gift:', gift);
   };
 
   const handleEmojiButtonPress = () => {

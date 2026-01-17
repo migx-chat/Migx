@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import { useEffect } from 'react';
 import { useSocket } from './useSocket';
 
@@ -28,7 +29,7 @@ export const useRoomHeartbeat = (
 
     // Listen for force-leave events (Step 4️⃣)
     const handleForceLeave = (data: any) => {
-      console.log('⚠️  Force-leave event received:', data);
+      devLog('⚠️  Force-leave event received:', data);
       
       if (onForceLeave) {
         onForceLeave(data.message || 'You are not in the chatroom');
@@ -40,7 +41,7 @@ export const useRoomHeartbeat = (
 
     // Listen for heartbeat acknowledgment
     const handleHeartbeatAck = (data: any) => {
-      console.log('✅ Heartbeat acknowledged at', new Date(data.timestamp).toLocaleTimeString());
+      devLog('✅ Heartbeat acknowledged at', new Date(data.timestamp).toLocaleTimeString());
     };
 
     socket.on('room:force-leave', handleForceLeave);

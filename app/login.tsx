@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -140,7 +141,7 @@ export default function LoginScreen() {
           await AsyncStorage.removeItem('invisible_mode');
         }
         
-        console.log('💾 Storing user_data for user:', userDataToStore.username);
+        devLog('💾 Storing user_data for user:', userDataToStore.username);
         await AsyncStorage.setItem('user_data', JSON.stringify(userDataToStore));
         router.replace('/(tabs)');
       } else {

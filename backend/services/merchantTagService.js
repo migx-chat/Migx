@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const { query, getClient } = require('../db/db');
 const { getRedisClient } = require('../redis');
 const creditService = require('./creditService');
@@ -252,7 +253,7 @@ const consumeForGame = async (userId, gameType, amount, gameSessionId = null) =>
       totalConsumed += consumeAmount;
       remainingToConsume -= consumeAmount;
       
-      console.log(`[MERCHANT TAG] User ${userId} spent ${consumeAmount} tagged credits on ${gameType}. Commission: ${merchantCommission + userCommission} (mature at ${matureAt.toISOString()})`);
+      logger.info(`[MERCHANT TAG] User ${userId} spent ${consumeAmount} tagged credits on ${gameType}. Commission: ${merchantCommission + userCommission} (mature at ${matureAt.toISOString()})`);
     }
     
     const redis = getRedisClient();
@@ -425,7 +426,7 @@ const processMaturedCommissions = async () => {
         totalUserPayout += parseInt(commission.user_commission);
         processedCount++;
         
-        console.log(`[COMMISSION PAYOUT] Paid ${commission.merchant_commission} to merchant ${commission.merchant_username}, ${commission.user_commission} to user ${commission.tagged_username}`);
+        logger.info(`[COMMISSION PAYOUT] Paid ${commission.merchant_commission} to merchant ${commission.merchant_username}, ${commission.user_commission} to user ${commission.tagged_username}`);
       } catch (payErr) {
         console.error(`Failed to process commission ${commission.id}:`, payErr);
       }

@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const express = require('express');
 const router = express.Router();
 const roomService = require('../services/roomService');
@@ -10,7 +11,7 @@ router.post('/:roomId/join', async (req, res) => {
     const { roomId } = req.params;
     const { userId, username } = req.body;
     
-    console.log(`[Chatroom API] Join request - roomId: ${roomId}, userId: ${userId}, username: ${username}`);
+    logger.info(`[Chatroom API] Join request - roomId: ${roomId}, userId: ${userId}, username: ${username}`);
     
     if (!roomId || !userId || !username) {
       return res.status(400).json({ 
@@ -33,7 +34,7 @@ router.post('/:roomId/join', async (req, res) => {
     const hasMerchantBadge = user && user.has_top_merchant_badge && user.top_merchant_badge_expiry > now;
     const hasLikeReward = user && user.has_top_like_reward && user.top_like_reward_expiry > now;
     
-    console.log(`[Chatroom API] User ${username} joined room ${roomId}. User count: ${userCount}`);
+    logger.info(`[Chatroom API] User ${username} joined room ${roomId}. User count: ${userCount}`);
     
     res.json({
       success: true,
@@ -58,7 +59,7 @@ router.post('/:roomId/leave', async (req, res) => {
     const { roomId } = req.params;
     const { userId, username } = req.body;
     
-    console.log(`[Chatroom API] Leave request - roomId: ${roomId}, userId: ${userId}, username: ${username}`);
+    logger.info(`[Chatroom API] Leave request - roomId: ${roomId}, userId: ${userId}, username: ${username}`);
     
     if (!roomId || !userId || !username) {
       return res.status(400).json({ 
@@ -71,7 +72,7 @@ router.post('/:roomId/leave', async (req, res) => {
     
     const userCount = await getRoomUserCount(roomId);
     
-    console.log(`[Chatroom API] User ${username} left room ${roomId}. User count: ${userCount}`);
+    logger.info(`[Chatroom API] User ${username} left room ${roomId}. User count: ${userCount}`);
     
     res.json({
       success: true,

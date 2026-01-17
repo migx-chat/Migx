@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 
 import React, { useState, useEffect } from 'react';
 import { 
@@ -121,7 +122,7 @@ export default function TransferCreditScreen() {
       }
 
       // Use REST API for transfer (simpler & more reliable than Socket.IO)
-      console.log('📤 Sending transfer via REST API', { username, amountNum, pin: '****' });
+      devLog('📤 Sending transfer via REST API', { username, amountNum, pin: '****' });
       
       const token = await AsyncStorage.getItem('auth_token');
       const deviceId = await AsyncStorage.getItem('device_id');
@@ -152,7 +153,7 @@ export default function TransferCreditScreen() {
       }
 
       const formattedAmount = `Rp${amountNum.toLocaleString('id-ID')}`;
-      console.log('✅ Transfer successful:', result);
+      devLog('✅ Transfer successful:', result);
       Alert.alert('Success', `Successfully transferred ${formattedAmount} to ${username}`, [
         {
           text: 'OK',

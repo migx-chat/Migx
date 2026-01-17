@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -108,7 +109,7 @@ export default function PrivacyScreen() {
 
           setAllowShareLocation(!!locationValue);
         } catch (err) {
-          console.log('Using local settings');
+          devLog('Using local settings');
         }
       }
       

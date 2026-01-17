@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React, { createContext, useContext, useState, useCallback, useRef, ReactNode, useMemo } from 'react';
 import { Socket } from 'socket.io-client';
 
@@ -101,7 +102,7 @@ export function TabRoomProvider({ children }: { children: ReactNode }) {
       const existingTabIndex = prevTabs.findIndex(t => t.roomId === roomId);
       
       if (existingTabIndex !== -1) {
-        console.log('📑 Tab already exists, switching to:', roomId);
+        devLog('📑 Tab already exists, switching to:', roomId);
         setActiveIndex(existingTabIndex);
         activeIndexRef.current = existingTabIndex;
         return prevTabs.map((tab, index) => 
@@ -111,7 +112,7 @@ export function TabRoomProvider({ children }: { children: ReactNode }) {
         );
       }
       
-      console.log('📑 Creating new tab for room:', roomId);
+      devLog('📑 Creating new tab for room:', roomId);
       const newTab: RoomTab = {
         roomId,
         roomName,

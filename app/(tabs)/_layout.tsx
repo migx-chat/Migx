@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Dimensions, Platform, Alert, Modal, ActivityIndicator } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
@@ -240,7 +241,7 @@ export default function TabLayout() {
       const userDataStr = await AsyncStorage.getItem('user_data');
       
       if (!userDataStr) {
-        console.log('❌ No user data found - redirecting to login');
+        devLog('❌ No user data found - redirecting to login');
         router.replace('/login');
         return;
       }
@@ -248,14 +249,14 @@ export default function TabLayout() {
       try {
         const userData = JSON.parse(userDataStr);
         if (!userData.username || !userData.id || userData.username === 'guest') {
-          console.log('❌ Invalid user data - redirecting to login');
+          devLog('❌ Invalid user data - redirecting to login');
           await AsyncStorage.removeItem('user_data');
           router.replace('/login');
           return;
         }
-        console.log('✅ User authenticated:', userData.username);
+        devLog('✅ User authenticated:', userData.username);
       } catch (parseError) {
-        console.log('❌ Failed to parse user data - redirecting to login');
+        devLog('❌ Failed to parse user data - redirecting to login');
         await AsyncStorage.removeItem('user_data');
         router.replace('/login');
         return;

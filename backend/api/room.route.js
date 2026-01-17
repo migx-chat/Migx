@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const express = require('express');
 const router = express.Router();
 const roomService = require('../services/roomService');
@@ -404,7 +405,7 @@ router.post('/create', async (req, res) => {
   try {
     const { name, ownerId, creatorName, description, category } = req.body;
     
-    console.log('Create room request:', { name, ownerId, creatorName, description, category });
+    logger.info('Create room request:', { name, ownerId, creatorName, description, category });
     
     // Validasi required fields
     if (!name) {

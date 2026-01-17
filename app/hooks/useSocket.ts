@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import { useRoomTabsStore } from '@/stores/useRoomTabsStore';
 
 export const useSocket = () => {
@@ -15,7 +16,7 @@ export const useSocket = () => {
 // Example of how the 'force:logout' event might be handled:
 /*
   socket.on('force:logout', async (data: any) => {
-    console.log('🚫 Force logout:', data);
+    devLog('🚫 Force logout:', data);
     // Clear user data and navigate to login
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
     await AsyncStorage.removeItem('user_data');
@@ -38,7 +39,7 @@ export const useSocket = () => {
   });
 
   socket.on('room:bumped', (data: any) => {
-    console.log('🚪 Bumped from room:', data);
+    devLog('🚪 Bumped from room:', data);
     // Show alert that user was removed by admin
     const { Alert } = require('react-native');
     Alert.alert(
@@ -68,17 +69,17 @@ export const useSocketManager = (userId: string) => {
     setSocket(socket);
 
     socket.on('connect', () => {
-      console.log('✅ Socket connected');
+      devLog('✅ Socket connected');
       setConnected(true);
     });
 
     socket.on('disconnect', () => {
-      console.log('❌ Socket disconnected');
+      devLog('❌ Socket disconnected');
       setConnected(false);
     });
 
     socket.on('force:logout', async (data: any) => {
-      console.log('🚫 Force logout:', data);
+      devLog('🚫 Force logout:', data);
       // Clear user data and navigate to login
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       await AsyncStorage.removeItem('user_data');

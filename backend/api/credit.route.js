@@ -84,7 +84,7 @@ router.post('/transfer', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: sanitizedError });
     }
     
-    console.log(`✅ Transfer completed: ${fromUserId} → ${toUserId} (${normalizedAmount} credits)`);
+    logger.info(`✅ Transfer completed: ${fromUserId} → ${toUserId} (${normalizedAmount} credits)`);
     
     // Send notification to recipient via Redis (for NotificationModal)
     try {
@@ -99,7 +99,7 @@ router.post('/transfer', authMiddleware, async (req, res) => {
           amount: normalizedAmount,
           message: `${fromUser.username} sent you ${normalizedAmount.toLocaleString()} credits`
         });
-        console.log(`📬 Credit notification sent to ${toUser.username} from ${fromUser.username}`);
+        logger.info(`📬 Credit notification sent to ${toUser.username} from ${fromUser.username}`);
       }
     } catch (notifError) {
       console.error('⚠️ Error sending credit notification:', notifError.message);

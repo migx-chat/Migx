@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React, { useCallback, useMemo, useEffect, useState } from 'react';
 import { View, StyleSheet, Dimensions, Keyboard, Platform, Alert } from 'react-native';
 import { usePrivateMessagesData, useRoomTabsStore } from '@/stores/useRoomTabsStore';
@@ -144,7 +145,7 @@ export const PrivateChatInstance = React.memo(function PrivateChatInstance({
     const clientMsgId = `pm_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     // Log socket status before sending
-    console.log('📤 PM socket status:', {
+    devLog('📤 PM socket status:', {
       connected: socket.connected,
       id: socket.id,
       namespace: (socket as any).nsp
@@ -159,10 +160,10 @@ export const PrivateChatInstance = React.memo(function PrivateChatInstance({
       message: message.trim(),
       clientMsgId
     };
-    console.log('📤 PM data being sent:', pmData);
+    devLog('📤 PM data being sent:', pmData);
     socket.emit('pm:send', pmData);
     
-    console.log('📤 PM emitted to:', targetUsername, '| ID:', clientMsgId);
+    devLog('📤 PM emitted to:', targetUsername, '| ID:', clientMsgId);
   }, [targetUsername, userId]);
 
   const handleImageSend = useCallback(async (imageUrl: string) => {
@@ -202,7 +203,7 @@ export const PrivateChatInstance = React.memo(function PrivateChatInstance({
     };
     
     socket.emit('pm:send', pmData);
-    console.log('📤 PM image sent to:', targetUsername);
+    devLog('📤 PM image sent to:', targetUsername);
   }, [targetUsername, userId]);
 
   const handleEmojiPress = useCallback(() => {
@@ -267,7 +268,7 @@ export const PrivateChatInstance = React.memo(function PrivateChatInstance({
     // Just close the PM tab - don't navigate away
     // The chatroom will switch to the next available tab (room or other PM)
     closeRoom(rId);
-    console.log('🚪 PM tab closed:', rId);
+    devLog('🚪 PM tab closed:', rId);
   }, [closeRoom]);
 
   return (

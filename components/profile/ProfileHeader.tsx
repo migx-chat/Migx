@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -58,7 +59,7 @@ export function ProfileHeader({ avatar, username, level, onEditPress }: ProfileH
                 <Image 
                   source={{ uri: avatarUri }} 
                   style={styles.avatar}
-                  onError={(e) => console.log('❌ Avatar load error:', e.nativeEvent.error)}
+                  onError={(e) => devLog('❌ Avatar load error:', e.nativeEvent.error)}
                 />
               ) : (
                 <View style={styles.avatarPlaceholder}>

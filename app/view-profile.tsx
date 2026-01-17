@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Modal, Alert, ActivityIndicator } from 'react-native';
@@ -41,7 +42,7 @@ export default function ViewProfileScreen() {
         const response = await fetch(API_ENDPOINTS.VIEW_PROFILE.GET(userId, userData.id));
         const data = await response.json();
 
-        console.log('View Profile Response:', data);
+        devLog('View Profile Response:', data);
 
         if (response.ok) {
           setProfileData(data);

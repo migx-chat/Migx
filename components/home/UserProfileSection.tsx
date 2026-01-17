@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -86,7 +87,7 @@ export function UserProfileSection({
 
     // Load initial credits via Socket.IO
     const loadCreditsViaSocket = () => {
-      console.log('📡 Requesting balance via Socket.IO');
+      devLog('📡 Requesting balance via Socket.IO');
       socketInstance?.emit('credit:balance:get', { userId: userData.id });
     };
 
@@ -94,19 +95,19 @@ export function UserProfileSection({
     const handleCreditBalance = (data: any) => {
       if (data?.balance !== undefined) {
         setCredits(data.balance);
-        console.log('💰 Credits loaded via Socket:', data.balance);
+        devLog('💰 Credits loaded via Socket:', data.balance);
       }
     };
 
     // Also try REST API as fallback
     const loadCreditsViaRest = async () => {
       try {
-        console.log('🔄 Requesting balance via REST API');
+        devLog('🔄 Requesting balance via REST API');
         const response = await fetch(`${API_BASE_URL}/api/credit/balance/${userData.id}`);
         if (response.ok) {
           const data = await response.json();
           setCredits(data.balance || 0);
-          console.log('💰 Credits loaded via REST:', data.balance);
+          devLog('💰 Credits loaded via REST:', data.balance);
         } else {
           console.warn('REST API returned:', response.status);
         }
@@ -157,7 +158,7 @@ export function UserProfileSection({
       if (userDataStr) {
         const data = JSON.parse(userDataStr);
         if (!data.username || !data.id || data.username === 'guest') {
-          console.log('❌ Invalid user data in UserProfileSection - redirecting to login');
+          devLog('❌ Invalid user data in UserProfileSection - redirecting to login');
           await AsyncStorage.removeItem('user_data');
           router.replace('/login');
           return;
@@ -165,7 +166,7 @@ export function UserProfileSection({
         setUserData(data);
         setStatusMessage(data.statusMessage || '');
       } else {
-        console.log('❌ No user data in UserProfileSection - redirecting to login');
+        devLog('❌ No user data in UserProfileSection - redirecting to login');
         router.replace('/login');
         return;
       }
@@ -198,7 +199,7 @@ export function UserProfileSection({
         };
         await AsyncStorage.setItem('user_data', JSON.stringify(updatedUserData));
         setUserData(updatedUserData);
-        console.log('✅ Status message updated successfully');
+        devLog('✅ Status message updated successfully');
       }
     } catch (error) {
       console.error('❌ Error updating status message:', error);
@@ -219,7 +220,7 @@ export function UserProfileSection({
   // Only initialize presence hook when we have a username
   const { status: presenceStatusFromHook, setStatus: setPresenceStatus } = usePresence(username || '');
 
-  console.log('👤 UserProfileSection Avatar Debug:', {
+  devLog('👤 UserProfileSection Avatar Debug:', {
     avatar,
     avatarUri,
     username,
@@ -239,7 +240,7 @@ export function UserProfileSection({
               <Image 
                 source={{ uri: avatarUri }} 
                 style={styles.avatarImage}
-                onError={(e) => console.log('❌ UserProfileSection Avatar load error:', e.nativeEvent.error)}
+                onError={(e) => devLog('❌ UserProfileSection Avatar load error:', e.nativeEvent.error)}
               />
             ) : (
               <View style={[styles.avatarPlaceholder, { backgroundColor: '#4A90E2' }]}>

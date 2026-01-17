@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
@@ -93,7 +94,7 @@ const normalizeFeedItem = async (feedData, feedId, redis, currentUserId = null) 
     }
     
     // Log for debugging
-    console.log(`[Feed Debug] User: ${feed.username}, Avatar Path: ${user?.avatar}, Final URL: ${avatarUrl}`);
+    logger.info(`[Feed Debug] User: ${feed.username}, Avatar Path: ${user?.avatar}, Final URL: ${avatarUrl}`);
     
     return {
       id: feed.id ?? feedId ?? '',
@@ -228,7 +229,7 @@ router.post('/create', authMiddleware, handleUpload, async (req, res) => {
 
     if (req.file) {
       try {
-        console.log(`📤 Uploading file to Cloudinary: ${req.file.originalname} (${req.file.mimetype})`);
+        logger.info(`📤 Uploading file to Cloudinary: ${req.file.originalname} (${req.file.mimetype})`);
         let resourceType = 'auto';
         if (req.file.mimetype.startsWith('video/')) {
           resourceType = 'video';
@@ -465,7 +466,7 @@ router.post('/:feedId/comment', authMiddleware, async (req, res) => {
             }
           }
           
-          console.log(`📬 Comment notification sent to ${postOwnerUsername} from ${username}`);
+          logger.info(`📬 Comment notification sent to ${postOwnerUsername} from ${username}`);
         }
       }
     } catch (notifError) {
@@ -531,7 +532,7 @@ router.post('/admin/cleanup-cloudinary', authMiddleware, async (req, res) => {
       try {
         await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
         results.push({ publicId, status: 'deleted' });
-        console.log(`🗑️  Cloudinary media deleted: ${publicId}`);
+        logger.info(`🗑️  Cloudinary media deleted: ${publicId}`);
       } catch (error) {
         results.push({ publicId, status: 'failed', error: error.message });
         console.error(`❌ Failed to delete ${publicId}:`, error.message);

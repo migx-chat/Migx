@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 
 const express = require('express');
 const router = express.Router();
@@ -91,11 +92,11 @@ const upload = multer({
 
 router.post('/background/upload', authMiddleware, cloudinaryUpload.single('background'), async (req, res) => {
   try {
-    console.log('📥 Background upload request received');
-    console.log('📋 Authenticated user:', req.user);
+    logger.info('📥 Background upload request received');
+    logger.info('📋 Authenticated user:', req.user);
     
     if (!req.file) {
-      console.log('❌ No file uploaded');
+      logger.info('❌ No file uploaded');
       return res.status(400).json({ 
         success: false,
         error: 'No file uploaded' 
@@ -106,14 +107,14 @@ router.post('/background/upload', authMiddleware, cloudinaryUpload.single('backg
     const userId = req.user.id || req.user.userId || req.body.userId;
     
     if (!userId) {
-      console.log('❌ No userId in token or body');
+      logger.info('❌ No userId in token or body');
       return res.status(400).json({ 
         success: false,
         error: 'User ID is required' 
       });
     }
     
-    console.log('✅ Uploading background for user:', userId);
+    logger.info('✅ Uploading background for user:', userId);
     
     // Upload to Cloudinary for persistent storage
     const cloudinaryResult = await new Promise((resolve, reject) => {
@@ -132,20 +133,20 @@ router.post('/background/upload', authMiddleware, cloudinaryUpload.single('backg
     });
 
     const backgroundUrl = cloudinaryResult.secure_url;
-    console.log('☁️ Cloudinary upload successful:', backgroundUrl);
+    logger.info('☁️ Cloudinary upload successful:', backgroundUrl);
     
     // Update user background in database
     const result = await profileService.updateBackground(userId, backgroundUrl);
     
     if (!result) {
-      console.log('❌ Failed to update background in database');
+      logger.info('❌ Failed to update background in database');
       return res.status(500).json({ 
         success: false,
         error: 'Failed to update background' 
       });
     }
     
-    console.log('✅ Background updated successfully:', backgroundUrl);
+    logger.info('✅ Background updated successfully:', backgroundUrl);
     
     res.json({
       success: true,
@@ -168,11 +169,11 @@ router.post('/background/upload', authMiddleware, cloudinaryUpload.single('backg
 
 router.post('/avatar/upload', authMiddleware, cloudinaryUpload.single('avatar'), async (req, res) => {
   try {
-    console.log('📥 Avatar upload request received');
-    console.log('📋 Authenticated user:', req.user);
+    logger.info('📥 Avatar upload request received');
+    logger.info('📋 Authenticated user:', req.user);
     
     if (!req.file) {
-      console.log('❌ No file uploaded');
+      logger.info('❌ No file uploaded');
       return res.status(400).json({ 
         success: false,
         error: 'No file uploaded' 
@@ -183,14 +184,14 @@ router.post('/avatar/upload', authMiddleware, cloudinaryUpload.single('avatar'),
     const userId = req.user.id || req.user.userId || req.body.userId;
     
     if (!userId) {
-      console.log('❌ No userId in token or body');
+      logger.info('❌ No userId in token or body');
       return res.status(400).json({ 
         success: false,
         error: 'User ID is required' 
       });
     }
     
-    console.log('✅ Uploading avatar for user:', userId);
+    logger.info('✅ Uploading avatar for user:', userId);
     
     // Upload to Cloudinary for persistent storage
     const cloudinaryResult = await new Promise((resolve, reject) => {
@@ -213,20 +214,20 @@ router.post('/avatar/upload', authMiddleware, cloudinaryUpload.single('avatar'),
     });
 
     const avatarUrl = cloudinaryResult.secure_url;
-    console.log('☁️ Cloudinary upload successful:', avatarUrl);
+    logger.info('☁️ Cloudinary upload successful:', avatarUrl);
     
     // Update user avatar in database
     const result = await profileService.updateAvatar(userId, avatarUrl);
     
     if (!result) {
-      console.log('❌ Failed to update avatar in database');
+      logger.info('❌ Failed to update avatar in database');
       return res.status(500).json({ 
         success: false,
         error: 'Failed to update avatar' 
       });
     }
     
-    console.log('✅ Avatar updated successfully:', avatarUrl);
+    logger.info('✅ Avatar updated successfully:', avatarUrl);
     
     res.json({
       success: true,
@@ -393,7 +394,7 @@ router.post('/gifts/send', async (req, res) => {
           }
         }
         
-        console.log(`🎁 Gift notification sent to ${receiverUsername} from ${senderUsername}`);
+        logger.info(`🎁 Gift notification sent to ${receiverUsername} from ${senderUsername}`);
       }
     } catch (notifError) {
       console.error('⚠️ Error sending gift notification:', notifError.message);
@@ -682,7 +683,7 @@ router.post('/follow/accept', authMiddleware, async (req, res) => {
     // Remove the notification
     await notificationService.removeNotification(acceptingUsername, followerId);
     
-    console.log(`✅ ${acceptingUsername} (ID:${acceptingUserId}) accepted follow request from user ${followerId}`);
+    logger.info(`✅ ${acceptingUsername} (ID:${acceptingUserId}) accepted follow request from user ${followerId}`);
     
     res.json({
       success: true,
@@ -718,7 +719,7 @@ router.post('/follow/reject', authMiddleware, async (req, res) => {
     // Remove the notification
     await notificationService.removeNotification(rejectingUsername, followerId);
     
-    console.log(`❌ ${rejectingUsername} (ID:${rejectingUserId}) rejected follow request from user ${followerId}`);
+    logger.info(`❌ ${rejectingUsername} (ID:${rejectingUserId}) rejected follow request from user ${followerId}`);
     
     res.json({
       success: true,

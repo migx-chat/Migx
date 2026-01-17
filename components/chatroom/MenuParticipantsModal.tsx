@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, ActivityIndicator, Alert } from 'react-native';
@@ -74,13 +75,13 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
     if (!visible || !roomId) return;
 
     const handleParticipantsUpdate = (data: { roomId: string; participants: Array<{ userId: number; username: string; role?: string }> }) => {
-      console.log('🔄 [Modal] Participants update received:', data);
+      devLog('🔄 [Modal] Participants update received:', data);
       if (data.roomId === roomId) {
         const formattedParticipants = data.participants.map(p => ({ 
           username: p.username, 
           role: (p as any).role || 'user' 
         }));
-        console.log('✅ [Modal] Updating participants:', formattedParticipants);
+        devLog('✅ [Modal] Updating participants:', formattedParticipants);
         setParticipants(formattedParticipants);
       }
     };
@@ -88,7 +89,7 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
     // Access global socket (assuming it's available via window or import)
     const socket = (window as any).__GLOBAL_SOCKET__;
     if (socket) {
-      console.log('🔌 [Modal] Registering participant update listener for room:', roomId);
+      devLog('🔌 [Modal] Registering participant update listener for room:', roomId);
       socket.on('room:participants:update', handleParticipantsUpdate);
       return () => {
         socket.off('room:participants:update', handleParticipantsUpdate);
@@ -101,12 +102,12 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
     
     try {
       setLoading(true);
-      console.log('🔍 Fetching participants for room:', roomId);
+      devLog('🔍 Fetching participants for room:', roomId);
       
       const response = await fetch(`${API_BASE_URL}/api/chatroom/${roomId}/participants`);
       const data = await response.json();
       
-      console.log('📥 Participants response:', data);
+      devLog('📥 Participants response:', data);
       
       if (data.success && Array.isArray(data.participants)) {
         setParticipants(data.participants);
@@ -174,7 +175,7 @@ export function MenuParticipantsModal({ visible, onClose, roomId, onUserMenuPres
         // Switch to the PM tab immediately
         store.setActiveRoomById(privateChatId);
         
-        console.log('🔓 Opened and switched to private chat tab:', privateChatId, 'for user:', selectedUser);
+        devLog('🔓 Opened and switched to private chat tab:', privateChatId, 'for user:', selectedUser);
         
         // Close modals
         setShowUserMenu(false);

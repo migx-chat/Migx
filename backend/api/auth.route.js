@@ -311,7 +311,7 @@ router.post('/register', registerLimiter, async (req, res, next) => {
 
     // Validate username
     if (!username || !usernameRegex.test(username)) {
-      console.log('REGISTER FAILED: Invalid username');
+      logger.info('REGISTER FAILED: Invalid username');
       return res.status(400).json({ 
         success: false,
         error: 'Username must be 6-12 characters, start with a letter, and contain only lowercase letters, numbers, dots, and underscores' 
@@ -320,14 +320,14 @@ router.post('/register', registerLimiter, async (req, res, next) => {
 
     // Validate email format
     if (!email || !emailRegex.test(email)) {
-      console.log('REGISTER FAILED: Invalid email format');
+      logger.info('REGISTER FAILED: Invalid email format');
       return res.status(400).json({ success: false, error: 'Invalid email format' });
     }
 
     // Validate email domain
     const emailDomain = email.split('@')[1]?.toLowerCase();
     if (!allowedEmailDomains.includes(emailDomain)) {
-      console.log('REGISTER FAILED: Invalid email domain:', emailDomain);
+      logger.info('REGISTER FAILED: Invalid email domain:', emailDomain);
       return res.status(400).json({ 
         success: false,
         error: `Email must be from Gmail, Yahoo, or Zoho. You used: ${emailDomain}` 
@@ -336,33 +336,33 @@ router.post('/register', registerLimiter, async (req, res, next) => {
 
     // Validate password
     if (!password || password.length < 6) {
-      console.log('REGISTER FAILED: Password too short');
+      logger.info('REGISTER FAILED: Password too short');
       return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
     }
 
     // Validate country
     if (!country) {
-      console.log('REGISTER FAILED: Country missing');
+      logger.info('REGISTER FAILED: Country missing');
       return res.status(400).json({ success: false, error: 'Country is required' });
     }
 
     // Validate gender
     if (!gender || !['male', 'female'].includes(gender)) {
-      console.log('REGISTER FAILED: Invalid gender');
+      logger.info('REGISTER FAILED: Invalid gender');
       return res.status(400).json({ success: false, error: 'Gender must be male or female' });
     }
 
     // Check if username exists
     const existingUser = await userService.getUserByUsername(username);
     if (existingUser) {
-      console.log('REGISTER FAILED: Username exists');
+      logger.info('REGISTER FAILED: Username exists');
       return res.status(400).json({ success: false, error: 'Username already exists' });
     }
 
     // Check if email exists
     const existingEmail = await userService.getUserByEmail(email);
     if (existingEmail) {
-      console.log('REGISTER FAILED: Email exists');
+      logger.info('REGISTER FAILED: Email exists');
       return res.status(400).json({ success: false, error: 'Email already registered' });
     }
 
@@ -383,7 +383,7 @@ router.post('/register', registerLimiter, async (req, res, next) => {
     });
 
     if (!user || user.error) {
-      console.log('REGISTER FAILED: User creation failed');
+      logger.info('REGISTER FAILED: User creation failed');
       return res.status(400).json({ success: false, error: user?.error || 'Registration failed' });
     }
 
@@ -395,7 +395,7 @@ router.post('/register', registerLimiter, async (req, res, next) => {
     if (!otpStored) {
       console.warn('Failed to store OTP in database');
     } else {
-      console.log('OTP stored in database for user:', user.id);
+      logger.info('OTP stored in database for user:', user.id);
     }
 
     // Send OTP email
@@ -404,7 +404,7 @@ router.post('/register', registerLimiter, async (req, res, next) => {
       if (!emailResult.success) {
         console.warn('Failed to send OTP email, but user created');
       } else {
-        console.log('OTP email sent successfully to:', email);
+        logger.info('OTP email sent successfully to:', email);
       }
     } catch (emailError) {
       console.error('Email sending error:', emailError);
@@ -420,7 +420,7 @@ router.post('/register', registerLimiter, async (req, res, next) => {
       console.error('Activation email error:', activationError);
     }
 
-    console.log('REGISTER SUCCESS:', username);
+    logger.info('REGISTER SUCCESS:', username);
     res.status(200).json({
       success: true,
       message: 'Registration successful! Please check your email for verification code and activation link.',
@@ -678,7 +678,7 @@ router.post('/resend-otp', otpLimiter, async (req, res) => {
       return res.status(500).json({ success: false, error: 'Failed to send OTP email' });
     }
 
-    console.log('RESEND OTP SUCCESS: New OTP sent to:', user.email);
+    logger.info('RESEND OTP SUCCESS: New OTP sent to:', user.email);
     res.status(200).json({ success: true, message: 'New OTP sent to your email' });
 
   } catch (error) {

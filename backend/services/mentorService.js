@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const { query } = require('../db/db');
 
 /**
@@ -10,7 +11,7 @@ const mentorService = {
    */
   async checkMerchantStatus() {
     try {
-      console.log('Running merchant status check...');
+      logger.info('Running merchant status check...');
       
       // 1. Find all active merchants
       const merchants = await query(
@@ -50,7 +51,7 @@ const mentorService = {
   },
 
   async demoteMerchant(userId, reason) {
-    console.log(`Demoting user ${userId} to regular user. Reason: ${reason}`);
+    logger.info(`Demoting user ${userId} to regular user. Reason: ${reason}`);
     await query(
       "UPDATE users SET role = 'user', mentor_id = NULL, merchant_expired_at = NULL WHERE id = $1",
       [userId]
@@ -60,7 +61,7 @@ const mentorService = {
     await query(
       "INSERT INTO audit_logs (request_id, from_user_id, from_username, to_user_id, to_username, amount, status, error_reason) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
       ['DEMOTE_' + Date.now(), 0, 'SYSTEM', userId, 'merchant', 0, 'completed', reason]
-    ).catch(err => console.log('Audit log failed (expected if table differs):', err.message));
+    ).catch(err => logger.info('Audit log failed (expected if table differs):', err.message));
   }
 };
 

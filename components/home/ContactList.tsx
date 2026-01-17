@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React, { forwardRef, useImperativeHandle, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -36,14 +37,14 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
   // Subscribe to real-time presence updates using GLOBAL socket
   useEffect(() => {
     if (!socket) {
-      console.log('📡 ContactList: No global socket yet, waiting...');
+      devLog('📡 ContactList: No global socket yet, waiting...');
       return;
     }
     
     socketRef.current = socket;
 
     const handlePresenceChanged = (data: { username: string; status: string }) => {
-      console.log('📡 ContactList received presence update:', data.username, '→', data.status);
+      devLog('📡 ContactList received presence update:', data.username, '→', data.status);
       setAllContacts(prev => prev.map(contact => {
         if (contact.name === data.username) {
           return {
@@ -57,7 +58,7 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
     };
 
     socket.on('presence:changed', handlePresenceChanged);
-    console.log('📡 ContactList: Subscribed to presence:changed events');
+    devLog('📡 ContactList: Subscribed to presence:changed events');
 
     return () => {
       socket.off('presence:changed', handlePresenceChanged);
@@ -164,9 +165,9 @@ const ContactListComponent = forwardRef<{ refreshContacts: () => Promise<void> }
   };
 
   const updateStatusMessage = async (contactName: string, newStatus: string) => {
-    console.log(`Updating status for ${contactName} to: ${newStatus}`);
+    devLog(`Updating status for ${contactName} to: ${newStatus}`);
     await new Promise(resolve => setTimeout(resolve, 500));
-    console.log(`Status for ${contactName} updated successfully.`);
+    devLog(`Status for ${contactName} updated successfully.`);
   };
 
   return (

@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const userService = require('../services/userService');
 const { getUserLevel, getLeaderboard } = require('../utils/xpLeveling');
 const { setUserStatus, getUserRooms, removeUserFromRoom } = require('../utils/presence');
@@ -93,7 +94,7 @@ module.exports = (io, socket) => {
         timestamp: new Date().toISOString()
       });
 
-      console.log(`📡 Presence broadcast: ${username} → ${status}`);
+      logger.info(`📡 Presence broadcast: ${username} → ${status}`);
       socket.emit('presence:updated', { username, status });
     } catch (error) {
       console.error('Error updating presence:', error);
@@ -257,7 +258,7 @@ module.exports = (io, socket) => {
       const username = socket.username;
 
       if (userId && username) {
-        console.log(`🔌 Processing logout/disconnect for ${username} (ID: ${userId})`);
+        logger.info(`🔌 Processing logout/disconnect for ${username} (ID: ${userId})`);
         
         // Get user's active rooms BEFORE clearing presence
         const activeRooms = await getUserActiveRooms(userId);
@@ -268,7 +269,7 @@ module.exports = (io, socket) => {
           status: 'offline',
           timestamp: new Date().toISOString()
         });
-        console.log(`📡 Broadcast: ${username} → offline (logout/disconnect)`);
+        logger.info(`📡 Broadcast: ${username} → offline (logout/disconnect)`);
         
         // Remove presence and session from Redis
         await removePresence(username);
@@ -304,13 +305,13 @@ module.exports = (io, socket) => {
             timestamp: new Date().toISOString()
           });
           
-          console.log(`👋 User ${username} removed from room ${roomId} on logout`);
+          logger.info(`👋 User ${username} removed from room ${roomId} on logout`);
         }
 
         await userService.disconnectUser(userId);
       }
 
-      console.log(`Client disconnected: ${socket.id}`);
+      logger.info(`Client disconnected: ${socket.id}`);
     } catch (error) {
       console.error('Error handling disconnect:', error);
     }

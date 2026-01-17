@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
@@ -147,7 +148,7 @@ export function ViewProfileHeader({
               <Image 
                 source={{ uri: avatarUri }} 
                 style={styles.avatar}
-                onError={(e) => console.log('❌ ViewProfile Avatar load error:', e.nativeEvent.error)}
+                onError={(e) => devLog('❌ ViewProfile Avatar load error:', e.nativeEvent.error)}
               />
             ) : (
               <View style={styles.avatarPlaceholder}>

@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
@@ -14,7 +15,7 @@ router.post('/report-bug', authMiddleware, async (req, res) => {
 
     // You can add an audit log or a dedicated bug_reports table here
     // For now, let's log it and return success
-    console.log(`[Bug Report] User ID ${userId} reported: ${title} - ${description}`);
+    logger.info(`[Bug Report] User ID ${userId} reported: ${title} - ${description}`);
     
     // In a real app, you'd insert this into a database table
     // await query('INSERT INTO bug_reports (user_id, title, description) VALUES ($1, $2, $3)', [userId, title, description]);

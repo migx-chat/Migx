@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
@@ -28,7 +29,7 @@ export function usePresence(username?: string): UsePresenceReturn {
       try {
         const savedStatus = await AsyncStorage.getItem(PRESENCE_STORAGE_KEY);
         if (savedStatus && ['online', 'away', 'busy', 'invisible'].includes(savedStatus)) {
-          console.log('📱 Loaded saved presence status:', savedStatus);
+          devLog('📱 Loaded saved presence status:', savedStatus);
           setStatusState(savedStatus as PresenceStatus);
           manualStatusRef.current = savedStatus as PresenceStatus;
         }
@@ -50,7 +51,7 @@ export function usePresence(username?: string): UsePresenceReturn {
 
     socket.on('connect', () => {
       setIsConnected(true);
-      console.log('🟢 Presence socket connected');
+      devLog('🟢 Presence socket connected');
       // Send initial presence on connect using manual status if set
       const currentStatus = manualStatusRef.current || status;
       socket.emit('presence:update', { username, status: currentStatus });
@@ -58,11 +59,11 @@ export function usePresence(username?: string): UsePresenceReturn {
 
     socket.on('disconnect', () => {
       setIsConnected(false);
-      console.log('🔴 Presence socket disconnected');
+      devLog('🔴 Presence socket disconnected');
     });
 
     socket.on('presence:updated', (data: any) => {
-      console.log('📡 Presence updated confirmation:', data);
+      devLog('📡 Presence updated confirmation:', data);
     });
 
     return () => {
@@ -78,9 +79,9 @@ export function usePresence(username?: string): UsePresenceReturn {
       try {
         if (socketRef.current?.connected) {
           socketRef.current.emit('presence:update', { username, status });
-          console.log('📡 Emitted presence:update', { username, status });
+          devLog('📡 Emitted presence:update', { username, status });
         } else {
-          console.log('⏳ Socket not connected, waiting...');
+          devLog('⏳ Socket not connected, waiting...');
         }
       } catch (error) {
         console.error('Failed to update presence:', error);
@@ -97,7 +98,7 @@ export function usePresence(username?: string): UsePresenceReturn {
     const keepAliveInterval = setInterval(() => {
       if (status !== 'offline' && socketRef.current?.connected) {
         socketRef.current.emit('presence:update', { username, status });
-        console.log('🔄 Keep-alive presence refresh:', { username, status });
+        devLog('🔄 Keep-alive presence refresh:', { username, status });
       }
     }, 90000);
 
@@ -119,7 +120,7 @@ export function usePresence(username?: string): UsePresenceReturn {
         if (socketRef.current?.connected && username) {
           const currentStatus = manualStatusRef.current || status;
           socketRef.current.emit('presence:update', { username, status: currentStatus });
-          console.log('📱 App active - refreshing presence:', currentStatus);
+          devLog('📱 App active - refreshing presence:', currentStatus);
         }
       }
       // Don't auto-change to away on background - user's manual status should persist
@@ -137,7 +138,7 @@ export function usePresence(username?: string): UsePresenceReturn {
     // Persist to storage for next session
     try {
       await AsyncStorage.setItem(PRESENCE_STORAGE_KEY, newStatus);
-      console.log('💾 Saved presence status:', newStatus);
+      devLog('💾 Saved presence status:', newStatus);
     } catch (error) {
       console.error('Failed to save presence status:', error);
     }

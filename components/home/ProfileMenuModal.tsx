@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -97,7 +98,7 @@ export function ProfileMenuModal({ visible, onClose, userData }: ProfileMenuModa
 
   const handleGiftStore = () => {
     onClose();
-    console.log('Gift Store pressed');
+    devLog('Gift Store pressed');
   };
 
   const handlePeople = () => {
@@ -151,7 +152,7 @@ export function ProfileMenuModal({ visible, onClose, userData }: ProfileMenuModa
                 })
               });
             } catch (apiError) {
-              console.log('Logout API error (non-critical):', apiError);
+              devLog('Logout API error (non-critical):', apiError);
             }
             
             if (socket) {

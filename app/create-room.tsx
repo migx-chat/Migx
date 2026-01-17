@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React, { useState } from 'react';
 import {
   View,
@@ -70,7 +71,7 @@ export default function CreateRoomScreen() {
       });
 
       const data = await response.json();
-      console.log('Create room response:', data);
+      devLog('Create room response:', data);
 
       if (!response.ok || !data.success) {
         setError(data.error || 'Failed to create room');
@@ -94,7 +95,7 @@ export default function CreateRoomScreen() {
       setDescription('');
 
     } catch (err) {
-      console.log(err);
+      devLog(err);
       setError('Network error, please try again');
     } finally {
       setLoading(false);

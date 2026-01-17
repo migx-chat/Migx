@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { useThemeCustom } from '@/theme/provider';
@@ -35,10 +36,10 @@ export function ChatRoomMenu({ visible, onClose, onMenuItemPress, onOpenParticip
   ];
 
   const handleMenuPress = (action: string) => {
-    console.log('ChatRoomMenu: Menu pressed:', action);
+    devLog('ChatRoomMenu: Menu pressed:', action);
     
     if (action === 'room-info') {
-      console.log('Room Info menu item clicked');
+      devLog('Room Info menu item clicked');
       onMenuItemPress(action);
       onClose();
     } else if (action === 'participants' && onOpenParticipants) {

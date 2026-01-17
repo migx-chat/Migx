@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useThemeCustom } from '@/theme/provider';
@@ -102,7 +103,7 @@ export function ContactItem({
             <Image
               source={{ uri: avatar }}
               style={[styles.avatar, { backgroundColor: theme.card }]}
-              onError={(e) => console.log('Avatar load error:', e.nativeEvent.error)}
+              onError={(e) => devLog('Avatar load error:', e.nativeEvent.error)}
             />
           ) : (
             <View style={[styles.avatar, { backgroundColor: theme.card }]}>

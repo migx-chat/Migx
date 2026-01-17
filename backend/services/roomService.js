@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const { query } = require('../db/db');
 const presence = require('../utils/presence');
 
@@ -31,7 +32,7 @@ const createRoom = async (name, ownerId, creatorName, description = '', category
       [roomId, ownerId]
     );
     
-    console.log(`✅ New room created: "${name}" (ID: ${roomId})`);
+    logger.info(`✅ New room created: "${name}" (ID: ${roomId})`);
     return result.rows[0];
   } catch (error) {
     console.error('Error creating room:', error);
@@ -446,7 +447,7 @@ const deleteUserRoomHistory = async (userId, roomId) => {
        WHERE user_id = $1 AND room_id = $2`,
       [userId, roomId]
     );
-    console.log(`🗑️ Deleted room ${roomId} from user ${userId} history`);
+    logger.info(`🗑️ Deleted room ${roomId} from user ${userId} history`);
     return true;
   } catch (error) {
     console.error('Error deleting room history:', error);

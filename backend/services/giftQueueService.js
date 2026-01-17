@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const { getRedisClient } = require('../redis');
 const { query } = require('../db/db');
 
@@ -15,7 +16,7 @@ const queueGiftForPersistence = async (giftData) => {
     });
     
     await redis.rPush(GIFT_QUEUE_KEY, payload);
-    console.log(`🎁 Gift queued for persistence: ${giftData.giftName} from ${giftData.senderUsername} to ${giftData.receiverUsername}`);
+    logger.info(`🎁 Gift queued for persistence: ${giftData.giftName} from ${giftData.senderUsername} to ${giftData.receiverUsername}`);
     return true;
   } catch (error) {
     console.error('❌ Failed to queue gift:', error.message);
@@ -37,7 +38,7 @@ const persistGiftToDatabase = async (giftData) => {
       [giftData.senderId, giftData.receiverId, giftData.giftCost, 'gift', `Gift: ${giftData.giftName} to ${giftData.receiverUsername}`, giftData.senderUsername, giftData.receiverUsername]
     );
     
-    console.log(`✅ Gift persisted to DB: ${giftData.giftName}`);
+    logger.info(`✅ Gift persisted to DB: ${giftData.giftName}`);
     return true;
   } catch (error) {
     console.error('❌ Failed to persist gift to DB:', error.message);
@@ -60,7 +61,7 @@ const processGiftQueue = async () => {
       
       if (giftData.retries < MAX_RETRIES) {
         await redis.rPush(GIFT_RETRY_KEY, JSON.stringify(giftData));
-        console.log(`⏳ Gift queued for retry (${giftData.retries}/${MAX_RETRIES})`);
+        logger.info(`⏳ Gift queued for retry (${giftData.retries}/${MAX_RETRIES})`);
       } else {
         console.error(`❌ Gift failed after ${MAX_RETRIES} retries:`, giftData);
       }
@@ -98,7 +99,7 @@ const startGiftQueueProcessor = () => {
     await processRetryQueue();
   }, 5000);
   
-  console.log('🎁 Gift queue processor started');
+  logger.info('🎁 Gift queue processor started');
 };
 
 const deductCreditsAtomic = async (userId, amount) => {

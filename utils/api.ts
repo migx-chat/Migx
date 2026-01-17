@@ -1,3 +1,4 @@
+import { devLog } from '@/utils/devLog';
 import { io } from 'socket.io-client';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,10 +11,10 @@ const API_BASE_URL = Platform.OS === 'web'
   ? 'https://fee71969-36cc-45da-8a84-dda137654441-00-6wjptrtp60s7.sisko.replit.dev'
   : 'https://fee71969-36cc-45da-8a84-dda137654441-00-6wjptrtp60s7.sisko.replit.dev';
 
-console.log('🌐 API_BASE_URL configured as:', API_BASE_URL);
-console.log('🔍 Backend Health Check:', `${API_BASE_URL}/health`);
-console.log('🔍 Backend Status Page:', `${API_BASE_URL}/status`);
-console.log('📡 Utils/api.ts loaded - Socket utilities ready');
+devLog('🌐 API_BASE_URL configured as:', API_BASE_URL);
+devLog('🔍 Backend Health Check:', `${API_BASE_URL}/health`);
+devLog('🔍 Backend Status Page:', `${API_BASE_URL}/status`);
+devLog('📡 Utils/api.ts loaded - Socket utilities ready');
 
 export const API_ENDPOINTS = {
   AUTH: {
@@ -129,15 +130,15 @@ export const setLastMessageId = (msgId: string) => {
 };
 
 export const createSocket = () => {
-  console.log('🔧 Creating Socket.IO connection...');
-  console.log('API_BASE_URL:', API_BASE_URL);
+  devLog('🔧 Creating Socket.IO connection...');
+  devLog('API_BASE_URL:', API_BASE_URL);
 
   if (socket && socket.connected) {
-    console.log('✅ Socket already connected, reusing existing socket');
+    devLog('✅ Socket already connected, reusing existing socket');
     return socket;
   }
 
-  console.log('🔌 Initializing new Socket.IO connection...');
+  devLog('🔌 Initializing new Socket.IO connection...');
   socket = io(API_BASE_URL, {
     transports: ['websocket'],
     reconnection: true,
@@ -149,18 +150,18 @@ export const createSocket = () => {
   });
 
   socket.on('connect', async () => {
-    console.log('✅ Socket.IO connected to backend! ID:', socket?.id);
+    devLog('✅ Socket.IO connected to backend! ID:', socket?.id);
     
     // Auto-authenticate on connect - join user channel for PM and presence
     const userData = await AsyncStorage.getItem('user_data');
     if (userData) {
       const { id, username } = JSON.parse(userData);
-      console.log(`🔑 Auto-authenticating socket for user: ${username} (${id})`);
+      devLog(`🔑 Auto-authenticating socket for user: ${username} (${id})`);
       socket.emit('auth:login', { userId: id, username });
     }
     
     if (isReconnecting && currentRoomId) {
-      console.log('🔄 Reconnecting - silent rejoin to room:', currentRoomId);
+      devLog('🔄 Reconnecting - silent rejoin to room:', currentRoomId);
       if (userData) {
         const { id, username } = JSON.parse(userData);
         socket.emit('room:silent_rejoin', {
@@ -175,7 +176,7 @@ export const createSocket = () => {
   });
 
   socket.on('disconnect', (reason: string) => {
-    console.log('🔌 Socket disconnected:', reason);
+    devLog('🔌 Socket disconnected:', reason);
     if (reason !== 'io client disconnect') {
       isReconnecting = true;
     }
@@ -185,7 +186,7 @@ export const createSocket = () => {
     console.error('❌ Socket.IO connection error:', err.message);
   });
 
-  console.log('Socket instance created:', socket);
+  devLog('Socket instance created:', socket);
   return socket;
 };
 
@@ -197,17 +198,17 @@ export const getSocket = () => {
 export const getChatSocket = async () => {
   try {
     if (chatSocket && chatSocket.connected) {
-      console.log('📌 Reusing existing chat socket');
+      devLog('📌 Reusing existing chat socket');
       return chatSocket;
     }
 
     // Get auth from AsyncStorage
-    console.log('📌 Fetching user data from AsyncStorage...');
+    devLog('📌 Fetching user data from AsyncStorage...');
     const authData = await AsyncStorage.getItem('user_data');
-    console.log('📌 AuthData retrieved:', authData ? 'exists' : 'null');
+    devLog('📌 AuthData retrieved:', authData ? 'exists' : 'null');
     
     const { id: userId, username } = authData ? JSON.parse(authData) : { id: null, username: 'Anonymous' };
-    console.log(`📌 Connecting to /chat namespace as ${username} (${userId}) at ${API_BASE_URL}/chat`);
+    devLog(`📌 Connecting to /chat namespace as ${username} (${userId}) at ${API_BASE_URL}/chat`);
     
     chatSocket = io(`${API_BASE_URL}/chat`, {
       auth: {
@@ -224,11 +225,11 @@ export const getChatSocket = async () => {
     });
 
     chatSocket.on('connect', () => {
-      console.log(`✅ Chat socket connected to /chat namespace! ID: ${chatSocket?.id}`);
+      devLog(`✅ Chat socket connected to /chat namespace! ID: ${chatSocket?.id}`);
     });
 
     chatSocket.on('disconnect', (reason: string) => {
-      console.log('🔌 Chat socket disconnected:', reason);
+      devLog('🔌 Chat socket disconnected:', reason);
     });
 
     chatSocket.on('connect_error', (err: Error) => {
@@ -239,7 +240,7 @@ export const getChatSocket = async () => {
       console.error(`❌ Chat socket received error event:`, err);
     });
 
-    console.log('📌 Chat socket created, returning...');
+    devLog('📌 Chat socket created, returning...');
     return chatSocket;
   } catch (error) {
     console.error('❌ getChatSocket() error:', error);
@@ -251,12 +252,12 @@ export const disconnectSocket = () => {
   if (socket) {
     socket.disconnect();
     socket = null;
-    console.log('🔌 Socket disconnected');
+    devLog('🔌 Socket disconnected');
   }
   if (chatSocket) {
     chatSocket.disconnect();
     chatSocket = null;
-    console.log('🔌 Chat Socket disconnected');
+    devLog('🔌 Chat Socket disconnected');
   }
 };
 

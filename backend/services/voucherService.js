@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const { getRedisClient } = require('../redis');
 const { addCredits } = require('./creditService');
 const { generateMessageId } = require('../utils/idGenerator');
@@ -271,7 +272,7 @@ const claimVoucher = async (userId, inputCode) => {
 
 const broadcastVoucherAnnouncement = async (voucher) => {
   if (!ioInstance) {
-    console.log('No IO instance for voucher broadcast');
+    logger.info('No IO instance for voucher broadcast');
     return;
   }
   
@@ -302,11 +303,11 @@ const broadcastVoucherAnnouncement = async (voucher) => {
       targetRooms
     );
     
-    console.log(`📢 Broadcasting voucher to ${result.rows.length} target rooms: ${result.rows.map(r => `${r.name}(${r.id})`).join(', ')}`);
+    logger.info(`📢 Broadcasting voucher to ${result.rows.length} target rooms: ${result.rows.map(r => `${r.name}(${r.id})`).join(', ')}`);
     
     for (const room of result.rows) {
       const roomSocketId = `room:${room.id}`;
-      console.log(`📢 Emitting voucher to socket room: ${roomSocketId}`);
+      logger.info(`📢 Emitting voucher to socket room: ${roomSocketId}`);
       
       ioInstance.to(roomSocketId).emit('chat:message', {
         id: generateMessageId(),
@@ -324,7 +325,7 @@ const broadcastVoucherAnnouncement = async (voucher) => {
     console.error('Error broadcasting to rooms:', error);
   }
   
-  console.log(`📢 Voucher broadcast: ${voucher.code} - Pool ${voucher.totalPool} COINS for ${VOUCHER_CONFIG.maxClaimers} users`);
+  logger.info(`📢 Voucher broadcast: ${voucher.code} - Pool ${voucher.totalPool} COINS for ${VOUCHER_CONFIG.maxClaimers} users`);
 };
 
 const startVoucherGenerator = (io) => {
@@ -345,7 +346,7 @@ const startVoucherGenerator = (io) => {
   
   voucherInterval = setInterval(generateAndBroadcast, VOUCHER_CONFIG.intervalMinutes * 60 * 1000);
   
-  console.log(`🎫 Voucher generator started - every ${VOUCHER_CONFIG.intervalMinutes} minutes, pool: ${VOUCHER_CONFIG.totalPool} COINS`);
+  logger.info(`🎫 Voucher generator started - every ${VOUCHER_CONFIG.intervalMinutes} minutes, pool: ${VOUCHER_CONFIG.totalPool} COINS`);
 };
 
 const stopVoucherGenerator = () => {
@@ -353,12 +354,12 @@ const stopVoucherGenerator = () => {
     clearInterval(voucherInterval);
     voucherInterval = null;
   }
-  console.log('🎫 Voucher generator stopped');
+  logger.info('🎫 Voucher generator stopped');
 };
 
 const updateVoucherConfig = (config) => {
   Object.assign(VOUCHER_CONFIG, config);
-  console.log('🎫 Voucher config updated:', VOUCHER_CONFIG);
+  logger.info('🎫 Voucher config updated:', VOUCHER_CONFIG);
 };
 
 module.exports = {

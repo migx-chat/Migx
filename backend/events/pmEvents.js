@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const messageService = require('../services/messageService');
 const userService = require('../services/userService');
 const { getUserSocket, getPresence, getSession } = require('../utils/presence');
@@ -11,7 +12,7 @@ module.exports = (io, socket) => {
     try {
       let { fromUserId, fromUsername, toUserId, toUsername, message, clientMsgId } = data;
 
-      console.log('📩 PM:SEND received:', { fromUserId, fromUsername, toUserId, toUsername, message: message?.substring(0, 50) });
+      logger.info('📩 PM:SEND received:', { fromUserId, fromUsername, toUserId, toUsername, message: message?.substring(0, 50) });
 
       // Allow sending by username if toUserId not provided
       if (!toUserId && toUsername) {
@@ -48,10 +49,10 @@ module.exports = (io, socket) => {
       const targetName = targetUser?.username || toUsername;
       const targetPresence = await getPresence(targetName);
       
-      console.log(`🔍 PM presence check: ${targetName} = ${targetPresence}`);
+      logger.info(`🔍 PM presence check: ${targetName} = ${targetPresence}`);
       
       if (targetPresence === 'busy') {
-        console.log(`❌ PM blocked: ${targetName} is busy`);
+        logger.info(`❌ PM blocked: ${targetName} is busy`);
         socket.emit('pm:error', {
           toUserId: String(toUserId),
           toUsername: targetName,
@@ -62,7 +63,7 @@ module.exports = (io, socket) => {
       }
       
       if (targetPresence === 'away') {
-        console.log(`❌ PM blocked: ${targetName} is away`);
+        logger.info(`❌ PM blocked: ${targetName} is away`);
         socket.emit('pm:error', {
           toUserId: String(toUserId),
           toUsername: targetName,
@@ -265,7 +266,7 @@ module.exports = (io, socket) => {
 
       // 🔑 EMIT TO USER CHANNEL - ALL TABS receive PM
       io.to(`user:${toUserId}`).emit('pm:receive', messageData);
-      console.log(`📩 PM delivered to ALL tabs of user:${toUserId} (${recipientUsername})`);
+      logger.info(`📩 PM delivered to ALL tabs of user:${toUserId} (${recipientUsername})`);
 
       // Echo back to sender's all tabs
       io.to(`user:${fromUserId}`).emit('pm:sent', messageData);
