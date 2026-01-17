@@ -2,42 +2,10 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
-def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
-
-react {
-    entryFile = file(["node", "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "absolute"]
-            .execute(null, rootDir).text.trim())
-
-    reactNativeDir = new File(
-            ["node", "--print", "require.resolve('react-native/package.json')"]
-                    .execute(null, rootDir).text.trim()
-    ).getParentFile().getAbsoluteFile()
-
-    hermesCommand = reactNativeDir.getAbsolutePath() + "/sdks/hermesc/%OS-BIN%/hermesc"
-
-    codegenDir = new File(
-            ["node", "--print", "require.resolve('@react-native/codegen/package.json')"]
-                    .execute(null, rootDir).text.trim()
-    ).getParentFile().getAbsoluteFile()
-
-    cliFile = new File(
-            ["node", "--print", "require.resolve('@expo/cli')"]
-                    .execute(null, rootDir).text.trim()
-    )
-
-    bundleCommand = "export:embed"
-    autolinkLibrariesWithApp()
-}
-
-def enableMinifyInReleaseBuilds =
-        (findProperty('android.enableMinifyInReleaseBuilds') ?: false).toBoolean()
-
-def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
-
 android {
     namespace "com.migx.app"
 
-    compileSdk rootProject.ext.compileSdkVersion
+    compileSdkVersion rootProject.ext.compileSdkVersion
     ndkVersion rootProject.ext.ndkVersion
 
     defaultConfig {
@@ -45,19 +13,14 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.1.0"
+        versionName "1.0.1"
 
-        // ✅ ARM ONLY (INI YANG PENTING)
+        // ✅ ARM64 ONLY (APK kecil)
         ndk {
             abiFilters "arm64-v8a"
         }
-
-        buildConfigField "String",
-                "REACT_NATIVE_RELEASE_LEVEL",
-                "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
 
-    // ✅ APK KECIL
     splits {
         abi {
             enable true
@@ -69,10 +32,10 @@ android {
 
     signingConfigs {
         debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
+            storeFile file("debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
         }
     }
 
@@ -86,7 +49,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile(
-                    "proguard-android-optimize.txt"
+                "proguard-android-optimize.txt"
             ), "proguard-rules.pro"
         }
     }
@@ -96,33 +59,14 @@ android {
             useLegacyPackaging false
         }
     }
-
-    androidResources {
-        ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!*~'
-    }
 }
 
 dependencies {
     implementation("com.facebook.react:react-android")
 
-    def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true"
-    def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true"
-    def isWebpAnimatedEnabled = (findProperty('expo.webp.animated') ?: "") == "true"
-
-    if (isGifEnabled) {
-        implementation("com.facebook.fresco:animated-gif:${expoLibs.versions.fresco.get()}")
-    }
-
-    if (isWebpEnabled) {
-        implementation("com.facebook.fresco:webpsupport:${expoLibs.versions.fresco.get()}")
-        if (isWebpAnimatedEnabled) {
-            implementation("com.facebook.fresco:animated-webp:${expoLibs.versions.fresco.get()}")
-        }
-    }
-
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
-        implementation jscFlavor
+        implementation("io.github.react-native-community:jsc-android")
     }
 }
