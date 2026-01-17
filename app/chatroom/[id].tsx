@@ -493,6 +493,29 @@ export default function ChatRoomScreen() {
         console.log('📩 [PM] Synced sent PM to:', data.toUsername, 'id:', data.toUserId);
       });
 
+      // 🔑 PM ERROR HANDLER - Show error when recipient is busy/away
+      newSocket.on('pm:error', (data: any) => {
+        console.log('📩 [PM-ERROR] Error sending PM:', data.message, 'to:', data.toUsername);
+        
+        const { addPrivateMessage } = useRoomTabsStore.getState();
+        const targetUserId = data.toUserId;
+        
+        if (targetUserId) {
+          // Add error as system message in PM chat
+          const errorMessage: Message = {
+            id: `error-${Date.now()}`,
+            username: 'System',
+            message: data.message,
+            messageType: 'system',
+            type: 'system',
+            timestamp: new Date().toISOString(),
+            isSystem: true,
+          };
+          
+          addPrivateMessage(targetUserId, errorMessage);
+        }
+      });
+
       // 🔴 SERVER RESTART HANDLER - MIG33 style: disconnect all, redirect to login
       let serverRestartHandled = false;
       newSocket.on('server:restarting', async (data: any) => {

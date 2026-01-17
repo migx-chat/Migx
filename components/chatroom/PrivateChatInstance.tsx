@@ -88,7 +88,7 @@ export const PrivateChatInstance = React.memo(function PrivateChatInstance({
     };
   }, []);
 
-  // Listen for PM errors (busy/away status)
+  // Listen for PM errors (busy/away status) - show as chat message
   useEffect(() => {
     const socket = useRoomTabsStore.getState().socket;
     if (!socket) return;
@@ -96,7 +96,17 @@ export const PrivateChatInstance = React.memo(function PrivateChatInstance({
     const handlePmError = (data: { toUserId: string; toUsername: string; message: string; type: string }) => {
       // Only show error if it's for this chat
       if (data.toUserId === userId || data.toUsername === targetUsername) {
-        Alert.alert('Message Not Sent', data.message);
+        // Show error as a system message in chat instead of popup
+        const addPrivateMessage = useRoomTabsStore.getState().addPrivateMessage;
+        addPrivateMessage(userId, {
+          id: `error-${Date.now()}`,
+          username: 'System',
+          message: data.message,
+          messageType: 'system',
+          type: 'system',
+          timestamp: new Date().toISOString(),
+          isSystem: true,
+        });
       }
     };
 
