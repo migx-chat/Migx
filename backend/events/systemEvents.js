@@ -301,6 +301,18 @@ module.exports = (io, socket) => {
             users: userList
           });
           
+          // Emit chatlist:update to notify chatlist/currently tab
+          io.to(`user:${username}`).emit('chatlist:update', {
+            roomId,
+            action: 'left'
+          });
+          
+          // Also emit directly to socket as fallback
+          socket.emit('chatlist:update', {
+            roomId,
+            action: 'left'
+          });
+          
           // Send system message that user has left (force logout)
           io.to(`room:${roomId}`).emit('chat:message', {
             roomId,
