@@ -716,179 +716,239 @@ module.exports = (io, socket) => {
 
         // Handle /suspend command - suspend user account (admin only)
         if (cmdKey === 'suspend') {
-          const userService = require('../services/userService');
-          const db = require('../db/db');
-          
-          // Check permission - only admin or super_admin
-          const allowedRoles = ['admin', 'super_admin'];
-          const currentUser = await userService.getUserById(userId);
-          
-          if (!currentUser || !allowedRoles.includes(currentUser.role)) {
-            socket.emit('system:message', {
+          try {
+            const userService = require('../services/userService');
+            const db = require('../db/db');
+            
+            // Check permission - only admin or super_admin
+            const allowedRoles = ['admin', 'super_admin'];
+            const currentUser = await userService.getUserById(userId);
+            
+            if (!currentUser || !allowedRoles.includes(currentUser.role)) {
+              socket.emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                username: 'System',
+                message: `Only admin can use /suspend command`,
+                messageType: 'cmd',
+                type: 'cmd',
+                timestamp: new Date().toISOString(),
+                isPrivate: true
+              });
+              return;
+            }
+            
+            const targetUsername = parts[1];
+            if (!targetUsername) {
+              socket.emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                username: 'System',
+                message: `Usage: /suspend <username>`,
+                messageType: 'cmd',
+                type: 'cmd',
+                timestamp: new Date().toISOString(),
+                isPrivate: true
+              });
+              return;
+            }
+            
+            const targetUser = await userService.getUserByUsername(targetUsername);
+            if (!targetUser) {
+              socket.emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                username: 'System',
+                message: `User "${targetUsername}" not found`,
+                messageType: 'cmd',
+                type: 'cmd',
+                timestamp: new Date().toISOString(),
+                isPrivate: true
+              });
+              return;
+            }
+            
+            // Can't suspend admin or super_admin
+            if (allowedRoles.includes(targetUser.role)) {
+              socket.emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                username: 'System',
+                message: `Cannot suspend admin accounts`,
+                messageType: 'cmd',
+                type: 'cmd',
+                timestamp: new Date().toISOString(),
+                isPrivate: true
+              });
+              return;
+            }
+            
+            // Update user status to suspended with timestamp and admin info
+            await db.query(
+              'UPDATE users SET status = $1, suspended_at = NOW(), suspended_by = $2 WHERE id = $3', 
+              ['suspended', username, targetUser.id]
+            );
+            
+            console.log(`[SUSPEND] User ${targetUsername} suspended by ${username}`);
+            
+            // Broadcast to room
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
               roomId,
-              message: `Only admin can use /suspend command`,
+              username: 'System',
+              message: `${targetUsername} Has Been suspended by administrator ${username}`,
+              messageType: 'system',
+              type: 'system',
               timestamp: new Date().toISOString(),
-              type: 'warning'
+              isSystem: true
             });
-            return;
-          }
-          
-          const targetUsername = parts[1];
-          if (!targetUsername) {
-            socket.emit('system:message', {
+            
+            // Also send confirmation to admin
+            socket.emit('chat:message', {
+              id: generateMessageId(),
               roomId,
-              message: `Usage: /suspend <username>`,
+              username: 'System',
+              message: `✅ Successfully suspended user: ${targetUsername}`,
+              messageType: 'cmd',
+              type: 'cmd',
               timestamp: new Date().toISOString(),
-              type: 'warning'
+              isPrivate: true
             });
-            return;
-          }
-          
-          const targetUser = await userService.getUserByUsername(targetUsername);
-          if (!targetUser) {
-            socket.emit('system:message', {
+            
+            // Kick user from all rooms by emitting disconnect event
+            io.to(`user:${targetUser.id}`).emit('user:suspended', {
+              message: 'Your account has been suspended. Please contact support.'
+            });
+          } catch (error) {
+            console.error('[SUSPEND] Error:', error);
+            socket.emit('chat:message', {
+              id: generateMessageId(),
               roomId,
-              message: `User "${targetUsername}" not found`,
+              username: 'System',
+              message: `Failed to suspend user: ${error.message}`,
+              messageType: 'cmd',
+              type: 'cmd',
               timestamp: new Date().toISOString(),
-              type: 'warning'
+              isPrivate: true
             });
-            return;
           }
-          
-          // Can't suspend admin or super_admin
-          if (allowedRoles.includes(targetUser.role)) {
-            socket.emit('system:message', {
-              roomId,
-              message: `Cannot suspend admin accounts`,
-              timestamp: new Date().toISOString(),
-              type: 'warning'
-            });
-            return;
-          }
-          
-          // Update user status to suspended with timestamp and admin info
-          await db.query(
-            'UPDATE users SET status = $1, suspended_at = NOW(), suspended_by = $2 WHERE id = $3', 
-            ['suspended', username, targetUser.id]
-          );
-          
-          console.log(`[SUSPEND] User ${targetUsername} suspended by ${username}`);
-          
-          // Broadcast to room
-          io.to(`room:${roomId}`).emit('chat:message', {
-            id: generateMessageId(),
-            roomId,
-            username: 'System',
-            message: `${targetUsername} Has Been suspended by administrator ${username}`,
-            messageType: 'system',
-            type: 'system',
-            timestamp: new Date().toISOString(),
-            isSystem: true
-          });
-          
-          // Also send confirmation to admin
-          socket.emit('chat:message', {
-            id: generateMessageId(),
-            roomId,
-            username: 'System',
-            message: `✅ Successfully suspended user: ${targetUsername}`,
-            messageType: 'cmd',
-            type: 'cmd',
-            timestamp: new Date().toISOString(),
-            isPrivate: true
-          });
-          
-          // Kick user from all rooms by emitting disconnect event
-          io.to(`user:${targetUser.id}`).emit('user:suspended', {
-            message: 'Your account has been suspended. Please contact support.'
-          });
           
           return;
         }
 
         // Handle /unsuspend command - unsuspend user account (admin only)
         if (cmdKey === 'unsuspend') {
-          const userService = require('../services/userService');
-          const db = require('../db/db');
-          
-          // Check permission - only admin or super_admin
-          const allowedRoles = ['admin', 'super_admin'];
-          const currentUser = await userService.getUserById(userId);
-          
-          if (!currentUser || !allowedRoles.includes(currentUser.role)) {
-            socket.emit('system:message', {
+          try {
+            const userService = require('../services/userService');
+            const db = require('../db/db');
+            
+            // Check permission - only admin or super_admin
+            const allowedRoles = ['admin', 'super_admin'];
+            const currentUser = await userService.getUserById(userId);
+            
+            if (!currentUser || !allowedRoles.includes(currentUser.role)) {
+              socket.emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                username: 'System',
+                message: `Only admin can use /unsuspend command`,
+                messageType: 'cmd',
+                type: 'cmd',
+                timestamp: new Date().toISOString(),
+                isPrivate: true
+              });
+              return;
+            }
+            
+            const targetUsername = parts[1];
+            if (!targetUsername) {
+              socket.emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                username: 'System',
+                message: `Usage: /unsuspend <username>`,
+                messageType: 'cmd',
+                type: 'cmd',
+                timestamp: new Date().toISOString(),
+                isPrivate: true
+              });
+              return;
+            }
+            
+            const targetUser = await userService.getUserByUsername(targetUsername);
+            if (!targetUser) {
+              socket.emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                username: 'System',
+                message: `User "${targetUsername}" not found`,
+                messageType: 'cmd',
+                type: 'cmd',
+                timestamp: new Date().toISOString(),
+                isPrivate: true
+              });
+              return;
+            }
+            
+            // Check if user is actually suspended
+            if (targetUser.status !== 'suspended') {
+              socket.emit('chat:message', {
+                id: generateMessageId(),
+                roomId,
+                username: 'System',
+                message: `${targetUsername} is not suspended`,
+                messageType: 'cmd',
+                type: 'cmd',
+                timestamp: new Date().toISOString(),
+                isPrivate: true
+              });
+              return;
+            }
+            
+            // Update user status to offline and clear suspension fields
+            await db.query(
+              'UPDATE users SET status = $1, suspended_at = NULL, suspended_by = NULL WHERE id = $2', 
+              ['offline', targetUser.id]
+            );
+            
+            console.log(`[UNSUSPEND] User ${targetUsername} unsuspended by ${username}`);
+            
+            // Broadcast to room
+            io.to(`room:${roomId}`).emit('chat:message', {
+              id: generateMessageId(),
               roomId,
-              message: `Only admin can use /unsuspend command`,
+              username: 'System',
+              message: `${targetUsername} Has Been unsuspend by administrator ${username}`,
+              messageType: 'system',
+              type: 'system',
               timestamp: new Date().toISOString(),
-              type: 'warning'
+              isSystem: true
             });
-            return;
-          }
-          
-          const targetUsername = parts[1];
-          if (!targetUsername) {
-            socket.emit('system:message', {
+            
+            // Also send confirmation to admin
+            socket.emit('chat:message', {
+              id: generateMessageId(),
               roomId,
-              message: `Usage: /unsuspend <username>`,
+              username: 'System',
+              message: `✅ Successfully unsuspended user: ${targetUsername}`,
+              messageType: 'cmd',
+              type: 'cmd',
               timestamp: new Date().toISOString(),
-              type: 'warning'
+              isPrivate: true
             });
-            return;
-          }
-          
-          const targetUser = await userService.getUserByUsername(targetUsername);
-          if (!targetUser) {
-            socket.emit('system:message', {
+          } catch (error) {
+            console.error('[UNSUSPEND] Error:', error);
+            socket.emit('chat:message', {
+              id: generateMessageId(),
               roomId,
-              message: `User "${targetUsername}" not found`,
+              username: 'System',
+              message: `Failed to unsuspend user: ${error.message}`,
+              messageType: 'cmd',
+              type: 'cmd',
               timestamp: new Date().toISOString(),
-              type: 'warning'
+              isPrivate: true
             });
-            return;
           }
-          
-          // Check if user is actually suspended
-          if (targetUser.status !== 'suspended') {
-            socket.emit('system:message', {
-              roomId,
-              message: `${targetUsername} is not suspended`,
-              timestamp: new Date().toISOString(),
-              type: 'info'
-            });
-            return;
-          }
-          
-          // Update user status to offline and clear suspension fields
-          await db.query(
-            'UPDATE users SET status = $1, suspended_at = NULL, suspended_by = NULL WHERE id = $2', 
-            ['offline', targetUser.id]
-          );
-          
-          console.log(`[UNSUSPEND] User ${targetUsername} unsuspended by ${username}`);
-          
-          // Broadcast to room
-          io.to(`room:${roomId}`).emit('chat:message', {
-            id: generateMessageId(),
-            roomId,
-            username: 'System',
-            message: `${targetUsername} Has Been unsuspend by administrator ${username}`,
-            messageType: 'system',
-            type: 'system',
-            timestamp: new Date().toISOString(),
-            isSystem: true
-          });
-          
-          // Also send confirmation to admin
-          socket.emit('chat:message', {
-            id: generateMessageId(),
-            roomId,
-            username: 'System',
-            message: `✅ Successfully unsuspended user: ${targetUsername}`,
-            messageType: 'cmd',
-            type: 'cmd',
-            timestamp: new Date().toISOString(),
-            isPrivate: true
-          });
           
           return;
         }
