@@ -110,6 +110,7 @@ router.get('/list/:username', async (req, res) => {
     try {
       // Get all DM conversations from user:dm:${username} set
       const dmDataSet = await redis.sMembers(`user:dm:${username}`);
+      console.log(`📩 DM set for ${username}:`, dmDataSet);
       
       for (const dmData of dmDataSet) {
         try {

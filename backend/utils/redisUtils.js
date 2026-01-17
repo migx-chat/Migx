@@ -477,7 +477,8 @@ const addUserDM = async (username, targetUsername) => {
   try {
     const redis = getRedisClient();
     const dmData = JSON.stringify({ username: targetUsername, addedAt: Date.now() });
-    await redis.sAdd(`user:dm:${username}`, dmData);
+    const result = await redis.sAdd(`user:dm:${username}`, dmData);
+    console.log(`📩 addUserDM: Added ${targetUsername} to user:dm:${username} (result: ${result})`);
     return true;
   } catch (error) {
     console.error('Error adding user DM:', error);
